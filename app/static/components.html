@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Component spec — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  /* Spec page layout */
+  .spec{display:grid;grid-template-columns:200px 1fr;gap:28px}
+  .toc{position:sticky;top:80px;align-self:start;display:flex;flex-direction:column;gap:1px;font-size:12px}
+  .toc h4{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);padding:14px 10px 6px;margin:0}
+  .toc a{display:block;padding:6px 10px;border-radius:5px;color:var(--ink-soft)}
+  .toc a:hover{background:var(--paper-3);color:var(--ink)}
+  .specmain{display:flex;flex-direction:column;gap:36px;max-width:1000px;min-width:0}
+  .group{border:1px solid var(--rule);background:#fffdfb;border-radius:6px;box-shadow:var(--shadow);overflow:hidden}
+  .group > header{padding:18px 24px;border-bottom:1px solid var(--rule);display:flex;align-items:baseline;justify-content:space-between;gap:12px;background:var(--paper-2)}
+  .group > header h2{font-family:'Fraunces';font-weight:700;font-size:18px;margin:0}
+  .group > header .tag{font-family:'JetBrains Mono';font-size:10px;color:var(--ink-mute)}
+  .group .body{padding:24px;display:flex;flex-direction:column;gap:24px}
+  .row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 16px;border:1px dashed var(--rule);border-radius:6px;background:var(--paper-2)}
+  .row .label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);min-width:120px;flex-shrink:0}
+  .palette{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+  .swatch{border:1px solid var(--rule);border-radius:6px;overflow:hidden;background:var(--paper)}
+  .swatch .chip{height:64px}
+  .swatch .meta{padding:8px 10px;font-size:10px;font-family:'JetBrains Mono'}
+  .swatch .meta b{display:block;font-family:'Inter Tight';font-weight:600;font-size:11px;color:var(--ink);margin-bottom:2px}
+  .typestack{display:flex;flex-direction:column;gap:14px}
+  .typestack .ex{display:flex;align-items:baseline;gap:18px;border-bottom:1px dashed var(--rule);padding-bottom:10px}
+  .typestack .ex:last-child{border-bottom:0}
+  .typestack .ex .lbl{font-family:'JetBrains Mono';font-size:10px;color:var(--ink-mute);min-width:160px}
+  .scale{display:flex;align-items:flex-end;gap:8px}
+  .scale .step{background:var(--accent);border-radius:3px;color:#fff;font-family:'JetBrains Mono';font-size:9px;display:grid;place-items:end;padding:4px 6px}
+  /* toast */
+  .toast{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--rule);background:#fffdfb;border-radius:6px;box-shadow:var(--shadow);max-width:420px}
+  .toast .ic{width:24px;height:24px;border-radius:5px;display:grid;place-items:center;flex-shrink:0}
+  .toast .ic.good{background:var(--good-bg);color:var(--good-fg)}
+  .toast .ic.pri{background:var(--pri-bg);color:var(--pri-fg)}
+  .toast .ic.wat{background:var(--wat-bg);color:var(--wat-fg)}
+  .toast .ic.acc{background:#eef0f7;color:var(--accent)}
+  .toast .ic .ms{font-size:16px}
+  .toast .body{flex:1}
+  .toast .body b{display:block;font-size:12px;font-weight:600;margin-bottom:2px}
+  .toast .body small{display:block;font-size:11px;color:var(--ink-mute);line-height:1.5}
+  .toast .x{color:var(--ink-mute);cursor:pointer}
+  /* mock modal */
+  .mock-modal{border:1px solid var(--rule);background:#fffdfb;border-radius:8px;box-shadow:0 12px 32px rgba(30,27,26,.12),0 2px 6px rgba(30,27,26,.06);max-width:480px}
+  .mock-modal header{padding:20px 24px 8px}
+  .mock-modal header h3{font-family:'Fraunces';font-weight:700;font-size:18px;margin:0 0 4px}
+  .mock-modal header p{margin:0;font-size:12px;color:var(--ink-mute)}
+  .mock-modal .body{padding:14px 24px}
+  .mock-modal footer{padding:14px 24px;border-top:1px solid var(--rule);background:var(--paper-2);border-radius:0 0 8px 8px;display:flex;gap:8px;justify-content:flex-end}
+  /* mock drawer */
+  .mock-drawer{border:1px solid var(--rule);background:#fffdfb;border-radius:8px;box-shadow:var(--shadow);max-width:380px;display:flex;flex-direction:column}
+  .mock-drawer header{padding:18px 22px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between}
+  .mock-drawer header h3{font-family:'Fraunces';font-weight:700;font-size:16px;margin:0}
+  .mock-drawer .body{padding:18px 22px}
+  /* avatars */
+  .ava{display:inline-grid;place-items:center;border-radius:999px;color:#fff;font-weight:700;font-size:11px}
+  .ava.sm{width:24px;height:24px;font-size:9px}
+  .ava.md{width:32px;height:32px}
+  .ava.lg{width:42px;height:42px;font-size:13px}
+  /* skeleton */
+  .sk{background:linear-gradient(90deg,var(--paper-3) 25%,var(--paper-2) 50%,var(--paper-3) 75%);background-size:200% 100%;animation:sh 1.4s infinite;border-radius:4px}
+  @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  /* code chip */
+  code.k{font-family:'JetBrains Mono';font-size:10px;background:var(--paper-3);border:1px solid var(--rule);padding:1px 5px;border-radius:3px;color:var(--ink)}
+  /* responsive */
+  @media (max-width:900px){.spec{grid-template-columns:1fr}.toc{position:static;flex-direction:row;flex-wrap:wrap;border-bottom:1px solid var(--rule);padding-bottom:8px}.palette{grid-template-columns:repeat(3,1fr)}}
+</style></head>
+<body>
+<div class="app" id="app-root">
+  <main>
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <h1 class="serif">Component spec</h1>
+          <p>Every primitive in every state. The contract for the Jinja templates. If a component isn't on this page, it doesn't exist in the product.</p>
+        </div>
+        <div class="head-actions">
+          <span class="pill accent">v1.0 · 2026-04-07</span>
+        </div>
+      </div>
+
+      <div class="spec">
+        <nav class="toc">
+          <h4>Foundations</h4>
+          <a href="#color">Color</a>
+          <a href="#type">Typography</a>
+          <a href="#space">Spacing</a>
+          <h4>Primitives</h4>
+          <a href="#button">Buttons</a>
+          <a href="#field">Form fields</a>
+          <a href="#pill">Pills &amp; chips</a>
+          <a href="#avatar">Avatars</a>
+          <h4>Patterns</h4>
+          <a href="#card">Cards</a>
+          <a href="#table">Tables</a>
+          <a href="#toast">Toasts</a>
+          <a href="#modal">Modals</a>
+          <a href="#drawer">Drawers</a>
+          <a href="#empty">Empty &amp; loading</a>
+        </nav>
+
+        <div class="specmain">
+
+          <section class="group" id="color">
+            <header><h2 class="serif">Color tokens</h2><span class="tag">_shell.css :root</span></header>
+            <div class="body">
+              <div class="palette">
+                <div class="swatch"><div class="chip" style="background:#fff8f6"></div><div class="meta"><b>paper</b>#fff8f6</div></div>
+                <div class="swatch"><div class="chip" style="background:#f9f2f0"></div><div class="meta"><b>paper-2</b>#f9f2f0</div></div>
+                <div class="swatch"><div class="chip" style="background:#f4ecea"></div><div class="meta"><b>paper-3</b>#f4ecea</div></div>
+                <div class="swatch"><div class="chip" style="background:#1e1b1a"></div><div class="meta" style="color:#fff;background:#1e1b1a"><b style="color:#fff">ink</b>#1e1b1a</div></div>
+                <div class="swatch"><div class="chip" style="background:#4f453f"></div><div class="meta" style="color:#fff;background:#4f453f"><b style="color:#fff">ink-soft</b>#4f453f</div></div>
+                <div class="swatch"><div class="chip" style="background:#81756f"></div><div class="meta"><b>ink-mute</b>#81756f</div></div>
+                <div class="swatch"><div class="chip" style="background:#1B2B5E"></div><div class="meta"><b>accent</b>#1B2B5E</div></div>
+                <div class="swatch"><div class="chip" style="background:#72594c"></div><div class="meta"><b>brand</b>#72594c</div></div>
+                <div class="swatch"><div class="chip" style="background:#C9A449"></div><div class="meta"><b>gold</b>#C9A449</div></div>
+                <div class="swatch"><div class="chip" style="background:#B91C1C"></div><div class="meta"><b>priority</b>#B91C1C</div></div>
+                <div class="swatch"><div class="chip" style="background:#C2741C"></div><div class="meta"><b>elevated</b>#C2741C</div></div>
+                <div class="swatch"><div class="chip" style="background:#3F7A4F"></div><div class="meta"><b>good</b>#3F7A4F</div></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="group" id="type">
+            <header><h2 class="serif">Typography</h2><span class="tag">Fraunces · Inter Tight · JetBrains Mono</span></header>
+            <div class="body">
+              <div class="typestack">
+                <div class="ex"><span class="lbl">display / 36 / 900</span><span class="serif" style="font-size:36px;font-weight:900;letter-spacing:-.02em">Walk into Monday ready.</span></div>
+                <div class="ex"><span class="lbl">h1 / 28 / 900</span><span class="serif" style="font-size:28px;font-weight:900;letter-spacing:-.02em">Risk cockpit</span></div>
+                <div class="ex"><span class="lbl">h2 / 18 / 700</span><span class="serif" style="font-size:18px;font-weight:700">Active risk register</span></div>
+                <div class="ex"><span class="lbl">body / 13 / 500</span><span style="font-size:13px">Three priority risks require your attention before the 4pm IC meeting.</span></div>
+                <div class="ex"><span class="lbl">small / 11 / 500</span><span style="font-size:11px;color:var(--ink-soft)">Last verified seq 0x4a8c2f · 12,408 events</span></div>
+                <div class="ex"><span class="lbl">label / 10 / 700</span><span class="uplabel">Workspace</span></div>
+                <div class="ex"><span class="lbl">numeric / mono / tnum</span><span class="mono" style="font-size:18px;font-weight:600">$1,247,832,410</span></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="group" id="space">
+            <header><h2 class="serif">Spacing scale</h2><span class="tag">4px base · 4 / 6 / 8 / 12 / 16 / 20 / 24 / 32 / 48</span></header>
+            <div class="body">
+              <div class="scale">
+                <div class="step" style="width:4px;height:24px">4</div>
+                <div class="step" style="width:6px;height:32px">6</div>
+                <div class="step" style="width:8px;height:40px">8</div>
+                <div class="step" style="width:12px;height:48px">12</div>
+                <div class="step" style="width:16px;height:56px">16</div>
+                <div class="step" style="width:20px;height:64px">20</div>
+                <div class="step" style="width:24px;height:72px">24</div>
+                <div class="step" style="width:32px;height:80px">32</div>
+                <div class="step" style="width:48px;height:96px">48</div>
+              </div>
+              <div style="font-size:11px;color:var(--ink-mute)">Border radius: <code class="k">4</code> inputs · <code class="k">5</code> nav · <code class="k">6</code> cards/btns · <code class="k">8</code> modals · <code class="k">999</code> pills/avatars</div>
+            </div>
+          </section>
+
+          <section class="group" id="button">
+            <header><h2 class="serif">Buttons</h2><span class="tag">.btn · .btn.primary · .btn.ghost</span></header>
+            <div class="body">
+              <div class="row">
+                <span class="label">Primary</span>
+                <button class="btn primary">Save changes</button>
+                <button class="btn primary"><span class="ms">auto_awesome</span>Generate briefing</button>
+                <button class="btn primary" disabled style="opacity:.5;cursor:not-allowed">Disabled</button>
+              </div>
+              <div class="row">
+                <span class="label">Secondary</span>
+                <button class="btn">Cancel</button>
+                <button class="btn"><span class="ms">file_download</span>Export CSV</button>
+                <button class="btn" style="background:var(--paper-4)">Hover</button>
+              </div>
+              <div class="row">
+                <span class="label">Ghost</span>
+                <button class="btn ghost">Skip for now</button>
+                <button class="btn ghost"><span class="ms">expand_more</span>Load earlier</button>
+              </div>
+              <div class="row">
+                <span class="label">Destructive</span>
+                <button class="btn" style="background:#fff;border-color:#f3d4d0;color:var(--pri-fg)">Delete workspace</button>
+              </div>
+              <div class="row">
+                <span class="label">Icon only</span>
+                <button class="iconbtn"><span class="ms">notifications</span></button>
+                <button class="iconbtn"><span class="ms">help</span></button>
+                <button class="iconbtn"><span class="ms">more_horiz</span></button>
+              </div>
+            </div>
+          </section>
+
+          <section class="group" id="field">
+            <header><h2 class="serif">Form fields</h2><span class="tag">.field</span></header>
+            <div class="body">
+              <div class="row" style="gap:18px">
+                <div class="field" style="min-width:220px"><label>Workspace name</label><input value="Aldridge Family Office"/></div>
+                <div class="field" style="min-width:220px"><label>Slug</label><input class="mono" value="aldridge-fo"/><span class="hint">Used in URLs and audit logs.</span></div>
+                <div class="field" style="min-width:220px"><label>Currency</label><select><option>USD — US Dollar</option></select></div>
+              </div>
+              <div class="row" style="gap:18px">
+                <div class="field" style="min-width:220px"><label>Focused state</label><input value="user@aldridge.fo" style="border-color:var(--accent);background:var(--paper)"/></div>
+                <div class="field" style="min-width:220px"><label>Error state</label><input value="Invalid email" style="border-color:var(--pri-fg);background:#fff8f7"/><span class="hint" style="color:var(--pri-fg)">Email must include a domain.</span></div>
+                <div class="field" style="min-width:220px"><label>Disabled</label><input value="Read-only value" disabled style="opacity:.6;cursor:not-allowed"/></div>
+              </div>
+              <div class="row">
+                <span class="label">Toggle</span>
+                <span style="display:inline-block;width:38px;height:22px;background:var(--accent);border-radius:999px;position:relative;border:1px solid var(--accent)"><span style="position:absolute;width:16px;height:16px;background:#fff;border-radius:999px;top:2px;left:18px;box-shadow:0 1px 2px rgba(0,0,0,.15)"></span></span>
+                <span style="display:inline-block;width:38px;height:22px;background:var(--paper-4);border-radius:999px;position:relative;border:1px solid var(--rule)"><span style="position:absolute;width:16px;height:16px;background:#fff;border-radius:999px;top:2px;left:2px;box-shadow:0 1px 2px rgba(0,0,0,.15)"></span></span>
+                <span style="font-size:11px;color:var(--ink-mute)">on / off</span>
+              </div>
+              <div class="row">
+                <span class="label">Checkbox</span>
+                <input type="checkbox" checked/>
+                <input type="checkbox"/>
+                <label style="font-size:12px">Email me when briefings publish</label>
+              </div>
+            </div>
+          </section>
+
+          <section class="group" id="pill">
+            <header><h2 class="serif">Pills &amp; chips</h2><span class="tag">.pill / .pill.pri / .pill.ele / .pill.wat / .pill.good / .pill.accent</span></header>
+            <div class="body">
+              <div class="row">
+                <span class="label">Severity</span>
+                <span class="pill pri">Priority</span>
+                <span class="pill ele">Elevated</span>
+                <span class="pill wat">Watch</span>
+                <span class="pill good">Good</span>
+                <span class="pill">Neutral</span>
+                <span class="pill accent">Accent</span>
+              </div>
+              <div class="row">
+                <span class="label">With dot</span>
+                <span class="pill pri"><span style="width:6px;height:6px;border-radius:999px;background:currentColor;display:inline-block"></span>1 critical</span>
+                <span class="pill good"><span style="width:6px;height:6px;border-radius:999px;background:currentColor;display:inline-block"></span>All synced</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="group" id="avatar">
+            <header><h2 class="serif">Avatars</h2><span class="tag">.ava .sm / .md / .lg</span></header>
+            <div class="body">
+              <div class="row">
+                <span class="label">Sizes</span>
+                <span class="ava sm" style="background:var(--brand)">OK</span>
+                <span class="ava md" style="background:var(--accent)">HV</span>
+                <span class="ava lg" style="background:var(--gold);color:var(--ink)">MK</span>
+              </div>
+              <div class="row">
+                <span class="label">Color tokens</span>
+                <span class="ava md" style="background:var(--brand)">OK</span>
+                <span class="ava md" style="background:var(--accent)">HV</span>
+                <span class="ava md" style="background:var(--teal)">RA</span>
+                <span class="ava md" style="background:var(--gold);color:var(--ink)">MK</span>
+                <span class="ava md" style="background:#3a4a7a">JD</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="group" id="card">
+            <header><h2 class="serif">Cards</h2><span class="tag">.card</span></header>
+            <div class="body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div class="card">
+                <h2 class="serif">Standard card</h2>
+                <div class="sub">Use for KPI panels, charts, lists.</div>
+                <div style="font-family:'JetBrains Mono';font-size:24px;font-weight:600">$18.7M</div>
+                <div style="font-size:11px;color:var(--ink-mute);margin-top:4px">1-day VaR · 99% CI</div>
+              </div>
+              <div class="card" style="border-color:var(--accent);box-shadow:0 0 0 3px rgba(27,43,94,.08)">
+                <h2 class="serif">Selected card</h2>
+                <div class="sub">Active selection state.</div>
+                <span class="pill accent">Selected</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="group" id="table">
+            <header><h2 class="serif">Tables</h2><span class="tag">table.list</span></header>
+            <div class="body">
+              <table class="list">
+                <thead><tr><th>Ticker</th><th>Name</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Market value</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td><b>SPY</b></td><td>SPDR S&amp;P 500</td><td class="num">42,500</td><td class="num">510.84</td><td class="num">21,710,700</td><td><span class="pill good">Synced</span></td></tr>
+                  <tr><td><b>NVDA</b></td><td>NVIDIA Corp</td><td class="num">14,200</td><td class="num">812.40</td><td class="num">11,536,080</td><td><span class="pill wat">Stale 2h</span></td></tr>
+                  <tr><td><b>TLT</b></td><td>20Y Treasury</td><td class="num">38,000</td><td class="num">88.62</td><td class="num">3,367,560</td><td><span class="pill pri">Failed sync</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="group" id="toast">
+            <header><h2 class="serif">Toasts</h2><span class="tag">.toast · top-right · auto-dismiss 6s</span></header>
+            <div class="body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div class="toast"><div class="ic good"><span class="ms">check</span></div><div class="body"><b>Briefing published</b><small>Sent to investment-committee@aldridge.fo · 3 recipients</small></div><span class="ms x">close</span></div>
+              <div class="toast"><div class="ic pri"><span class="ms">error</span></div><div class="body"><b>Julius Baer sync failed</b><small>HTTP 401 · token expired · marked for re-auth</small></div><span class="ms x">close</span></div>
+              <div class="toast"><div class="ic wat"><span class="ms">warning</span></div><div class="body"><b>3 unsaved changes</b><small>Manual edits to positions table will be lost on refresh</small></div><span class="ms x">close</span></div>
+              <div class="toast"><div class="ic acc"><span class="ms">smart_toy</span></div><div class="body"><b>Claude is regenerating</b><small>week-14-2026 · v2 · ~8 seconds</small></div><span class="ms x">close</span></div>
+            </div>
+          </section>
+
+          <section class="group" id="modal">
+            <header><h2 class="serif">Modals</h2><span class="tag">center · backdrop blur · esc to close</span></header>
+            <div class="body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div class="mock-modal">
+                <header><h3 class="serif">Delete workspace?</h3><p>This is permanent and cannot be undone.</p></header>
+                <div class="body">
+                  <p style="font-size:12px;color:var(--ink-soft);margin:0 0 12px">All positions, briefings, and audit history for <b>Aldridge Family Office</b> will be removed. A tombstone record will be retained for 7 years per SOC 2.</p>
+                  <div class="field"><label>Type "delete" to confirm</label><input placeholder="delete"/></div>
+                </div>
+                <footer><button class="btn ghost">Cancel</button><button class="btn" style="background:#fff;border-color:#f3d4d0;color:var(--pri-fg)">Delete forever</button></footer>
+              </div>
+              <div class="mock-modal">
+                <header><h3 class="serif">Share briefing</h3><p>week-14-2026 · v3</p></header>
+                <div class="body">
+                  <div class="field"><label>Recipients</label><input value="omar@aldridge.fo, helena@aldridge.fo"/></div>
+                  <div class="field" style="margin-top:10px"><label>Note (optional)</label><textarea rows="2" placeholder="Heads up — flagged the AI capex unwind."></textarea></div>
+                </div>
+                <footer><button class="btn ghost">Cancel</button><button class="btn primary">Send &amp; publish</button></footer>
+              </div>
+            </div>
+          </section>
+
+          <section class="group" id="drawer">
+            <header><h2 class="serif">Drawers</h2><span class="tag">slides from right · 380px desktop · full-width mobile</span></header>
+            <div class="body">
+              <div class="mock-drawer">
+                <header><h3 class="serif">SPY · detail</h3><span class="ms" style="cursor:pointer;color:var(--ink-mute)">close</span></header>
+                <div class="body">
+                  <div style="font-family:'JetBrains Mono';font-size:22px;font-weight:600">$21,710,700</div>
+                  <div style="font-size:11px;color:var(--ink-mute);margin-bottom:14px">42,500 shares · $510.84 · last edited 12 min ago</div>
+                  <div class="uplabel" style="margin-bottom:6px">Linked risks</div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <div style="display:flex;gap:8px;align-items:center;font-size:12px"><span class="pill pri">Priority</span>US tech concentration</div>
+                    <div style="display:flex;gap:8px;align-items:center;font-size:12px"><span class="pill wat">Watch</span>Beta drift</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="group" id="empty">
+            <header><h2 class="serif">Empty &amp; loading</h2><span class="tag">skeletons · empty states</span></header>
+            <div class="body">
+              <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div style="padding:18px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px">
+                  <div class="uplabel" style="margin-bottom:10px">Loading skeleton</div>
+                  <div class="sk" style="height:14px;width:70%;margin-bottom:8px"></div>
+                  <div class="sk" style="height:14px;width:90%;margin-bottom:8px"></div>
+                  <div class="sk" style="height:14px;width:60%;margin-bottom:14px"></div>
+                  <div class="sk" style="height:48px;width:100%"></div>
+                </div>
+                <div style="padding:32px 24px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px;text-align:center">
+                  <div style="width:48px;height:48px;border-radius:8px;background:var(--paper-3);border:1px solid var(--rule);display:grid;place-items:center;margin:0 auto 10px"><span class="ms" style="font-size:24px;color:var(--ink-mute)">inbox</span></div>
+                  <div class="serif" style="font-weight:700;font-size:16px;margin-bottom:4px">No risks today.</div>
+                  <div style="font-size:11px;color:var(--ink-mute);margin-bottom:14px">Your book is calm. We'll alert you when that changes.</div>
+                  <button class="btn ghost" style="font-size:11px">Run simulation</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div style="font-size:11px;color:var(--ink-mute);text-align:center;padding:24px 0">
+            End of spec · If a component is missing here, it shouldn't ship. Add it to this file first, then to the route.
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="_shell.js"></script>
+<script>CRB.mount('components.html', ['Workspace','Design','Component spec'])</script>
+</body></html>

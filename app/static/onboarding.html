@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Welcome — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  body{min-height:100vh;display:flex;flex-direction:column;background:var(--paper)}
+  .ob-top{height:64px;border-bottom:1px solid var(--rule);display:flex;align-items:center;padding:0 32px;gap:16px;background:var(--paper)}
+  .ob-top .logo{width:30px;height:30px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:'Fraunces';font-weight:900;font-size:15px}
+  .ob-top b{font-family:'Fraunces';font-weight:900;font-size:17px}
+  .ob-top .grow{flex:1}
+  .ob-top a{font-size:11px;color:var(--ink-mute);font-weight:500}
+
+  .stepper{display:flex;align-items:center;gap:0;padding:24px 32px;border-bottom:1px solid var(--rule);background:var(--paper-2);justify-content:center}
+  .stepper .step{display:flex;align-items:center;gap:10px;padding:0 18px;color:var(--ink-mute)}
+  .stepper .step .n{width:26px;height:26px;border-radius:999px;border:1px solid var(--rule);background:var(--paper);display:grid;place-items:center;font-family:'JetBrains Mono';font-size:11px;font-weight:700}
+  .stepper .step.done .n{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .stepper .step.done .n .ms{font-size:14px}
+  .stepper .step.on{color:var(--ink)}
+  .stepper .step.on .n{background:var(--paper);color:var(--accent);border-color:var(--accent);box-shadow:0 0 0 3px #eef0f7;font-weight:700}
+  .stepper .step .lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .stepper .bar{width:60px;height:1px;background:var(--rule)}
+  .stepper .bar.done{background:var(--accent)}
+
+  .stage{flex:1;display:grid;place-items:center;padding:48px 32px}
+  .panel{max-width:880px;width:100%;border:1px solid var(--rule);background:#fffdfb;border-radius:8px;box-shadow:var(--shadow);overflow:hidden}
+  .panel header{padding:36px 44px 24px}
+  .panel header .eyebrow{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+  .panel header h1{font-family:'Fraunces';font-weight:900;font-size:36px;letter-spacing:-.02em;line-height:1.05;margin:0 0 10px}
+  .panel header p{margin:0;color:var(--ink-soft);font-size:14px;max-width:620px;line-height:1.5}
+  .panel .body{padding:8px 44px 32px}
+  .panel footer{padding:18px 44px;border-top:1px solid var(--rule);background:var(--paper-2);display:flex;align-items:center;justify-content:space-between}
+  .panel footer .progress{font-family:'JetBrains Mono';font-size:11px;color:var(--ink-mute)}
+
+  .opt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+  .opt{border:1px solid var(--rule);background:var(--paper-2);border-radius:6px;padding:18px 20px;cursor:pointer;display:flex;flex-direction:column;gap:6px}
+  .opt:hover{background:var(--paper-3)}
+  .opt.on{border-color:var(--accent);background:#eef0f7;box-shadow:0 0 0 3px rgba(27,43,94,.08)}
+  .opt h4{font-family:'Fraunces';font-weight:700;font-size:16px;margin:0}
+  .opt p{margin:0;font-size:11px;color:var(--ink-mute);line-height:1.5}
+  .opt .v{font-family:'JetBrains Mono';font-size:11px;color:var(--ink-soft);margin-top:6px}
+
+  .provider-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .prov{display:flex;align-items:center;gap:10px;padding:14px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px;cursor:pointer}
+  .prov:hover{background:var(--paper-3)}
+  .prov .mono-logo{width:32px;height:32px;border-radius:5px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:'Fraunces';font-weight:900;font-size:13px}
+  .prov b{font-size:12px;font-weight:600}
+  .prov small{display:block;font-size:10px;color:var(--ink-mute)}
+
+  .upl{border:2px dashed var(--rule-strong);border-radius:8px;padding:48px;text-align:center;background:var(--paper-2)}
+  .upl .ms{font-size:42px;color:var(--ink-mute)}
+  .upl h3{font-family:'Fraunces';font-weight:700;font-size:18px;margin:10px 0 4px}
+  .upl p{margin:0;font-size:12px;color:var(--ink-mute)}
+  .upl .types{margin-top:14px;font-family:'JetBrains Mono';font-size:10px;color:var(--ink-mute);letter-spacing:.04em}
+
+  .meet{display:grid;grid-template-columns:140px 1fr;gap:24px;align-items:center;padding:24px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px}
+  .meet .ava{width:120px;height:120px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:'Fraunces';font-weight:900;font-size:48px}
+  .meet h3{font-family:'Fraunces';font-weight:700;font-size:22px;margin:0 0 6px}
+  .meet p{margin:0 0 10px;font-size:12px;color:var(--ink-soft);line-height:1.55}
+  .meet .tags{display:flex;gap:6px}
+
+  .checklist{display:flex;flex-direction:column;gap:10px}
+  .check{display:flex;align-items:center;gap:14px;padding:14px 18px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px}
+  .check .ms{color:var(--good-fg);font-size:22px}
+  .check .l{flex:1}
+  .check .l b{font-size:13px;font-weight:600;display:block}
+  .check .l small{font-size:11px;color:var(--ink-mute)}
+  .check .v{font-family:'JetBrains Mono';font-size:11px;color:var(--ink-mute)}
+
+  .skip{font-size:11px;color:var(--ink-mute);text-decoration:underline;background:none;border:0;cursor:pointer;font-family:inherit}
+</style></head>
+<body>
+  <div class="ob-top">
+    <div class="logo">C</div><b>ChiefRiskBot</b>
+    <div class="grow"></div>
+    <a href="#">Need help? Talk to onboarding →</a>
+  </div>
+
+  <div class="stepper">
+    <div class="step done"><div class="n"><span class="ms">check</span></div><div class="lbl">Workspace</div></div>
+    <div class="bar done"></div>
+    <div class="step on"><div class="n">2</div><div class="lbl">Connect data</div></div>
+    <div class="bar"></div>
+    <div class="step"><div class="n">3</div><div class="lbl">Upload docs</div></div>
+    <div class="bar"></div>
+    <div class="step"><div class="n">4</div><div class="lbl">Meet Claude</div></div>
+    <div class="bar"></div>
+    <div class="step"><div class="n">5</div><div class="lbl">First briefing</div></div>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <header>
+        <div class="eyebrow">Step 2 of 5 · Connect data</div>
+        <h1 class="serif">Where does your portfolio live today?</h1>
+        <p>Pick the custodians and platforms you want ChiefRiskBot to read. We'll authenticate via OAuth, ingest your positions, and reconcile to last quarter's statement. No write access, ever.</p>
+      </header>
+      <div class="body">
+        <div class="uplabel" style="margin-bottom:10px">Most common</div>
+        <div class="provider-grid">
+          <div class="prov"><div class="mono-logo" style="background:#0073cf">CS</div><div><b>Schwab</b><small>OAuth · 5 min</small></div></div>
+          <div class="prov"><div class="mono-logo" style="background:#1f2a44">PE</div><div><b>Pershing</b><small>OAuth · 5 min</small></div></div>
+          <div class="prov"><div class="mono-logo" style="background:#d11e1e">IB</div><div><b>Interactive Brokers</b><small>OAuth · 5 min</small></div></div>
+          <div class="prov"><div class="mono-logo" style="background:var(--brand)">JB</div><div><b>Julius Baer</b><small>SFTP · upload</small></div></div>
+          <div class="prov"><div class="mono-logo" style="background:#003a70">PI</div><div><b>Pictet</b><small>OAuth · 5 min</small></div></div>
+          <div class="prov"><div class="mono-logo" style="background:#2c2c2c">UB</div><div><b>UBS</b><small>OAuth · 5 min</small></div></div>
+          <div class="prov"><div class="mono-logo" style="background:#143a85">SX</div><div><b>Saxo Bank</b><small>OAuth · 5 min</small></div></div>
+          <div class="prov"><div class="mono-logo" style="background:#0a0a0a">CA</div><div><b>Carta</b><small>OAuth · 5 min</small></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:18px;padding:14px 18px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px">
+          <span class="ms" style="color:var(--ink-mute)">info</span>
+          <small style="font-size:11px;color:var(--ink-soft);flex:1">Don't see your custodian? You can upload statements as PDFs, CSVs, or OFX files in the next step. Most family offices we onboard use a mix of both.</small>
+          <a href="#" style="font-size:11px;font-weight:600;color:var(--accent)">See full directory →</a>
+        </div>
+      </div>
+      <footer>
+        <button class="skip">Skip · I'll connect later</button>
+        <div class="progress">2 / 5</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn">Back</button>
+          <button class="btn primary">Continue <span class="ms">arrow_forward</span></button>
+        </div>
+      </footer>
+    </div>
+  </div>
+</body></html>

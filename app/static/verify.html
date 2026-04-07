@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Verify your email — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  body{min-height:100vh;display:flex;flex-direction:column}
+  .top{height:64px;border-bottom:1px solid var(--rule);display:flex;align-items:center;padding:0 32px;background:var(--paper)}
+  .top .logo{width:30px;height:30px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:'Fraunces';font-weight:900;font-size:15px;margin-right:10px}
+  .top b{font-family:'Fraunces';font-weight:900;font-size:17px}
+  .stage{flex:1;display:grid;place-items:center;padding:48px 24px}
+  .panel{max-width:480px;width:100%;border:1px solid var(--rule);background:#fffdfb;border-radius:8px;box-shadow:var(--shadow);padding:48px 44px;text-align:center}
+  .ill{width:72px;height:72px;border-radius:10px;background:#eef0f7;border:1px solid #dfe3ef;color:var(--accent);display:grid;place-items:center;margin:0 auto 18px}
+  .ill .ms{font-size:36px}
+  h1{font-family:'Fraunces';font-weight:900;font-size:28px;letter-spacing:-.02em;line-height:1.1;margin:0 0 10px}
+  .lede{margin:0 0 24px;color:var(--ink-soft);font-size:13px;line-height:1.55}
+  .lede b{color:var(--ink);font-weight:600}
+  .code-row{display:flex;justify-content:center;gap:8px;margin:20px 0 24px}
+  .code-row input{width:48px;height:56px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px;text-align:center;font-family:'JetBrains Mono';font-size:22px;font-weight:700;color:var(--ink);outline:0}
+  .code-row input:focus{border-color:var(--accent);background:var(--paper);box-shadow:0 0 0 3px rgba(27,43,94,.08)}
+  .btn.primary{width:100%;justify-content:center;padding:12px;font-size:13px}
+  .resend{margin-top:18px;font-size:11px;color:var(--ink-mute)}
+  .resend a{color:var(--accent);font-weight:600}
+  .meta{margin-top:24px;padding-top:18px;border-top:1px solid var(--rule);font-family:'JetBrains Mono';font-size:10px;color:var(--ink-mute);display:flex;justify-content:space-between}
+</style></head>
+<body>
+  <div class="top"><div class="logo">C</div><b>ChiefRiskBot</b></div>
+  <div class="stage">
+    <div class="panel">
+      <div class="ill"><span class="ms">mark_email_read</span></div>
+      <h1 class="serif">Check your inbox.</h1>
+      <p class="lede">We sent a 6-digit verification code to <b>elena@pictet-counsel.ch</b>. The code expires in 10 minutes. Enter it below to continue.</p>
+      <div class="code-row">
+        <input maxlength="1" value="4"/>
+        <input maxlength="1" value="8"/>
+        <input maxlength="1" value="2"/>
+        <input maxlength="1" value=""/>
+        <input maxlength="1" value=""/>
+        <input maxlength="1" value=""/>
+      </div>
+      <button class="btn primary" type="submit">Verify &amp; continue <span class="ms">arrow_forward</span></button>
+      <div class="resend">Didn't get it? <a href="#">Resend code</a> · <a href="#">Use a different email</a></div>
+      <div class="meta">
+        <span>Code expires in 09:42</span>
+        <span>req_8e2f9a14</span>
+      </div>
+    </div>
+  </div>
+</body></html>

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Members — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  .strip{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--rule);border-radius:6px;background:#fffdfb;overflow:hidden;box-shadow:var(--shadow)}
+  .strip .tile{padding:18px 22px;border-right:1px solid var(--rule)}
+  .strip .tile:last-child{border-right:0}
+  .strip .lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:6px}
+  .strip .v{font-family:'Fraunces';font-size:28px;font-weight:900;letter-spacing:-.02em}
+  .ava{width:36px;height:36px;border-radius:999px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0}
+  .person{display:flex;align-items:center;gap:12px}
+  .person small{display:block;color:var(--ink-mute);font-size:11px;font-weight:500}
+  .role-select{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule);background:var(--paper-2);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;color:var(--ink-soft);cursor:pointer}
+  .role-select .ms{font-size:14px}
+
+  .roles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .role-card{border:1px solid var(--rule);background:#fffdfb;border-radius:6px;padding:18px 20px;box-shadow:var(--shadow)}
+  .role-card h3{font-family:'Fraunces';font-weight:700;font-size:16px;margin:0 0 4px}
+  .role-card .desc{font-size:11px;color:var(--ink-mute);margin-bottom:12px}
+  .role-card ul{margin:0;padding-left:16px;font-size:11px;color:var(--ink-soft);line-height:1.7}
+  .role-card .count{font-family:'JetBrains Mono';font-size:11px;color:var(--ink-mute);margin-top:12px;padding-top:10px;border-top:1px solid var(--rule)}
+</style></head>
+<body>
+<div class="app" id="app-root">
+  <main>
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <h1 class="serif">Members &amp; permissions</h1>
+          <p>Who can see your book, edit positions, generate briefings, and read audit history. Roles map to family-office reality, not generic SaaS tiers.</p>
+        </div>
+        <div class="head-actions">
+          <button class="btn"><span class="ms">key</span>SSO settings</button>
+          <button class="btn primary"><span class="ms">person_add</span>Invite member</button>
+        </div>
+      </div>
+
+      <div class="strip">
+        <div class="tile"><div class="lbl">Total members</div><div class="v mono">8</div></div>
+        <div class="tile"><div class="lbl">Active 30d</div><div class="v mono">7</div></div>
+        <div class="tile"><div class="lbl">Pending invites</div><div class="v mono">2</div></div>
+        <div class="tile"><div class="lbl">Seats remaining</div><div class="v mono">12</div></div>
+      </div>
+
+      <div class="card" style="padding:0">
+        <div style="padding:18px 22px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--rule)">
+          <h2 class="serif" style="font-family:'Fraunces';font-weight:700;font-size:16px;margin:0">Members</h2>
+          <span class="rowcount mono" style="font-size:11px;color:var(--ink-mute)">8 active · 2 invited</span>
+          <div style="flex:1"></div>
+          <div class="search" style="width:240px"><span class="ms" style="font-size:16px">search</span><input placeholder="Search members"/></div>
+        </div>
+        <table class="list">
+          <thead><tr><th>Member</th><th>Role</th><th>Scope</th><th>2FA</th><th>Last active</th><th>Joined</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="person"><div class="ava" style="background:var(--brand)">OK</div><div><b>Omar Kutbi</b> <span class="pill accent" style="margin-left:4px">You</span><small>omar@aldridge.fo</small></div></div></td>
+              <td><span class="role-select">Owner <span class="ms">expand_more</span></span></td>
+              <td>All clients</td>
+              <td><span class="pill good">On</span></td>
+              <td>Just now</td>
+              <td>Jan 12, 2026</td>
+              <td><button class="iconbtn"><span class="ms">more_horiz</span></button></td>
+            </tr>
+            <tr>
+              <td><div class="person"><div class="ava" style="background:#3a4a7a">HV</div><div><b>Helena Voss</b><small>helena@aldridge.fo</small></div></div></td>
+              <td><span class="role-select">CIO <span class="ms">expand_more</span></span></td>
+              <td>Aldridge FO</td>
+              <td><span class="pill good">On</span></td>
+              <td>14 minutes ago</td>
+              <td>Jan 14, 2026</td>
+              <td><button class="iconbtn"><span class="ms">more_horiz</span></button></td>
+            </tr>
+            <tr>
+              <td><div class="person"><div class="ava" style="background:var(--teal)">RA</div><div><b>Rashid Al-Otaibi</b><small>rashid@aldridge.fo</small></div></div></td>
+              <td><span class="role-select">Analyst <span class="ms">expand_more</span></span></td>
+              <td>Aldridge FO</td>
+              <td><span class="pill good">On</span></td>
+              <td>2 hours ago</td>
+              <td>Jan 18, 2026</td>
+              <td><button class="iconbtn"><span class="ms">more_horiz</span></button></td>
+            </tr>
+            <tr>
+              <td><div class="person"><div class="ava" style="background:var(--gold)">MK</div><div><b>Marie Kjeldsen</b><small>marie@aldridge.fo</small></div></div></td>
+              <td><span class="role-select">Analyst <span class="ms">expand_more</span></span></td>
+              <td>Aldridge FO</td>
+              <td><span class="pill good">On</span></td>
+              <td>Yesterday</td>
+              <td>Feb 2, 2026</td>
+              <td><button class="iconbtn"><span class="ms">more_horiz</span></button></td>
+            </tr>
+            <tr>
+              <td><div class="person"><div class="ava" style="background:#9c2a1f">JT</div><div><b>James Thornton</b><small>james@thornton-cap.com</small></div></div></td>
+              <td><span class="role-select">Principal <span class="ms">expand_more</span></span></td>
+              <td>Aldridge FO</td>
+              <td><span class="pill good">On</span></td>
+              <td>3 days ago</td>
+              <td>Feb 18, 2026</td>
+              <td><button class="iconbtn"><span class="ms">more_horiz</span></button></td>
+            </tr>
+            <tr>
+              <td><div class="person"><div class="ava" style="background:#1f6b3a">EL</div><div><b>Elena Loretti</b><small>elena@pictet-counsel.ch</small></div></div></td>
+              <td><span class="role-select">Auditor <span class="ms">expand_more</span></span></td>
+              <td>Aldridge FO · Read-only</td>
+              <td><span class="pill good">On</span></td>
+              <td>Mar 28</td>
+              <td>Mar 1, 2026</td>
+              <td><button class="iconbtn"><span class="ms">more_horiz</span></button></td>
+            </tr>
+            <tr>
+              <td><div class="person"><div class="ava" style="background:var(--brand-deep,#584236)">DS</div><div><b>Daniel Stein</b><small>daniel@aldridge.fo</small></div></div></td>
+              <td><span class="role-select">Analyst <span class="ms">expand_more</span></span></td>
+              <td>Aldridge FO</td>
+              <td><span class="pill wat">Pending</span></td>
+              <td>Mar 30</td>
+              <td>Mar 5, 2026</td>
+              <td><button class="iconbtn"><span class="ms">more_horiz</span></button></td>
+            </tr>
+            <tr>
+              <td><div class="person"><div class="ava" style="background:var(--ink-mute)">AB</div><div><b>Aisha Bennett</b><small>aisha@aldridge.fo</small></div></div></td>
+              <td><span class="role-select">Operations <span class="ms">expand_more</span></span></td>
+              <td>Aldridge FO</td>
+              <td><span class="pill good">On</span></td>
+              <td>4 hours ago</td>
+              <td>Mar 10, 2026</td>
+              <td><button class="iconbtn"><span class="ms">more_horiz</span></button></td>
+            </tr>
+            <tr style="background:var(--paper-2)">
+              <td><div class="person"><div class="ava" style="background:var(--paper-4);color:var(--ink-mute)">?</div><div><b style="color:var(--ink-mute)">tom@aldridge.fo</b><small>Invited by Omar</small></div></div></td>
+              <td><span class="pill ele">Invited</span></td>
+              <td>Aldridge FO</td>
+              <td>—</td>
+              <td>—</td>
+              <td>Apr 5, 2026</td>
+              <td><button class="iconbtn"><span class="ms">more_horiz</span></button></td>
+            </tr>
+            <tr style="background:var(--paper-2)">
+              <td><div class="person"><div class="ava" style="background:var(--paper-4);color:var(--ink-mute)">?</div><div><b style="color:var(--ink-mute)">audit@kpmg.ch</b><small>Invited by Helena</small></div></div></td>
+              <td><span class="pill ele">Invited</span></td>
+              <td>Aldridge FO · Read-only</td>
+              <td>—</td>
+              <td>—</td>
+              <td>Apr 6, 2026</td>
+              <td><button class="iconbtn"><span class="ms">more_horiz</span></button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="uplabel">Roles</div>
+      <div class="roles">
+        <div class="role-card">
+          <h3 class="serif">Owner</h3>
+          <div class="desc">Full control. Billing, members, integrations, deletion.</div>
+          <ul><li>Everything below</li><li>Manage billing</li><li>Add/remove clients</li><li>Delete workspace</li></ul>
+          <div class="count">1 member</div>
+        </div>
+        <div class="role-card">
+          <h3 class="serif">CIO</h3>
+          <div class="desc">Generate briefings, approve actions, edit positions.</div>
+          <ul><li>Edit positions &amp; risks</li><li>Generate &amp; publish briefings</li><li>Connect data sources</li><li>Invite analysts</li></ul>
+          <div class="count">1 member</div>
+        </div>
+        <div class="role-card">
+          <h3 class="serif">Analyst</h3>
+          <div class="desc">Edit data, draft briefings. Cannot publish.</div>
+          <ul><li>Edit positions &amp; risks</li><li>Draft briefings</li><li>Upload documents</li><li>Cannot invite</li></ul>
+          <div class="count">3 members</div>
+        </div>
+        <div class="role-card">
+          <h3 class="serif">Principal · Auditor · Ops</h3>
+          <div class="desc">Read-only or scoped views for stakeholders.</div>
+          <ul><li>Read briefings</li><li>View cockpit &amp; markets</li><li>Audit log access</li><li>No edits</li></ul>
+          <div class="count">3 members</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="_shell.js"></script>
+<script>CRB.mount('members.html', ['Workspace','Admin','Members'])</script>
+</body></html>

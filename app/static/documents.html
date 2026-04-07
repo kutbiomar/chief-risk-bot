@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Documents — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  .work{display:grid;grid-template-columns:220px 1fr 360px;gap:14px}
+  .folders{border:1px solid var(--rule);border-radius:6px;background:#fffdfb;padding:14px 10px;display:flex;flex-direction:column;gap:1px;height:fit-content;position:sticky;top:80px}
+  .folders h4{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);margin:6px 8px 8px}
+  .folders a{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:5px;color:var(--ink-soft);font-size:12px;font-weight:500;cursor:pointer}
+  .folders a:hover{background:var(--paper-3);color:var(--ink)}
+  .folders a.on{background:var(--paper-3);color:var(--ink);font-weight:600}
+  .folders a .ms{font-size:16px;color:var(--ink-mute)}
+  .folders a .n{margin-left:auto;font-family:'JetBrains Mono';font-size:10px;color:var(--ink-mute)}
+
+  .docs{border:1px solid var(--rule);border-radius:6px;background:#fffdfb;overflow:hidden}
+  .doc-toolbar{padding:10px 14px;border-bottom:1px solid var(--rule);background:var(--paper-2);display:flex;align-items:center;gap:10px}
+  .doc-toolbar .grow{flex:1}
+  .doc-toolbar .seg{display:flex;border:1px solid var(--rule);border-radius:5px;overflow:hidden}
+  .doc-toolbar .seg button{border:0;background:var(--paper);padding:5px 10px;font:inherit;font-size:11px;color:var(--ink-soft);cursor:pointer;border-right:1px solid var(--rule)}
+  .doc-toolbar .seg button:last-child{border-right:0}
+  .doc-toolbar .seg button.on{background:var(--accent);color:#fff}
+
+  .preview{border:1px solid var(--rule);border-radius:6px;background:#fffdfb;display:flex;flex-direction:column;overflow:hidden}
+  .preview header{padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--paper-2);display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .preview header h3{font-family:'Fraunces';font-weight:700;font-size:16px;margin:0 0 4px}
+  .preview header .meta{font-size:11px;color:var(--ink-mute)}
+  .preview .thumb{aspect-ratio:8.5/11;margin:18px;border:1px solid var(--rule);background:#fff;box-shadow:0 4px 14px rgba(30,27,26,.06);padding:24px;font-size:9px;color:var(--ink-mute);overflow:hidden;font-family:'JetBrains Mono'}
+  .preview .thumb h5{font-family:'Fraunces';font-size:13px;color:var(--ink);margin:0 0 4px}
+  .preview .thumb .row{display:flex;justify-content:space-between;border-bottom:1px dotted var(--rule);padding:3px 0}
+  .preview .body{padding:0 18px 18px;display:flex;flex-direction:column;gap:14px;overflow:auto}
+  .preview .extracted{border:1px solid var(--rule);background:var(--paper-2);border-radius:5px;padding:12px 14px;font-size:11px;color:var(--ink-soft)}
+  .preview .extracted .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--rule)}
+  .preview .extracted .row:last-child{border-bottom:0}
+  .preview .extracted b{color:var(--ink);font-weight:600;font-family:'JetBrains Mono'}
+
+  .ftype{width:28px;height:34px;border-radius:3px;display:grid;place-items:center;font-family:'JetBrains Mono';font-size:8px;font-weight:700;color:#fff;flex-shrink:0}
+  .ftype.pdf{background:#9c2a1f}
+  .ftype.csv{background:var(--good-fg)}
+  .ftype.xls{background:#1f6b3a}
+  .ftype.ofx{background:var(--brand)}
+</style></head>
+<body>
+<div class="app" id="app-root">
+  <main>
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <h1 class="serif">Documents</h1>
+          <p>Statements, term sheets, K-1s, appraisals. Everything Claude reads when generating your briefing lives here, with extracted fields linked back to the table editor.</p>
+        </div>
+        <div class="head-actions">
+          <button class="btn"><span class="ms">create_new_folder</span>New folder</button>
+          <button class="btn primary"><span class="ms">upload</span>Upload</button>
+        </div>
+      </div>
+
+      <div class="work">
+        <aside class="folders">
+          <h4>Library</h4>
+          <a class="on"><span class="ms">folder</span>All documents <span class="n">412</span></a>
+          <a><span class="ms">star</span>Starred <span class="n">14</span></a>
+          <a><span class="ms">schedule</span>Recent <span class="n">28</span></a>
+          <a><span class="ms">error</span>Needs review <span class="n">6</span></a>
+          <h4>Folders</h4>
+          <a><span class="ms">folder</span>Custodian statements <span class="n">186</span></a>
+          <a><span class="ms">folder</span>Private equity <span class="n">94</span></a>
+          <a><span class="ms">folder</span>Real estate <span class="n">42</span></a>
+          <a><span class="ms">folder</span>Tax &amp; K-1s <span class="n">38</span></a>
+          <a><span class="ms">folder</span>Trade confirms <span class="n">28</span></a>
+          <a><span class="ms">folder</span>Committee minutes <span class="n">24</span></a>
+          <h4>Tags</h4>
+          <a><span class="pill" style="padding:2px 8px">Q1 2026</span></a>
+          <a><span class="pill ele" style="padding:2px 8px">Needs mapping</span></a>
+          <a><span class="pill good" style="padding:2px 8px">Reconciled</span></a>
+        </aside>
+
+        <section class="docs">
+          <div class="doc-toolbar">
+            <div class="search" style="width:260px"><span class="ms" style="font-size:16px">search</span><input placeholder="Search documents"/></div>
+            <span class="rowcount mono" style="font-size:11px;color:var(--ink-mute)">412 files</span>
+            <div class="grow"></div>
+            <div class="seg"><button class="on"><span class="ms" style="font-size:13px">view_list</span> List</button><button><span class="ms" style="font-size:13px">grid_view</span> Grid</button></div>
+            <button class="btn ghost"><span class="ms">filter_alt</span>Filter</button>
+          </div>
+          <table class="list">
+            <thead><tr><th style="width:40px"></th><th>Name</th><th>Folder</th><th>Tag</th><th class="num">Size</th><th>Modified</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><div class="ftype pdf">PDF</div></td><td><b>Schwab Q1 2026 statement.pdf</b></td><td>Custodian statements</td><td><span class="pill good">Reconciled</span></td><td class="num">2.4 MB</td><td>Apr 1, 2026</td><td><button class="iconbtn"><span class="ms">more_horiz</span></button></td></tr>
+              <tr><td><div class="ftype pdf">PDF</div></td><td><b>Pershing Q1 2026 statement.pdf</b></td><td>Custodian statements</td><td><span class="pill good">Reconciled</span></td><td class="num">3.1 MB</td><td>Apr 1, 2026</td><td><button class="iconbtn"><span class="ms">more_horiz</span></button></td></tr>
+              <tr><td><div class="ftype pdf">PDF</div></td><td><b>Sequoia XIX capital account Q4-25.pdf</b></td><td>Private equity</td><td><span class="pill ele">Needs mapping</span></td><td class="num">418 KB</td><td>Mar 28, 2026</td><td><button class="iconbtn"><span class="ms">more_horiz</span></button></td></tr>
+              <tr><td><div class="ftype pdf">PDF</div></td><td><b>KKR Americas XIII capital call notice.pdf</b></td><td>Private equity</td><td><span class="pill wat">Action req'd</span></td><td class="num">196 KB</td><td>Mar 26, 2026</td><td><button class="iconbtn"><span class="ms">more_horiz</span></button></td></tr>
+              <tr><td><div class="ftype pdf">PDF</div></td><td><b>Knight Frank Dubai Marina appraisal.pdf</b></td><td>Real estate</td><td><span class="pill good">Reconciled</span></td><td class="num">5.8 MB</td><td>Mar 22, 2026</td><td><button class="iconbtn"><span class="ms">more_horiz</span></button></td></tr>
+              <tr><td><div class="ftype xls">XLS</div></td><td><b>Manual positions reconciliation.xlsx</b></td><td>All documents</td><td><span class="pill">Working file</span></td><td class="num">112 KB</td><td>Mar 20, 2026</td><td><button class="iconbtn"><span class="ms">more_horiz</span></button></td></tr>
+              <tr><td><div class="ftype pdf">PDF</div></td><td><b>Julius Baer March statement.pdf</b></td><td>Custodian statements</td><td><span class="pill pri">Parse failed</span></td><td class="num">1.7 MB</td><td>Mar 18, 2026</td><td><button class="iconbtn"><span class="ms">more_horiz</span></button></td></tr>
+              <tr><td><div class="ftype csv">CSV</div></td><td><b>IBKR positions export Mar.csv</b></td><td>Custodian statements</td><td><span class="pill good">Reconciled</span></td><td class="num">68 KB</td><td>Mar 15, 2026</td><td><button class="iconbtn"><span class="ms">more_horiz</span></button></td></tr>
+              <tr><td><div class="ftype pdf">PDF</div></td><td><b>2025 K-1 Sequoia XIX.pdf</b></td><td>Tax &amp; K-1s</td><td><span class="pill">Tax</span></td><td class="num">312 KB</td><td>Mar 10, 2026</td><td><button class="iconbtn"><span class="ms">more_horiz</span></button></td></tr>
+              <tr><td><div class="ftype ofx">OFX</div></td><td><b>Saxo Bank Mar export.ofx</b></td><td>Custodian statements</td><td><span class="pill wat">Stale source</span></td><td class="num">42 KB</td><td>Mar 8, 2026</td><td><button class="iconbtn"><span class="ms">more_horiz</span></button></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <aside class="preview">
+          <header>
+            <div>
+              <h3>Schwab Q1 2026 statement.pdf</h3>
+              <div class="meta">Custodian statements · 12 pages · 2.4 MB</div>
+            </div>
+            <button class="iconbtn"><span class="ms">close</span></button>
+          </header>
+          <div class="thumb">
+            <h5>Charles Schwab — Statement of Account</h5>
+            <div style="font-size:8px;margin-bottom:6px">Aldridge Family Office · Account ****-2841 · Period: Jan 1 – Mar 31, 2026</div>
+            <div class="row"><span>Beginning balance</span><span>$98,420,116</span></div>
+            <div class="row"><span>Net contributions</span><span>$2,000,000</span></div>
+            <div class="row"><span>Income</span><span>$682,402</span></div>
+            <div class="row"><span>Realized gains</span><span>$1,140,288</span></div>
+            <div class="row"><span>Unrealized gains</span><span>$3,872,604</span></div>
+            <div class="row"><span><b>Ending balance</b></span><span><b>$106,115,410</b></span></div>
+            <div style="margin-top:10px;font-size:8px">Holdings · 24 positions</div>
+            <div class="row"><span>SPY · SPDR S&amp;P 500</span><span>$21,795,700</span></div>
+            <div class="row"><span>NVDA · NVIDIA</span><span>$16,272,984</span></div>
+            <div class="row"><span>TLT · 20Y UST</span><span>$5,715,160</span></div>
+            <div class="row"><span>EFA · MSCI EAFE</span><span>$4,272,320</span></div>
+            <div class="row"><span>...</span><span></span></div>
+          </div>
+          <div class="body">
+            <div class="extracted">
+              <div class="row"><span>Source</span><b>Schwab API + Statement</b></div>
+              <div class="row"><span>Period</span><b>Q1 2026</b></div>
+              <div class="row"><span>Positions extracted</span><b>24 / 24</b></div>
+              <div class="row"><span>Reconciled to table</span><b style="color:var(--good-fg)">Yes</b></div>
+              <div class="row"><span>Linked rows</span><b>SPY, NVDA, AAPL, TLT, +20</b></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn primary" style="flex:1"><span class="ms">visibility</span>Open viewer</button>
+              <button class="btn"><span class="ms">file_download</span></button>
+              <button class="btn"><span class="ms">share</span></button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="_shell.js"></script>
+<script>CRB.mount('documents.html', ['Workspace','Data','Documents'])</script>
+</body></html>

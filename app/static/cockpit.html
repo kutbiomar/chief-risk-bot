@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ChiefRiskBot — Risk Cockpit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<link rel="stylesheet" href="cockpit.css"/>
+</head>
+<body>
+
+<div class="app" id="app-root">
+<main>
+  <!-- Page header -->
+  <div class="cockpit-header">
+    <div>
+      <div class="uplabel">Risk Cockpit · Tuesday, April 7, 2026</div>
+      <h1>Good morning, Omar.</h1>
+      <p>Three priority risks require your attention before the 4pm IC meeting.</p>
+    </div>
+    <div class="header-actions">
+      <div class="sync-status">
+        <span class="dot" style="background: var(--good-fg);"></span>
+        <span>All sources synced</span>
+        <span class="mono">· 3m ago</span>
+      </div>
+      <button class="icon-btn" title="Refresh"><span class="ms" style="font-size: 16px;">refresh</span></button>
+      <button class="icon-btn" title="Download"><span class="ms" style="font-size: 16px;">file_download</span></button>
+    </div>
+  </div>
+
+  <!-- KPI strip -->
+  <div class="kpi-strip">
+    <div class="kpi-tile">
+      <div class="uplabel">Total AUM</div>
+      <div class="value">$1,247.8M</div>
+      <div class="delta positive">▲ +1.01% · 7D</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="uplabel">1-Day VaR (99%)</div>
+      <div class="value">$18.7M</div>
+      <div class="delta negative">▲ +$2.1M vs 30D avg</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="uplabel">Active Risks</div>
+      <div class="value">12</div>
+      <div class="delta"><span style="color: var(--pri-fg); font-weight: 600;">3 priority</span> · <span style="color: var(--ele-fg); font-weight: 600;">5 elevated</span></div>
+    </div>
+    <div class="kpi-tile">
+      <div class="uplabel">Concentration HHI</div>
+      <div class="value">0.18</div>
+      <div class="delta negative">▲ above 0.15 threshold</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="uplabel">Liquidity (T+1)</div>
+      <div class="value">62.4%</div>
+      <div class="delta">— vs 30D avg</div>
+    </div>
+  </div>
+
+  <!-- 4-quadrant grid -->
+  <div class="cockpit-grid">
+
+    <!-- ============ Q1: PORTFOLIO COMPOSITION ============ -->
+    <section>
+      <div class="card-header">
+        <div>
+          <div class="uplabel">Quadrant 01</div>
+          <h2>Portfolio Composition</h2>
+        </div>
+        <div class="seg">
+          <button class="on">Asset Class</button>
+          <button>Sector</button>
+          <button>Geography</button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="chart-container">
+        <!-- Donut + center label -->
+        <div class="donut-wrapper">
+          <svg viewBox="0 0 120 120" class="donut-svg" style="transform: rotateZ(-90deg);">
+            <circle cx="60" cy="60" r="48" fill="none" stroke="#f4ecea" stroke-width="14"/>
+            <!-- 62.3% public equity -->
+            <circle cx="60" cy="60" r="48" fill="none" stroke="#1B2B5E" stroke-width="14"
+                    stroke-dasharray="187.9 301.6" stroke-dashoffset="0"/>
+            <!-- 18.4% fixed income -->
+            <circle cx="60" cy="60" r="48" fill="none" stroke="#72594c" stroke-width="14"
+                    stroke-dasharray="55.5 301.6" stroke-dashoffset="-187.9"/>
+            <!-- 9.2% private equity -->
+            <circle cx="60" cy="60" r="48" fill="none" stroke="#C9A449" stroke-width="14"
+                    stroke-dasharray="27.8 301.6" stroke-dashoffset="-243.4"/>
+            <!-- 5.4% real estate -->
+            <circle cx="60" cy="60" r="48" fill="none" stroke="#006972" stroke-width="14"
+                    stroke-dasharray="16.3 301.6" stroke-dashoffset="-271.2"/>
+            <!-- 4.7% cash -->
+            <circle cx="60" cy="60" r="48" fill="none" stroke="#d3c3bc" stroke-width="14"
+                    stroke-dasharray="14.2 301.6" stroke-dashoffset="-287.5"/>
+          </svg>
+          <div class="donut-center">
+            <div class="uplabel">Total AUM</div>
+            <div class="value" style="font-size: 22px;">$1.247B</div>
+            <div class="label">14 positions</div>
+          </div>
+        </div>
+
+        <!-- Ranked legend -->
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-item-head">
+              <div class="legend-item-label">
+                <span class="legend-item-dot" style="background: #1B2B5E;"></span>
+                <span>Public Equity</span>
+              </div>
+              <span class="legend-item-pct">62.3%</span>
+            </div>
+            <div class="legend-item-bar"><div style="width: 62.3%; background: #1B2B5E;"></div></div>
+            <div class="legend-item-footer"><span>$777.2M</span><span>14 positions</span></div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-item-head">
+              <div class="legend-item-label">
+                <span class="legend-item-dot" style="background: #72594c;"></span>
+                <span>Fixed Income</span>
+              </div>
+              <span class="legend-item-pct">18.4%</span>
+            </div>
+            <div class="legend-item-bar"><div style="width: 18.4%; background: #72594c;"></div></div>
+            <div class="legend-item-footer"><span>$229.6M</span><span>8 positions</span></div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-item-head">
+              <div class="legend-item-label">
+                <span class="legend-item-dot" style="background: #C9A449;"></span>
+                <span>Private Equity</span>
+              </div>
+              <span class="legend-item-pct">9.2%</span>
+            </div>
+            <div class="legend-item-bar"><div style="width: 9.2%; background: #C9A449;"></div></div>
+            <div class="legend-item-footer"><span>$114.8M</span><span>5 positions</span></div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-item-head">
+              <div class="legend-item-label">
+                <span class="legend-item-dot" style="background: #006972;"></span>
+                <span>Real Estate</span>
+              </div>
+              <span class="legend-item-pct">5.4%</span>
+            </div>
+            <div class="legend-item-bar"><div style="width: 5.4%; background: #006972;"></div></div>
+            <div class="legend-item-footer"><span>$67.4M</span><span>3 positions</span></div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-item-head">
+              <div class="legend-item-label">
+                <span class="legend-item-dot" style="background: #d3c3bc;"></span>
+                <span>Cash &amp; Equivalents</span>
+              </div>
+              <span class="legend-item-pct">4.7%</span>
+            </div>
+            <div class="legend-item-bar"><div style="width: 4.7%; background: #d3c3bc;"></div></div>
+            <div class="legend-item-footer"><span>$58.7M</span><span>4 accounts</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Q2: VAR OVER TIME ============ -->
+    <section>
+      <div class="card-header">
+        <div>
+          <div class="uplabel">Quadrant 02</div>
+          <h2>Value at Risk</h2>
+        </div>
+        <div class="tab-group">
+          <button class="tab on">VaR 99%</button>
+          <button class="tab">VaR 95%</button>
+          <button class="tab">CVaR</button>
+          <button class="tab">Max DD</button>
+        </div>
+      </div>
+
+      <div class="card-body" style="gap: 12px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
+          <div>
+            <div class="uplabel">1-Day VaR · 99% confidence</div>
+            <div style="display: flex; align-items: baseline; gap: 12px; margin-top: 8px;">
+              <span class="value" style="font-size: 28px;">$18.7M</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--pri-fg); font-weight: 600;">▲ +$2.1M</span>
+              <span style="font-size: 11px; color: var(--ink-mute);">vs 30D avg</span>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 10px; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.05em;">As of 14:32 EST</div>
+            <div style="font-size: 10px; color: var(--ink-mute); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">10,000 paths · 4h ago</div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div>
+          <svg viewBox="0 0 600 160" style="width: 100%; height: 144px;">
+            <defs>
+              <linearGradient id="varFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#1B2B5E" stop-opacity="0.18"/>
+                <stop offset="100%" stop-color="#1B2B5E" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <!-- gridlines -->
+            <line x1="0" y1="30"  x2="600" y2="30"  stroke="#f4ecea"/>
+            <line x1="0" y1="70"  x2="600" y2="70"  stroke="#f4ecea"/>
+            <line x1="0" y1="110" x2="600" y2="110" stroke="#f4ecea"/>
+            <!-- y labels -->
+            <text x="2" y="28"  font-family="JetBrains Mono" font-size="9" fill="#81756f">$22M</text>
+            <text x="2" y="68"  font-family="JetBrains Mono" font-size="9" fill="#81756f">$16M</text>
+            <text x="2" y="108" font-family="JetBrains Mono" font-size="9" fill="#81756f">$10M</text>
+
+            <!-- confidence band -->
+            <path d="M0,90 L40,85 L80,88 L120,82 L160,78 L200,80 L240,72 L280,68 L320,75 L360,65 L400,55 L440,50 L480,48 L520,42 L560,38 L600,32
+                     L600,72 L560,76 L520,80 L480,84 L440,86 L400,90 L360,98 L320,108 L280,100 L240,104 L200,110 L160,114 L120,116 L80,118 L40,120 L0,122 Z"
+                  fill="#1B2B5E" opacity="0.06"/>
+
+            <!-- area -->
+            <path d="M0,100 L40,96 L80,102 L120,92 L160,88 L200,94 L240,82 L280,76 L320,88 L360,72 L400,62 L440,58 L480,54 L520,46 L560,42 L600,36
+                     L600,160 L0,160 Z" fill="url(#varFill)"/>
+            <!-- line -->
+            <path d="M0,100 L40,96 L80,102 L120,92 L160,88 L200,94 L240,82 L280,76 L320,88 L360,72 L400,62 L440,58 L480,54 L520,46 L560,42 L600,36"
+                  fill="none" stroke="#1B2B5E" stroke-width="1.75" stroke-linejoin="round"/>
+
+            <!-- event markers -->
+            <g>
+              <line x1="200" y1="30" x2="200" y2="130" stroke="#B91C1C" stroke-width="1" stroke-dasharray="2,2"/>
+              <circle cx="200" cy="94" r="3.5" fill="#B91C1C" stroke="#fff" stroke-width="1.5"/>
+              <text x="204" y="22" font-family="Inter" font-size="9" font-weight="600" fill="#B91C1C">SVB collapse</text>
+            </g>
+            <g>
+              <line x1="360" y1="30" x2="360" y2="130" stroke="#C2741C" stroke-width="1" stroke-dasharray="2,2"/>
+              <circle cx="360" cy="72" r="3.5" fill="#C2741C" stroke="#fff" stroke-width="1.5"/>
+              <text x="364" y="22" font-family="Inter" font-size="9" font-weight="600" fill="#C2741C">EM Asia downgrade</text>
+            </g>
+            <g>
+              <line x1="500" y1="30" x2="500" y2="130" stroke="#3F7A4F" stroke-width="1" stroke-dasharray="2,2"/>
+              <circle cx="500" cy="50" r="3.5" fill="#3F7A4F" stroke="#fff" stroke-width="1.5"/>
+              <text x="504" y="22" font-family="Inter" font-size="9" font-weight="600" fill="#3F7A4F">NVDA trim</text>
+            </g>
+
+            <!-- x axis -->
+            <line x1="0" y1="135" x2="600" y2="135" stroke="#e8ddd6"/>
+            <text x="0"   y="150" font-family="JetBrains Mono" font-size="9" fill="#81756f">Mar 8</text>
+            <text x="150" y="150" font-family="JetBrains Mono" font-size="9" fill="#81756f">Mar 15</text>
+            <text x="300" y="150" font-family="JetBrains Mono" font-size="9" fill="#81756f">Mar 22</text>
+            <text x="450" y="150" font-family="JetBrains Mono" font-size="9" fill="#81756f">Mar 29</text>
+            <text x="565" y="150" font-family="JetBrains Mono" font-size="9" fill="#81756f">Apr 7</text>
+          </svg>
+        </div>
+
+        <!-- mini stats -->
+        <div class="var-stats">
+          <div class="stat-item"><div class="uplabel">30D Vol</div><div class="value">14.2%</div></div>
+          <div class="stat-item"><div class="uplabel">Sharpe</div><div class="value">1.34</div></div>
+          <div class="stat-item"><div class="uplabel">Beta</div><div class="value">0.89</div></div>
+          <div class="stat-item"><div class="uplabel">Max DD 1Y</div><div class="value">−8.4%</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Q3: ACTIVE RISK REGISTER ============ -->
+    <section>
+      <div class="card-header">
+        <div>
+          <div class="uplabel">Quadrant 03</div>
+          <h2>Active Risk Register</h2>
+        </div>
+        <div class="risk-controls">
+          <button class="on">All · 12</button>
+          <button>Priority · 3</button>
+          <button>Elevated · 5</button>
+          <button>Watch · 4</button>
+        </div>
+      </div>
+
+      <div class="risk-table-wrapper">
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width: 32px;"></th>
+              <th>Risk Source</th>
+              <th>Assessment</th>
+              <th>Updated</th>
+              <th style="text-align: right;">AUM Affected</th>
+              <th style="text-align: right;">MC P(loss&gt;5%)</th>
+              <th style="width: 32px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <tr>
+              <td><span class="dot" style="background: var(--pri-fg);"></span></td>
+              <td>
+                <div class="risk-name">US Tech Concentration</div>
+                <div class="risk-desc">NVDA, MSFT, AAPL · single-sector</div>
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="pill pill-priority">Priority</span>
+                  <span class="ms" style="font-size: 16px; color: var(--pri-fg);">arrow_upward</span>
+                </div>
+              </td>
+              <td style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-soft);">2h ago</td>
+              <td class="num">$312.4M<div style="font-size: 10px; color: var(--ink-mute); font-weight: 400;">25.0%</div></td>
+              <td class="num" style="color: var(--pri-fg);">18.4%</td>
+              <td><span class="ms" style="font-size: 16px; color: var(--ink-mute);">chevron_right</span></td>
+            </tr>
+
+            <tr>
+              <td><span class="dot" style="background: var(--pri-fg);"></span></td>
+              <td>
+                <div class="risk-name">Duration Risk · 10Y+ Treasuries</div>
+                <div class="risk-desc">TLT, EDV · rate sensitivity</div>
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="pill pill-priority">Priority</span>
+                  <span class="ms" style="font-size: 16px; color: var(--ink-mute);">remove</span>
+                </div>
+              </td>
+              <td style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-soft);">6h ago</td>
+              <td class="num">$187.2M<div style="font-size: 10px; color: var(--ink-mute); font-weight: 400;">15.0%</div></td>
+              <td class="num" style="color: var(--pri-fg);">12.1%</td>
+              <td><span class="ms" style="font-size: 16px; color: var(--ink-mute);">chevron_right</span></td>
+            </tr>
+
+            <tr>
+              <td><span class="dot" style="background: var(--pri-fg);"></span></td>
+              <td>
+                <div class="risk-name">Private Credit Liquidity</div>
+                <div class="risk-desc">Apollo, Owl Rock · gating risk</div>
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="pill pill-priority">Priority</span>
+                  <span class="ms" style="font-size: 16px; color: var(--pri-fg);">arrow_upward</span>
+                </div>
+              </td>
+              <td style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-soft);">8h ago</td>
+              <td class="num">$94.0M<div style="font-size: 10px; color: var(--ink-mute); font-weight: 400;">7.5%</div></td>
+              <td class="num" style="color: var(--pri-fg);">10.7%</td>
+              <td><span class="ms" style="font-size: 16px; color: var(--ink-mute);">chevron_right</span></td>
+            </tr>
+
+            <tr>
+              <td><span class="dot" style="background: var(--ele-fg);"></span></td>
+              <td>
+                <div class="risk-name">EM Asia · China Property</div>
+                <div class="risk-desc">BABA, KWEB · sovereign overlay</div>
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="pill pill-elevated">Elevated</span>
+                  <span class="ms" style="font-size: 16px; color: var(--ele-fg);">arrow_upward</span>
+                </div>
+              </td>
+              <td style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-soft);">1d ago</td>
+              <td class="num">$84.3M<div style="font-size: 10px; color: var(--ink-mute); font-weight: 400;">6.8%</div></td>
+              <td class="num" style="color: var(--ele-fg);">9.7%</td>
+              <td><span class="ms" style="font-size: 16px; color: var(--ink-mute);">chevron_right</span></td>
+            </tr>
+
+            <tr>
+              <td><span class="dot" style="background: var(--ele-fg);"></span></td>
+              <td>
+                <div class="risk-name">USD Strength vs EM FX</div>
+                <div class="risk-desc">EWZ, INDA · translation exposure</div>
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="pill pill-elevated">Elevated</span>
+                  <span class="ms" style="font-size: 16px; color: var(--ink-mute);">remove</span>
+                </div>
+              </td>
+              <td style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-soft);">1d ago</td>
+              <td class="num">$141.0M<div style="font-size: 10px; color: var(--ink-mute); font-weight: 400;">11.3%</div></td>
+              <td class="num" style="color: var(--ele-fg);">7.2%</td>
+              <td><span class="ms" style="font-size: 16px; color: var(--ink-mute);">chevron_right</span></td>
+            </tr>
+
+            <tr>
+              <td><span class="dot" style="background: var(--wat-fg);"></span></td>
+              <td>
+                <div class="risk-name">Dubai Real Estate · Single Asset</div>
+                <div class="risk-desc">Marina penthouse · concentration</div>
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="pill pill-watch">Watch</span>
+                  <span class="ms" style="font-size: 16px; color: var(--good-fg);">arrow_downward</span>
+                </div>
+              </td>
+              <td style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-soft);">3d ago</td>
+              <td class="num">$58.0M<div style="font-size: 10px; color: var(--ink-mute); font-weight: 400;">4.6%</div></td>
+              <td class="num" style="color: var(--wat-fg);">3.1%</td>
+              <td><span class="ms" style="font-size: 16px; color: var(--ink-mute);">chevron_right</span></td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+
+      <div class="risk-footer">
+        <div>Showing 6 of 12 · Last Monte Carlo run: 04:30 UTC · 10,000 paths</div>
+        <div class="risk-footer-actions">
+          <button>Re-run simulation</button>
+          <button>View all →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Q4: MITIGATION DECISION TREE ============ -->
+    <section>
+      <div class="card-header" style="flex-direction: column; align-items: flex-start;">
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+          <div>
+            <div class="uplabel">Quadrant 04</div>
+            <h2>Mitigation Tree</h2>
+          </div>
+          <button style="font-size: 11px; font-weight: 600; color: var(--accent); background: transparent; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <span class="ms" style="font-size: 16px;">science</span>
+            <span>Simulate</span>
+          </button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 12px;">
+          <span style="font-size: 11px; color: var(--ink-mute);">Active risk:</span>
+          <button style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--pri-bg); border-radius: 4px; border: none; font-size: 11px; font-weight: 600; color: var(--pri-fg); cursor: pointer;">
+            <span class="dot" style="background: var(--pri-fg); width: 6px; height: 6px;"></span>
+            <span>US Tech Concentration</span>
+            <span class="ms" style="font-size: 14px;">unfold_more</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <!-- tree as nested flex columns -->
+        <div class="tree-container">
+          <!-- Root -->
+          <div class="tree-node">
+            <div class="tree-box">
+              <div class="uplabel" style="color: rgba(255, 255, 255, 0.6);">Risk</div>
+              <div class="title">US Tech Concentration</div>
+              <div class="meta">$312M · 25%</div>
+            </div>
+          </div>
+
+          <!-- connector -->
+          <svg class="tree-connector" viewBox="0 0 16 200" preserveAspectRatio="none">
+            <path d="M0,100 C8,100 8,30 16,30" stroke="var(--rule-strong)" fill="none"/>
+            <path d="M0,100 C8,100 8,100 16,100" stroke="var(--accent)" stroke-width="1.5" fill="none"/>
+            <path d="M0,100 C8,100 8,170 16,170" stroke="var(--rule-strong)" fill="none"/>
+          </svg>
+
+          <!-- Strategies -->
+          <div class="tree-level">
+            <div class="tree-strategy">
+              <div class="uplabel">Strategy</div>
+              <div class="title">Reduce Exposure</div>
+            </div>
+            <div class="tree-strategy recommended">
+              <div class="uplabel" style="color: var(--accent);">Strategy · recommended</div>
+              <div class="title">Hedge Tail Risk</div>
+            </div>
+            <div class="tree-strategy">
+              <div class="uplabel">Strategy</div>
+              <div class="title">Accept &amp; Monitor</div>
+            </div>
+          </div>
+
+          <!-- connector -->
+          <svg class="tree-connector" viewBox="0 0 16 200" preserveAspectRatio="none">
+            <path d="M0,30 C8,30 8,15 16,15"  stroke="var(--rule-strong)" fill="none"/>
+            <path d="M0,30 C8,30 8,45 16,45"  stroke="var(--rule-strong)" fill="none"/>
+            <path d="M0,100 C8,100 8,90  16,90"  stroke="var(--accent)" stroke-width="1.5" fill="none"/>
+            <path d="M0,100 C8,100 8,120 16,120" stroke="var(--rule-strong)" fill="none"/>
+            <path d="M0,170 C8,170 8,170 16,170" stroke="var(--rule-strong)" fill="none"/>
+          </svg>
+
+          <!-- Leaves -->
+          <div class="tree-leaves">
+            <div class="tree-leaf">
+              <div class="tree-leaf-head">
+                <div>Trim NVDA → 4%</div>
+                <span class="pill" style="background: #f4ecea; color: #81756f; font-size: 9px;">Proposed</span>
+              </div>
+              <div class="tree-leaf-meta">VaR ↓ $3.2M · P(success) 78%</div>
+            </div>
+            <div class="tree-leaf">
+              <div class="tree-leaf-head">
+                <div>Pair: long XLV / short XLK</div>
+                <span class="pill" style="background: #f4ecea; color: #81756f; font-size: 9px;">Proposed</span>
+              </div>
+              <div class="tree-leaf-meta">VaR ↓ $1.8M · P(success) 64%</div>
+            </div>
+            <div class="tree-leaf recommended">
+              <div class="tree-leaf-head">
+                <div>SPY 3M 5% OTM puts</div>
+                <span class="pill" style="background: #eef0f7; color: var(--accent); font-size: 9px;">Recommended</span>
+              </div>
+              <div class="tree-leaf-meta">VaR ↓ $2.1M · cost 0.4% drag · P 81%</div>
+            </div>
+            <div class="tree-leaf">
+              <div class="tree-leaf-head">
+                <div>VIX call ladder</div>
+                <span class="pill" style="background: #f4ecea; color: #81756f; font-size: 9px;">Proposed</span>
+              </div>
+              <div class="tree-leaf-meta">VaR ↓ $1.4M · P(success) 58%</div>
+            </div>
+            <div class="tree-leaf">
+              <div class="tree-leaf-head">
+                <div>Stop-loss alerts at −4%</div>
+                <span class="pill pill-good" style="font-size: 9px;">Active</span>
+              </div>
+              <div class="tree-leaf-meta">No cost · monitoring only</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- legend -->
+        <div style="display: flex; align-items: center; gap: 16px; padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--rule); font-size: 10px; color: var(--ink-mute);">
+          <div style="display: flex; align-items: center; gap: 6px;"><span class="pill pill-good" style="font-size: 9px;">Active</span></div>
+          <div style="display: flex; align-items: center; gap: 6px;"><span class="pill" style="background: #eef0f7; color: var(--accent); font-size: 9px;">Recommended</span></div>
+          <div style="display: flex; align-items: center; gap: 6px;"><span class="pill" style="background: #f4ecea; color: #81756f; font-size: 9px;">Proposed</span></div>
+          <div style="margin-left: auto; font-family: 'JetBrains Mono', monospace;">Generated by ChiefRiskBot · 4h ago</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- footer -->
+  <footer class="cockpit-footer">
+    <div class="footer-status">
+      <div class="footer-status-item"><span class="dot" style="background: var(--good-fg);"></span>System nominal</div>
+      <div class="footer-status-item" style="font-family: 'JetBrains Mono', monospace;">Latency 42ms</div>
+      <div class="footer-status-item" style="font-family: 'JetBrains Mono', monospace;">14 sources · 11 healthy · 2 stale · 1 error</div>
+    </div>
+    <div class="footer-actions">
+      <button>Compliance Export</button>
+      <button>Audit Log</button>
+      <button>Keyboard ⌘/</button>
+    </div>
+  </footer>
+</main>
+</div>
+<script src="_shell.js"></script>
+<script>CRB.mount('cockpit.html',['Workspace','Risk Cockpit'])</script>
+</body>
+</html>

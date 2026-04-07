@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "RiskPilot MVP",
+      "runtimeExecutable": "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+      "runtimeArgs": ["/tmp/riskpilot_launch.py"],
+      "port": 8000
+    }
+  ]
+}

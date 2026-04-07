@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Briefings — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  .filters{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px;flex-wrap:wrap}
+  .filters .grow{flex:1}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:5px 10px;border-radius:999px;border:1px solid var(--rule);background:var(--paper);color:var(--ink-soft);cursor:pointer}
+  .chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .feature{display:grid;grid-template-columns:1.6fr 1fr;gap:0;border:1px solid var(--rule);border-radius:6px;background:#fffdfb;box-shadow:var(--shadow);overflow:hidden}
+  .feature .lead{padding:32px 36px;display:flex;flex-direction:column;gap:14px;border-right:1px solid var(--rule)}
+  .feature .lead .eyebrow{display:flex;align-items:center;gap:10px;color:var(--ink-mute);font-size:11px;font-weight:600}
+  .feature .lead h2{font-family:'Fraunces';font-weight:900;font-size:36px;letter-spacing:-.02em;line-height:1.05;margin:0}
+  .feature .lead .deck{font-family:'Fraunces';font-weight:400;font-style:italic;font-size:16px;color:var(--ink-soft);line-height:1.5;max-width:540px;margin:0}
+  .feature .lead .meta{display:flex;gap:18px;color:var(--ink-mute);font-size:11px;margin-top:auto;padding-top:14px;border-top:1px solid var(--rule)}
+  .feature .lead .meta b{color:var(--ink);font-weight:600}
+  .feature .side{padding:28px 28px;background:var(--paper-2);display:flex;flex-direction:column;gap:14px}
+  .feature .side h3{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);margin:0}
+  .toptbl{font-size:12px;display:flex;flex-direction:column;gap:0}
+  .toptbl .row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--rule)}
+  .toptbl .row:last-child{border-bottom:0}
+  .toptbl .row b{font-weight:600}
+  .toptbl .row .grow{flex:1}
+  .toptbl .row .mono{font-size:11px;color:var(--ink-soft)}
+
+  .archive-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .brief-card{border:1px solid var(--rule);background:#fffdfb;border-radius:6px;padding:22px 24px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px;cursor:pointer}
+  .brief-card:hover{border-color:var(--rule-strong);background:var(--paper)}
+  .brief-card .head{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--ink-mute)}
+  .brief-card h3{font-family:'Fraunces';font-weight:700;font-size:20px;letter-spacing:-.01em;line-height:1.2;margin:4px 0 0}
+  .brief-card .deck{font-family:'Fraunces';font-style:italic;font-weight:400;color:var(--ink-soft);font-size:13px;line-height:1.4;margin:0}
+  .brief-card .foot{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--ink-mute);margin-top:auto;padding-top:10px;border-top:1px solid var(--rule)}
+  .brief-card .foot .pills{display:flex;gap:5px;margin-left:auto}
+</style></head>
+<body>
+<div class="app" id="app-root">
+  <main>
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <h1 class="serif">Briefings</h1>
+          <p>Weekly investment-committee briefings generated from your live cockpit. Each one is a single, printable artifact: lead memo, talking points, recommended actions.</p>
+        </div>
+        <div class="head-actions">
+          <button class="btn"><span class="ms">tune</span>Templates</button>
+          <button class="btn primary"><span class="ms">add</span>Generate briefing</button>
+        </div>
+      </div>
+
+      <div class="filters">
+        <span class="uplabel">Period</span>
+        <span class="chip on">Week</span><span class="chip">Month</span><span class="chip">Quarter</span>
+        <span style="width:1px;height:18px;background:var(--rule);margin:0 6px"></span>
+        <span class="uplabel">Status</span>
+        <span class="chip on">All</span><span class="chip">Published</span><span class="chip">Draft</span><span class="chip">Archived</span>
+        <div class="grow"></div>
+        <div class="search" style="width:240px"><span class="ms" style="font-size:16px">search</span><input placeholder="Search briefings"/></div>
+      </div>
+
+      <!-- Featured: this week -->
+      <article class="feature">
+        <div class="lead">
+          <div class="eyebrow">
+            <span class="pill accent">This week</span>
+            <span>Week 14 · Apr 1 – Apr 7, 2026</span>
+            <span style="margin-left:auto" class="mono">v3 · published</span>
+          </div>
+          <h2 class="serif">AI capex unwind meets a stickier-than-expected core PCE.</h2>
+          <p class="deck">Two of the four risks we flagged last week moved to elevated. The book is still long quality growth, but the marginal hedge dollar should now favor duration over puts. Three actions inside.</p>
+          <div class="meta">
+            <span>By <b>Claude · reviewed by Omar Kutbi</b></span>
+            <span><b>3</b> recommended actions</span>
+            <span><b>11</b> talking points</span>
+            <span><b>4</b> risks tracked</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <a href="briefing.html" class="btn primary"><span class="ms">menu_book</span>Read briefing</a>
+            <button class="btn"><span class="ms">file_download</span>PDF</button>
+            <button class="btn ghost"><span class="ms">share</span>Share</button>
+          </div>
+        </div>
+        <div class="side">
+          <h3>Top risks called out</h3>
+          <div class="toptbl">
+            <div class="row"><span class="pill pri">Priority</span><b>US equity drawdown</b><span class="grow"></span><span class="mono">P 18%</span></div>
+            <div class="row"><span class="pill ele">Elevated</span><b>AI capex unwind</b><span class="grow"></span><span class="mono">P 14%</span></div>
+            <div class="row"><span class="pill ele">Elevated</span><b>HY credit spreads</b><span class="grow"></span><span class="mono">P 11%</span></div>
+            <div class="row"><span class="pill wat">Watch</span><b>USD/JPY intervention</b><span class="grow"></span><span class="mono">P 7%</span></div>
+          </div>
+          <h3 style="margin-top:8px">Recommended actions</h3>
+          <div class="toptbl">
+            <div class="row"><span class="ms" style="color:var(--accent);font-size:16px">arrow_circle_right</span><span><b>Add 4% to long duration</b><br/><span class="mono">via TLT or direct UST 20Y</span></span></div>
+            <div class="row"><span class="ms" style="color:var(--accent);font-size:16px">arrow_circle_right</span><span><b>Trim NVDA by ~25%</b><br/><span class="mono">concentration > 10% threshold</span></span></div>
+            <div class="row"><span class="ms" style="color:var(--accent);font-size:16px">arrow_circle_right</span><span><b>Roll HY hedge to IG</b><br/><span class="mono">spread compression risk</span></span></div>
+          </div>
+        </div>
+      </article>
+
+      <div class="uplabel" style="margin-top:8px">Archive</div>
+      <div class="archive-grid">
+        <a href="briefing.html" class="brief-card">
+          <div class="head"><span>Week 13 · Mar 25 – Mar 31</span><span class="mono">v2</span></div>
+          <h3 class="serif">The everything-rally exhales.</h3>
+          <p class="deck">Soft-landing narrative is now consensus, which is exactly when the tape stops rewarding it.</p>
+          <div class="foot"><span>Claude · reviewed by Omar</span><div class="pills"><span class="pill ele">Elevated</span><span class="pill wat">Watch</span></div></div>
+        </a>
+        <a href="briefing.html" class="brief-card">
+          <div class="head"><span>Week 12 · Mar 18 – Mar 24</span><span class="mono">v1</span></div>
+          <h3 class="serif">Duration is cheap insurance again.</h3>
+          <p class="deck">10Y above 4.6% gives the book real ballast for the first time since November. We added a sleeve.</p>
+          <div class="foot"><span>Claude · reviewed by Omar</span><div class="pills"><span class="pill wat">Watch</span></div></div>
+        </a>
+        <a href="briefing.html" class="brief-card">
+          <div class="head"><span>Week 11 · Mar 11 – Mar 17</span><span class="mono">v1</span></div>
+          <h3 class="serif">Concentration in semis is now the only call that matters.</h3>
+          <p class="deck">If you're long the index you're long the call. Three ways to express the same view, in order of slippage cost.</p>
+          <div class="foot"><span>Claude · reviewed by Omar</span><div class="pills"><span class="pill pri">Priority</span></div></div>
+        </a>
+        <a href="briefing.html" class="brief-card">
+          <div class="head"><span>Week 10 · Mar 4 – Mar 10</span><span class="mono">v2</span></div>
+          <h3 class="serif">Japan's policy turn is the trade nobody is positioned for.</h3>
+          <p class="deck">USD/JPY back below 150 would unwind a decade of carry. Our exposure is small but worth sizing properly.</p>
+          <div class="foot"><span>Claude · reviewed by Omar</span><div class="pills"><span class="pill ele">Elevated</span></div></div>
+        </a>
+        <a href="briefing.html" class="brief-card">
+          <div class="head"><span>Week 9 · Feb 26 – Mar 3</span><span class="mono">v1</span></div>
+          <h3 class="serif">Private credit is starting to look like 2007 high yield.</h3>
+          <p class="deck">Spreads don't justify the lockup. We're not selling, but we're not adding either.</p>
+          <div class="foot"><span>Claude · reviewed by Omar</span><div class="pills"><span class="pill wat">Watch</span></div></div>
+        </a>
+        <a href="briefing.html" class="brief-card">
+          <div class="head"><span>Week 8 · Feb 19 – Feb 25</span><span class="mono">v3</span></div>
+          <h3 class="serif">Gold is no longer a hedge, it's a position.</h3>
+          <p class="deck">When everyone agrees gold is the hedge, it stops being one. Resizing to neutral.</p>
+          <div class="foot"><span>Claude · reviewed by Omar</span><div class="pills"><span class="pill good">Resolved</span></div></div>
+        </a>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="_shell.js"></script>
+<script>CRB.mount('briefings.html', ['Workspace','Briefings'])</script>
+</body></html>

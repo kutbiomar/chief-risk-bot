@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ChiefRiskBot — Data Sources</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        ink:"#1e1b1a", "ink-soft":"#4f453f", "ink-mute":"#81756f",
+        paper:"#fff8f6","paper-2":"#f9f2f0","paper-3":"#f4ecea","paper-4":"#eee7e4",
+        rule:"#e8ddd6","rule-strong":"#d3c3bc",
+        brand:"#72594c","brand-deep":"#584236",
+        accent:"#1B2B5E","accent-soft":"#3a4a7a",
+        gold:"#C9A449", teal:"#006972",
+        priority:"#B91C1C", elevated:"#C2741C", watch:"#A38108", good:"#3F7A4F",
+        "priority-bg":"#FBE9E7","elevated-bg":"#FBF1E2","watch-bg":"#FAF5DC","good-bg":"#E8F1EA",
+      },
+      fontFamily: { serif:["Fraunces","serif"], sans:["Inter Tight","sans-serif"], mono:["JetBrains Mono","monospace"] }
+    }}
+  }
+</script>
+<style>
+  body { background:#fff8f6; color:#1e1b1a; font-family:'Inter Tight',sans-serif; }
+  .mono { font-family:'JetBrains Mono',monospace; font-feature-settings:"tnum"; }
+  .serif { font-family:'Fraunces',serif; font-optical-sizing:auto; }
+  .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 20; vertical-align:middle; }
+  .icon-sm { font-size:16px; } .icon-md { font-size:18px; } .icon-lg { font-size:22px; }
+  .card { background:#fffdfb; border:1px solid #e8ddd6; border-radius:6px; box-shadow:0 1px 0 rgba(114,89,76,0.04),0 1px 2px rgba(30,27,26,0.03); }
+  .hairline { border-color:#e8ddd6; }
+  .uplabel { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:#81756f; }
+  .row-hover:hover { background:#fbf5f2; }
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-thumb { background:#d3c3bc; border-radius:3px; }
+  .pill { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; }
+  .pill-good { background:#E8F1EA; color:#3F7A4F; }
+  .pill-elevated { background:#FBF1E2; color:#C2741C; }
+  .pill-priority { background:#FBE9E7; color:#B91C1C; }
+  .pill-watch { background:#FAF5DC; color:#A38108; }
+  .pill-mute { background:#f4ecea; color:#81756f; }
+  .dot { width:8px; height:8px; border-radius:999px; display:inline-block; }
+  .seg { display:inline-flex; padding:3px; background:#f4ecea; border-radius:6px; border:1px solid #e8ddd6; }
+  .seg button { padding:4px 12px; font-size:11px; font-weight:600; color:#4f453f; border-radius:4px; }
+  .seg button.on { background:#fffdfb; color:#1e1b1a; box-shadow:0 1px 2px rgba(30,27,26,0.06); }
+  .tab { font-size:12px; font-weight:600; color:#81756f; padding:8px 0; }
+  .tab.on { color:#1e1b1a; border-bottom:2px solid #1B2B5E; }
+  .dropzone { border:1.5px dashed #d3c3bc; border-radius:8px; background:#fbf5f2; transition:border-color 120ms; }
+  .dropzone:hover { border-color:#1B2B5E; background:#f9f2f0; }
+  .progress { height:3px; background:#f4ecea; border-radius:2px; overflow:hidden; }
+  .progress > div { height:100%; background:#1B2B5E; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app-root">
+<main>
+
+  <!-- Page header -->
+  <div class="px-8 pt-7 pb-5 flex items-end justify-between border-b hairline">
+    <div>
+      <div class="uplabel mb-1.5">Data Operations</div>
+      <h1 class="serif text-[28px] font-black text-ink tracking-tight leading-none">Sources & Ingestion</h1>
+      <p class="text-[13px] text-ink-soft mt-1.5">Connect custodian APIs, parse statements, and review ingestion health.</p>
+    </div>
+  </div>
+
+  <!-- Health banner -->
+  <div class="px-8 py-5 grid grid-cols-5 gap-px bg-rule border-b hairline">
+    <div class="bg-paper px-4 py-3">
+      <div class="uplabel">Sources</div>
+      <div class="mono text-[20px] font-bold text-ink mt-1 tracking-tight">14</div>
+      <div class="text-[10px] text-ink-mute mt-0.5">connected</div>
+    </div>
+    <div class="bg-paper px-4 py-3">
+      <div class="uplabel">Healthy</div>
+      <div class="mono text-[20px] font-bold text-good mt-1 tracking-tight">11</div>
+      <div class="text-[10px] text-ink-mute mt-0.5">syncing on schedule</div>
+    </div>
+    <div class="bg-paper px-4 py-3">
+      <div class="uplabel">Stale</div>
+      <div class="mono text-[20px] font-bold text-elevated mt-1 tracking-tight">2</div>
+      <div class="text-[10px] text-ink-mute mt-0.5">no update &gt;24h</div>
+    </div>
+    <div class="bg-paper px-4 py-3">
+      <div class="uplabel">Errors</div>
+      <div class="mono text-[20px] font-bold text-priority mt-1 tracking-tight">1</div>
+      <div class="text-[10px] text-ink-mute mt-0.5">needs reauth</div>
+    </div>
+    <div class="bg-paper px-4 py-3">
+      <div class="uplabel">Last Full Sync</div>
+      <div class="mono text-[20px] font-bold text-ink mt-1 tracking-tight">3m</div>
+      <div class="text-[10px] text-ink-mute mt-0.5">ago · 04:32 EST</div>
+    </div>
+  </div>
+
+  <!-- Connected Sources Grid -->
+  <section class="px-8 pt-8 pb-4">
+    <div class="flex items-end justify-between mb-4">
+      <div>
+        <h2 class="serif text-[18px] font-bold text-ink">Connected Sources</h2>
+        <p class="text-[11px] text-ink-mute mt-0.5">Live and document-based feeds powering this client's portfolio.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="seg">
+          <button class="on">All · 14</button>
+          <button>API · 6</button>
+          <button>Documents · 3</button>
+          <button>Macro · 2</button>
+          <button>Manual · 3</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-4">
+
+      <!-- Schwab -->
+      <div class="card p-4 row-hover">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded bg-paper-3 border hairline flex items-center justify-center serif font-black text-[14px] text-ink">CS</div>
+            <div>
+              <div class="text-[13px] font-semibold text-ink">Charles Schwab</div>
+              <div class="uplabel" style="font-size:9px;">Custodian API</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5"><span class="dot bg-good"></span><span class="text-[10px] text-good font-semibold">Healthy</span></div>
+        </div>
+        <div class="mt-4 grid grid-cols-3 gap-2 text-[10px]">
+          <div><div class="uplabel" style="font-size:9px;">Positions</div><div class="mono text-[12px] font-semibold mt-0.5">28</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Last sync</div><div class="mono text-[12px] font-semibold mt-0.5">2m</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Next</div><div class="mono text-[12px] font-semibold mt-0.5">58m</div></div>
+        </div>
+        <div class="mt-3 pt-3 border-t hairline flex items-center justify-between">
+          <button class="text-[11px] font-semibold text-accent hover:underline">Sync now</button>
+          <button class="text-ink-mute hover:text-ink"><span class="material-symbols-outlined icon-sm">more_horiz</span></button>
+        </div>
+      </div>
+
+      <!-- Pershing -->
+      <div class="card p-4 row-hover">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded bg-paper-3 border hairline flex items-center justify-center serif font-black text-[13px] text-ink">PB</div>
+            <div>
+              <div class="text-[13px] font-semibold text-ink">Pershing / BNY</div>
+              <div class="uplabel" style="font-size:9px;">Custodian API</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5"><span class="dot bg-good"></span><span class="text-[10px] text-good font-semibold">Healthy</span></div>
+        </div>
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          <div><div class="uplabel" style="font-size:9px;">Positions</div><div class="mono text-[12px] font-semibold mt-0.5">14</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Last sync</div><div class="mono text-[12px] font-semibold mt-0.5">5m</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Next</div><div class="mono text-[12px] font-semibold mt-0.5">55m</div></div>
+        </div>
+        <div class="mt-3 pt-3 border-t hairline flex items-center justify-between">
+          <button class="text-[11px] font-semibold text-accent hover:underline">Sync now</button>
+          <button class="text-ink-mute hover:text-ink"><span class="material-symbols-outlined icon-sm">more_horiz</span></button>
+        </div>
+      </div>
+
+      <!-- IBKR -->
+      <div class="card p-4 row-hover">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded bg-paper-3 border hairline flex items-center justify-center serif font-black text-[13px] text-ink">IB</div>
+            <div>
+              <div class="text-[13px] font-semibold text-ink">Interactive Brokers</div>
+              <div class="uplabel" style="font-size:9px;">Brokerage API</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5"><span class="dot bg-good"></span><span class="text-[10px] text-good font-semibold">Healthy</span></div>
+        </div>
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          <div><div class="uplabel" style="font-size:9px;">Positions</div><div class="mono text-[12px] font-semibold mt-0.5">9</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Last sync</div><div class="mono text-[12px] font-semibold mt-0.5">1m</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Next</div><div class="mono text-[12px] font-semibold mt-0.5">14m</div></div>
+        </div>
+        <div class="mt-3 pt-3 border-t hairline flex items-center justify-between">
+          <button class="text-[11px] font-semibold text-accent hover:underline">Sync now</button>
+          <button class="text-ink-mute hover:text-ink"><span class="material-symbols-outlined icon-sm">more_horiz</span></button>
+        </div>
+      </div>
+
+      <!-- Saxo - stale -->
+      <div class="card p-4 row-hover" style="border-color:#fbeed8;">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded bg-paper-3 border hairline flex items-center justify-center serif font-black text-[13px] text-ink">SX</div>
+            <div>
+              <div class="text-[13px] font-semibold text-ink">Saxo Bank</div>
+              <div class="uplabel" style="font-size:9px;">Custodian API</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5"><span class="dot bg-elevated"></span><span class="text-[10px] text-elevated font-semibold">Stale</span></div>
+        </div>
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          <div><div class="uplabel" style="font-size:9px;">Positions</div><div class="mono text-[12px] font-semibold mt-0.5">11</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Last sync</div><div class="mono text-[12px] font-semibold text-elevated mt-0.5">2d</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Next</div><div class="mono text-[12px] font-semibold text-ink-mute mt-0.5">—</div></div>
+        </div>
+        <div class="mt-3 pt-3 border-t hairline flex items-center justify-between">
+          <button class="text-[11px] font-semibold text-elevated hover:underline">Re-authenticate</button>
+          <button class="text-ink-mute hover:text-ink"><span class="material-symbols-outlined icon-sm">more_horiz</span></button>
+        </div>
+      </div>
+
+      <!-- Julius Baer - error -->
+      <div class="card p-4 row-hover" style="border-color:#fbe2de;">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded bg-paper-3 border hairline flex items-center justify-center serif font-black text-[13px] text-ink">JB</div>
+            <div>
+              <div class="text-[13px] font-semibold text-ink">Julius Baer</div>
+              <div class="uplabel" style="font-size:9px;">Document Parser</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5"><span class="dot bg-priority"></span><span class="text-[10px] text-priority font-semibold">Error</span></div>
+        </div>
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          <div><div class="uplabel" style="font-size:9px;">Documents</div><div class="mono text-[12px] font-semibold mt-0.5">6</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Last upload</div><div class="mono text-[12px] font-semibold mt-0.5">1d</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Failed</div><div class="mono text-[12px] font-semibold text-priority mt-0.5">1</div></div>
+        </div>
+        <div class="mt-3 pt-3 border-t hairline">
+          <div class="text-[10px] text-priority leading-tight mb-2">Q1 statement parse failed: handwritten note on page 4 not OCRable.</div>
+          <div class="flex items-center justify-between">
+            <button class="text-[11px] font-semibold text-priority hover:underline">Review &amp; retry</button>
+            <button class="text-ink-mute hover:text-ink"><span class="material-symbols-outlined icon-sm">more_horiz</span></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carta -->
+      <div class="card p-4 row-hover">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded bg-paper-3 border hairline flex items-center justify-center serif font-black text-[13px] text-ink">CA</div>
+            <div>
+              <div class="text-[13px] font-semibold text-ink">Carta</div>
+              <div class="uplabel" style="font-size:9px;">Private Markets API</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5"><span class="dot bg-good"></span><span class="text-[10px] text-good font-semibold">Healthy</span></div>
+        </div>
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          <div><div class="uplabel" style="font-size:9px;">Positions</div><div class="mono text-[12px] font-semibold mt-0.5">5</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Last sync</div><div class="mono text-[12px] font-semibold mt-0.5">12h</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Next</div><div class="mono text-[12px] font-semibold mt-0.5">12h</div></div>
+        </div>
+        <div class="mt-3 pt-3 border-t hairline flex items-center justify-between">
+          <button class="text-[11px] font-semibold text-accent hover:underline">Sync now</button>
+          <button class="text-ink-mute hover:text-ink"><span class="material-symbols-outlined icon-sm">more_horiz</span></button>
+        </div>
+      </div>
+
+      <!-- Yahoo -->
+      <div class="card p-4 row-hover">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded bg-paper-3 border hairline flex items-center justify-center serif font-black text-[13px] text-ink">YF</div>
+            <div>
+              <div class="text-[13px] font-semibold text-ink">Yahoo Finance</div>
+              <div class="uplabel" style="font-size:9px;">Market Data</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5"><span class="dot bg-good"></span><span class="text-[10px] text-good font-semibold">Live</span></div>
+        </div>
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          <div><div class="uplabel" style="font-size:9px;">Tickers</div><div class="mono text-[12px] font-semibold mt-0.5">68</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Latency</div><div class="mono text-[12px] font-semibold mt-0.5">42ms</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Cache</div><div class="mono text-[12px] font-semibold mt-0.5">15s</div></div>
+        </div>
+        <div class="mt-3 pt-3 border-t hairline flex items-center justify-between">
+          <span class="text-[10px] text-ink-mute">Streams continuously</span>
+          <button class="text-ink-mute hover:text-ink"><span class="material-symbols-outlined icon-sm">more_horiz</span></button>
+        </div>
+      </div>
+
+      <!-- FRED -->
+      <div class="card p-4 row-hover">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded bg-paper-3 border hairline flex items-center justify-center serif font-black text-[12px] text-ink">FR</div>
+            <div>
+              <div class="text-[13px] font-semibold text-ink">FRED · Federal Reserve</div>
+              <div class="uplabel" style="font-size:9px;">Macro Feed</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5"><span class="dot bg-good"></span><span class="text-[10px] text-good font-semibold">Healthy</span></div>
+        </div>
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          <div><div class="uplabel" style="font-size:9px;">Series</div><div class="mono text-[12px] font-semibold mt-0.5">7</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Cadence</div><div class="mono text-[12px] font-semibold mt-0.5">Daily</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Updated</div><div class="mono text-[12px] font-semibold mt-0.5">06:00</div></div>
+        </div>
+        <div class="mt-3 pt-3 border-t hairline flex items-center justify-between">
+          <button class="text-[11px] font-semibold text-accent hover:underline">View series</button>
+          <button class="text-ink-mute hover:text-ink"><span class="material-symbols-outlined icon-sm">more_horiz</span></button>
+        </div>
+      </div>
+
+      <!-- Manual -->
+      <div class="card p-4 row-hover">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded bg-paper-3 border hairline flex items-center justify-center"><span class="material-symbols-outlined text-ink-soft icon-md">edit_note</span></div>
+            <div>
+              <div class="text-[13px] font-semibold text-ink">Manual Entries</div>
+              <div class="uplabel" style="font-size:9px;">Internal</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5"><span class="dot bg-ink-mute"></span><span class="text-[10px] text-ink-mute font-semibold">Static</span></div>
+        </div>
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          <div><div class="uplabel" style="font-size:9px;">Positions</div><div class="mono text-[12px] font-semibold mt-0.5">4</div></div>
+          <div><div class="uplabel" style="font-size:9px;">Last edit</div><div class="mono text-[12px] font-semibold mt-0.5">3d</div></div>
+          <div><div class="uplabel" style="font-size:9px;">By</div><div class="mono text-[12px] font-semibold mt-0.5">Omar</div></div>
+        </div>
+        <div class="mt-3 pt-3 border-t hairline flex items-center justify-between">
+          <a href="table.html" class="text-[11px] font-semibold text-accent hover:underline">Edit in table →</a>
+          <button class="text-ink-mute hover:text-ink"><span class="material-symbols-outlined icon-sm">more_horiz</span></button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Add a Source -->
+  <section class="px-8 pt-8 pb-4">
+    <div class="mb-4">
+      <h2 class="serif text-[18px] font-bold text-ink">Add a Source</h2>
+      <p class="text-[11px] text-ink-mute mt-0.5">Connect a live account, upload statements, or add positions by hand.</p>
+    </div>
+
+    <div class="card">
+      <!-- Tabs -->
+      <div class="px-6 pt-4 border-b hairline">
+        <div class="flex gap-6">
+          <button class="tab on flex items-center gap-2"><span class="material-symbols-outlined icon-sm">link</span> Connect an account</button>
+          <button class="tab flex items-center gap-2"><span class="material-symbols-outlined icon-sm">upload_file</span> Upload documents</button>
+          <button class="tab flex items-center gap-2"><span class="material-symbols-outlined icon-sm">edit_note</span> Manual entry</button>
+        </div>
+      </div>
+
+      <!-- Tab content: Connect an account -->
+      <div class="p-6">
+        <div class="grid grid-cols-2 gap-6">
+
+          <!-- Provider directory -->
+          <div>
+            <div class="uplabel mb-3">Provider directory</div>
+            <div class="relative mb-3">
+              <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-mute icon-sm">search</span>
+              <input type="text" placeholder="Schwab, Pictet, Bloomberg…" class="pl-8 pr-3 py-1.5 bg-paper-3 border hairline rounded text-[12px] w-full focus:outline-none focus:ring-1 focus:ring-accent" />
+            </div>
+
+            <div class="uplabel mt-4 mb-2" style="font-size:9px;">Custodians &amp; Private Banks</div>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Schwab</div><div class="text-[9px] text-ink-mute">Connected</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Fidelity</div><div class="text-[9px] text-ink-mute">OAuth</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Pershing</div><div class="text-[9px] text-ink-mute">Connected</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Morgan Stanley</div><div class="text-[9px] text-ink-mute">OAuth</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">UBS</div><div class="text-[9px] text-ink-mute">OAuth</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Pictet</div><div class="text-[9px] text-ink-mute">OAuth</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Lombard Odier</div><div class="text-[9px] text-ink-mute">OAuth</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">LGT</div><div class="text-[9px] text-ink-mute">OAuth</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">JB</div><div class="text-[9px] text-elevated">PDF only</div></button>
+            </div>
+
+            <div class="uplabel mt-4 mb-2" style="font-size:9px;">Brokerage &amp; Market Data</div>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Interactive Brokers</div><div class="text-[9px] text-ink-mute">Connected</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Saxo</div><div class="text-[9px] text-elevated">Reauth</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Bloomberg</div><div class="text-[9px] text-ink-mute">API key</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Refinitiv</div><div class="text-[9px] text-ink-mute">API key</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Polygon</div><div class="text-[9px] text-ink-mute">API key</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Yahoo Finance</div><div class="text-[9px] text-ink-mute">Connected</div></button>
+            </div>
+
+            <div class="uplabel mt-4 mb-2" style="font-size:9px;">Alternative Assets</div>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Carta</div><div class="text-[9px] text-ink-mute">Connected</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">iCapital</div><div class="text-[9px] text-ink-mute">OAuth</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Addepar</div><div class="text-[9px] text-ink-mute">Read-only</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Masttro</div><div class="text-[9px] text-ink-mute">API</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">AngelList</div><div class="text-[9px] text-ink-mute">OAuth</div></button>
+              <button class="border hairline rounded p-2 text-left hover:border-accent hover:bg-paper-3"><div class="serif font-black text-[10px]">Fundrise</div><div class="text-[9px] text-ink-mute">OAuth</div></button>
+            </div>
+          </div>
+
+          <!-- Connection panel -->
+          <div>
+            <div class="uplabel mb-3">Selected · Pictet</div>
+            <div class="border hairline rounded p-5 bg-paper-2">
+              <div class="flex items-center gap-3 pb-4 border-b hairline">
+                <div class="w-12 h-12 rounded bg-paper border hairline flex items-center justify-center serif font-black text-[16px]">PC</div>
+                <div>
+                  <div class="serif text-[16px] font-bold text-ink leading-tight">Banque Pictet &amp; Cie SA</div>
+                  <div class="text-[11px] text-ink-mute">Geneva · Private Banking · OAuth 2.0</div>
+                </div>
+              </div>
+
+              <div class="mt-4 space-y-3">
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-good flex items-center justify-center mt-0.5"><span class="material-symbols-outlined text-white" style="font-size:12px;">check</span></div>
+                  <div>
+                    <div class="text-[12px] font-semibold text-ink">1 · Authorize ChiefRiskBot</div>
+                    <div class="text-[11px] text-ink-mute">You'll be redirected to Pictet's secure login.</div>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-paper-3 border hairline flex items-center justify-center mt-0.5 mono text-[10px] font-bold text-ink-mute">2</div>
+                  <div>
+                    <div class="text-[12px] font-semibold text-ink-soft">Select accounts to import</div>
+                    <div class="text-[11px] text-ink-mute">Choose which sub-accounts to consolidate.</div>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-paper-3 border hairline flex items-center justify-center mt-0.5 mono text-[10px] font-bold text-ink-mute">3</div>
+                  <div>
+                    <div class="text-[12px] font-semibold text-ink-soft">Map fields &amp; confirm</div>
+                    <div class="text-[11px] text-ink-mute">We'll auto-detect ticker and asset class columns.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-5 pt-4 border-t hairline flex items-center justify-between">
+                <div class="text-[10px] text-ink-mute leading-tight">Read-only access · No trading permissions requested</div>
+                <button class="bg-accent text-white px-4 py-2 rounded text-[12px] font-semibold hover:bg-accent-soft flex items-center gap-1.5">
+                  Authorize <span class="material-symbols-outlined icon-sm">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="mt-4 text-[10px] text-ink-mute leading-relaxed">
+              <span class="material-symbols-outlined icon-sm" style="font-size:13px;">lock</span>
+              Credentials never touch ChiefRiskBot servers. All connections are read-only by default and use bank-grade OAuth 2.0 with token rotation.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Document upload + recent uploads -->
+  <section class="px-8 pt-6 pb-4 grid grid-cols-12 gap-6">
+    <div class="col-span-5">
+      <div class="mb-3">
+        <h2 class="serif text-[18px] font-bold text-ink">Upload Documents</h2>
+        <p class="text-[11px] text-ink-mute mt-0.5">For custodians without an API. We'll parse and extract automatically.</p>
+      </div>
+
+      <div class="dropzone p-8 text-center">
+        <div class="w-12 h-12 mx-auto rounded-full bg-paper border hairline flex items-center justify-center mb-3">
+          <span class="material-symbols-outlined text-accent icon-lg">upload_file</span>
+        </div>
+        <div class="text-[13px] font-semibold text-ink">Drop statements here</div>
+        <div class="text-[11px] text-ink-mute mt-1">or <span class="text-accent underline cursor-pointer">click to browse</span></div>
+        <div class="mt-4 flex flex-wrap justify-center gap-1.5">
+          <span class="pill pill-mute">PDF</span><span class="pill pill-mute">CSV</span><span class="pill pill-mute">XLSX</span>
+          <span class="pill pill-mute">XLS</span><span class="pill pill-mute">OFX</span><span class="pill pill-mute">MT940</span>
+        </div>
+        <div class="mt-3 text-[10px] text-ink-mute">We extract positions, cash balances, and transactions.</div>
+      </div>
+    </div>
+
+    <div class="col-span-7">
+      <div class="mb-3 flex items-end justify-between">
+        <div>
+          <h2 class="serif text-[18px] font-bold text-ink">Recent Uploads</h2>
+          <p class="text-[11px] text-ink-mute mt-0.5">Last 7 days</p>
+        </div>
+        <button class="text-[11px] font-semibold text-accent hover:underline">View all →</button>
+      </div>
+
+      <div class="card overflow-hidden">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="bg-paper-2 border-b hairline">
+              <th class="px-4 py-2.5 uplabel font-bold">File</th>
+              <th class="px-2 py-2.5 uplabel font-bold">Source</th>
+              <th class="px-2 py-2.5 uplabel font-bold">Status</th>
+              <th class="px-2 py-2.5 uplabel font-bold text-right">Extracted</th>
+              <th class="px-3 py-2.5 uplabel font-bold text-right">Uploaded</th>
+              <th class="px-3 py-2.5 w-6"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-rule">
+
+            <tr class="row-hover">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-ink-mute icon-sm">picture_as_pdf</span>
+                  <div>
+                    <div class="text-[12px] font-semibold text-ink">JB_Statement_Mar2026.pdf</div>
+                    <div class="text-[10px] text-ink-mute">2.4 MB · 18 pages</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-2 py-3 text-[11px] text-ink-soft">Julius Baer</td>
+              <td class="px-2 py-3"><span class="pill pill-good">Parsed</span></td>
+              <td class="px-2 py-3 text-right mono text-[11px] font-semibold">6 positions<div class="text-[10px] text-ink-mute font-normal">$14.2M</div></td>
+              <td class="px-3 py-3 text-right text-[11px] text-ink-mute mono">2h ago</td>
+              <td class="px-3 py-3"><button class="text-[11px] font-semibold text-accent hover:underline">Review</button></td>
+            </tr>
+
+            <tr class="row-hover">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-ink-mute icon-sm">picture_as_pdf</span>
+                  <div>
+                    <div class="text-[12px] font-semibold text-ink">Pictet_Q1_2026.pdf</div>
+                    <div class="text-[10px] text-ink-mute">5.1 MB · 32 pages</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-2 py-3 text-[11px] text-ink-soft">Pictet</td>
+              <td class="px-2 py-3">
+                <div class="flex flex-col gap-1">
+                  <span class="pill pill-elevated">Parsing 72%</span>
+                  <div class="progress w-20"><div style="width:72%"></div></div>
+                </div>
+              </td>
+              <td class="px-2 py-3 text-right text-ink-mute text-[11px]">—</td>
+              <td class="px-3 py-3 text-right text-[11px] text-ink-mute mono">4m ago</td>
+              <td class="px-3 py-3"><button class="text-ink-mute"><span class="material-symbols-outlined icon-sm">hourglass_top</span></button></td>
+            </tr>
+
+            <tr class="row-hover">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-ink-mute icon-sm">table_chart</span>
+                  <div>
+                    <div class="text-[12px] font-semibold text-ink">fund_holdings.xlsx</div>
+                    <div class="text-[10px] text-ink-mute">68 KB · 1 sheet</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-2 py-3 text-[11px] text-ink-soft">Custom Spreadsheet</td>
+              <td class="px-2 py-3"><span class="pill pill-watch">Needs mapping</span></td>
+              <td class="px-2 py-3 text-right mono text-[11px] font-semibold">23 rows<div class="text-[10px] text-ink-mute font-normal">unmapped</div></td>
+              <td class="px-3 py-3 text-right text-[11px] text-ink-mute mono">1d ago</td>
+              <td class="px-3 py-3"><button class="text-[11px] font-semibold text-accent hover:underline">Map</button></td>
+            </tr>
+
+            <tr class="row-hover">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-ink-mute icon-sm">picture_as_pdf</span>
+                  <div>
+                    <div class="text-[12px] font-semibold text-ink">Sequoia_XIX_Q4.pdf</div>
+                    <div class="text-[10px] text-ink-mute">1.1 MB · 6 pages</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-2 py-3 text-[11px] text-ink-soft">Carta · PE Capital Account</td>
+              <td class="px-2 py-3"><span class="pill pill-good">Parsed</span></td>
+              <td class="px-2 py-3 text-right mono text-[11px] font-semibold">1 position<div class="text-[10px] text-ink-mute font-normal">$8.5M NAV</div></td>
+              <td class="px-3 py-3 text-right text-[11px] text-ink-mute mono">3d ago</td>
+              <td class="px-3 py-3"><button class="text-[11px] font-semibold text-accent hover:underline">Review</button></td>
+            </tr>
+
+            <tr class="row-hover">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-ink-mute icon-sm">picture_as_pdf</span>
+                  <div>
+                    <div class="text-[12px] font-semibold text-ink">scan_handwritten.pdf</div>
+                    <div class="text-[10px] text-ink-mute">8.7 MB · 12 pages</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-2 py-3 text-[11px] text-ink-soft">Unknown</td>
+              <td class="px-2 py-3"><span class="pill pill-priority">Failed</span></td>
+              <td class="px-2 py-3 text-right text-priority text-[11px]">OCR &lt;50%</td>
+              <td class="px-3 py-3 text-right text-[11px] text-ink-mute mono">5d ago</td>
+              <td class="px-3 py-3"><button class="text-[11px] font-semibold text-priority hover:underline">Retry</button></td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sync schedule -->
+  <section class="px-8 pt-6 pb-12">
+    <div class="card p-5">
+      <button class="w-full flex items-center justify-between text-left">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-ink-soft icon-md">schedule</span>
+          <div>
+            <div class="text-[13px] font-semibold text-ink">Sync Schedule &amp; Rules</div>
+            <div class="text-[11px] text-ink-mute">Hourly default · 2 per-source overrides · Stale alerts on</div>
+          </div>
+        </div>
+        <span class="material-symbols-outlined text-ink-mute icon-md">expand_more</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="px-8 py-4 border-t hairline flex items-center justify-between bg-paper-2/40">
+    <div class="flex items-center gap-5 text-[10px] text-ink-mute">
+      <div class="flex items-center gap-1.5"><span class="dot bg-good"></span> System nominal</div>
+      <div class="mono">Latency 42ms</div>
+      <div class="mono">14 sources · 11 healthy · 2 stale · 1 error</div>
+    </div>
+    <div class="flex gap-5 text-[10px] uppercase tracking-widest font-bold text-ink-mute">
+      <button class="hover:text-ink">Compliance Export</button>
+      <button class="hover:text-ink">Audit Log</button>
+      <button class="hover:text-ink">Keyboard ⌘/</button>
+    </div>
+  </footer>
+</main>
+</div>
+<script src="_shell.js"></script>
+<script>CRB.mount('sources.html',['Workspace','Data','Sources'])</script>
+</body>
+</html>

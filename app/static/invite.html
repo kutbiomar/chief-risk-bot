@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>You're invited — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  body{min-height:100vh;display:flex;flex-direction:column}
+  .top{height:64px;border-bottom:1px solid var(--rule);display:flex;align-items:center;padding:0 32px;background:var(--paper)}
+  .top .logo{width:30px;height:30px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:'Fraunces';font-weight:900;font-size:15px;margin-right:10px}
+  .top b{font-family:'Fraunces';font-weight:900;font-size:17px}
+  .stage{flex:1;display:grid;place-items:center;padding:48px 24px}
+  .panel{max-width:520px;width:100%;border:1px solid var(--rule);background:#fffdfb;border-radius:8px;box-shadow:var(--shadow);overflow:hidden}
+  .invite-head{padding:32px 40px 24px;border-bottom:1px solid var(--rule);background:var(--paper-2);display:flex;align-items:center;gap:18px}
+  .ws-logo{width:56px;height:56px;border-radius:8px;background:var(--brand);color:#fff;display:grid;place-items:center;font-family:'Fraunces';font-weight:900;font-size:24px;flex-shrink:0}
+  .invite-head .meta{font-size:11px;color:var(--ink-mute);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+  .invite-head h1{font-family:'Fraunces';font-weight:900;font-size:24px;letter-spacing:-.015em;margin:4px 0 0;line-height:1.15}
+  .body{padding:30px 40px}
+  .invited-by{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px;margin-bottom:22px}
+  .ava{width:38px;height:38px;border-radius:999px;background:#3a4a7a;color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px}
+  .invited-by .who b{display:block;font-size:13px}
+  .invited-by .who small{display:block;font-size:11px;color:var(--ink-mute)}
+  .role-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+  .role-row .box{padding:12px 14px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px}
+  .role-row .lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:4px}
+  .role-row b{font-size:13px;font-weight:600}
+  form{display:flex;flex-direction:column;gap:14px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .terms{font-size:11px;color:var(--ink-mute);line-height:1.5;margin-top:4px}
+  .terms a{color:var(--accent);font-weight:600}
+  .btn.primary{justify-content:center;padding:12px;font-size:13px}
+  footer{padding:14px 40px;border-top:1px solid var(--rule);background:var(--paper-2);font-size:11px;color:var(--ink-mute);text-align:center}
+</style></head>
+<body>
+  <div class="top"><div class="logo">C</div><b>ChiefRiskBot</b></div>
+  <div class="stage">
+    <div class="panel">
+      <div class="invite-head">
+        <div class="ws-logo">A</div>
+        <div>
+          <div class="meta">Workspace invitation</div>
+          <h1 class="serif">Join Aldridge Family Office on ChiefRiskBot.</h1>
+        </div>
+      </div>
+      <div class="body">
+        <div class="invited-by">
+          <div class="ava">HV</div>
+          <div class="who">
+            <b>Helena Voss</b> invited you
+            <small>helena@aldridge.fo · CIO · 2 hours ago</small>
+          </div>
+        </div>
+
+        <div class="role-row">
+          <div class="box">
+            <div class="lbl">Your role</div>
+            <b>Auditor</b>
+            <div style="font-size:11px;color:var(--ink-mute);margin-top:2px">Read-only access</div>
+          </div>
+          <div class="box">
+            <div class="lbl">Scope</div>
+            <b>Aldridge FO</b>
+            <div style="font-size:11px;color:var(--ink-mute);margin-top:2px">1 client workspace</div>
+          </div>
+        </div>
+
+        <form>
+          <div class="row2">
+            <div class="field"><label>First name</label><input value="Elena"/></div>
+            <div class="field"><label>Last name</label><input value="Loretti"/></div>
+          </div>
+          <div class="field">
+            <label>Work email</label>
+            <input type="email" value="elena@pictet-counsel.ch" readonly style="color:var(--ink-mute)"/>
+            <span class="hint">Locked to the address Helena invited.</span>
+          </div>
+          <div class="field">
+            <label>Choose a password</label>
+            <input type="password" placeholder="At least 12 characters"/>
+            <span class="hint">Or set up SSO after accepting.</span>
+          </div>
+          <button class="btn primary" type="submit">Accept invitation <span class="ms">arrow_forward</span></button>
+          <p class="terms">By accepting you agree to ChiefRiskBot's <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>. Aldridge FO admins can revoke your access at any time.</p>
+        </form>
+      </div>
+      <footer>Not you? <a href="#" style="color:var(--accent);font-weight:600">Decline this invitation</a></footer>
+    </div>
+  </div>
+</body></html>

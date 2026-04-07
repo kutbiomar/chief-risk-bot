@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ChiefRiskBot — The weekly briefing for family office CIOs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  body{background:var(--paper)}
+  .nav{height:72px;display:flex;align-items:center;padding:0 48px;gap:36px;border-bottom:1px solid var(--rule);background:var(--paper);position:sticky;top:0;z-index:10;backdrop-filter:blur(6px)}
+  .nav .brand{display:flex;align-items:center;gap:10px}
+  .nav .brand .logo{width:30px;height:30px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:'Fraunces';font-weight:900;font-size:15px}
+  .nav .brand b{font-family:'Fraunces';font-weight:900;font-size:18px}
+  .nav .links{display:flex;gap:28px}
+  .nav .links a{font-size:13px;color:var(--ink-soft);font-weight:500}
+  .nav .links a:hover{color:var(--ink)}
+  .nav .grow{flex:1}
+  .nav .right{display:flex;align-items:center;gap:12px}
+  .nav .right a{font-size:13px;color:var(--ink-soft);font-weight:500}
+
+  .wrap{max-width:1160px;margin:0 auto;padding:0 48px}
+  section{padding:96px 0;border-bottom:1px solid var(--rule)}
+
+  /* Hero */
+  .hero{padding-top:112px;padding-bottom:80px}
+  .hero .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);padding:6px 12px;border:1px solid var(--rule);border-radius:999px;background:var(--paper-2);margin-bottom:24px}
+  .hero .eyebrow .dot{width:6px;height:6px;border-radius:999px;background:var(--good-fg)}
+  .hero h1{font-family:'Fraunces';font-weight:900;font-size:72px;letter-spacing:-.03em;line-height:.98;margin:0 0 24px;max-width:920px}
+  .hero h1 em{font-style:italic;font-weight:900}
+  .hero .lede{font-family:'Fraunces';font-weight:400;font-style:italic;font-size:22px;line-height:1.45;color:var(--ink-soft);max-width:680px;margin:0 0 36px}
+  .hero .cta{display:flex;gap:12px;align-items:center}
+  .hero .btn.primary{padding:14px 22px;font-size:14px}
+  .hero .btn{padding:14px 18px;font-size:13px}
+  .hero .meta{display:flex;gap:32px;margin-top:42px;padding-top:24px;border-top:1px solid var(--rule);max-width:680px;font-size:11px;color:var(--ink-mute)}
+  .hero .meta b{display:block;font-family:'Fraunces';font-weight:900;font-size:22px;color:var(--ink);letter-spacing:-.01em}
+
+  /* Mock dashboard */
+  .mock-wrap{margin-top:64px;border:1px solid var(--rule);border-radius:8px;background:#fffdfb;overflow:hidden;box-shadow:0 24px 60px rgba(30,27,26,.08),0 4px 12px rgba(30,27,26,.04)}
+  .mock-bar{height:36px;background:var(--paper-2);border-bottom:1px solid var(--rule);display:flex;align-items:center;padding:0 14px;gap:6px}
+  .mock-bar .d{width:10px;height:10px;border-radius:999px;background:var(--paper-4);border:1px solid var(--rule)}
+  .mock-bar .url{margin-left:14px;font-family:'JetBrains Mono';font-size:11px;color:var(--ink-mute);background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:3px 12px}
+  .mock-img{padding:14px;background:var(--paper-2);display:grid;grid-template-columns:180px 1fr;gap:14px}
+  .m-side{background:#fffdfb;border:1px solid var(--rule);border-radius:5px;padding:14px 10px;display:flex;flex-direction:column;gap:5px;font-size:11px}
+  .m-side .s{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);font-weight:700;padding:8px 6px 4px}
+  .m-side a{padding:6px 8px;border-radius:4px;color:var(--ink-soft);display:flex;align-items:center;gap:8px}
+  .m-side a.on{background:var(--paper-3);color:var(--accent);font-weight:600}
+  .m-side a .ms{font-size:14px}
+  .m-main{display:flex;flex-direction:column;gap:10px}
+  .m-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .m-tile{background:#fffdfb;border:1px solid var(--rule);border-radius:5px;padding:12px}
+  .m-tile .l{font-size:9px;color:var(--ink-mute);text-transform:uppercase;font-weight:700;letter-spacing:.08em}
+  .m-tile .v{font-family:'JetBrains Mono';font-size:18px;font-weight:700;margin-top:4px}
+  .m-quads{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .m-quad{background:#fffdfb;border:1px solid var(--rule);border-radius:5px;padding:14px;height:170px;display:flex;flex-direction:column;gap:8px}
+  .m-quad h4{font-family:'Fraunces';font-weight:700;font-size:13px;margin:0}
+  .m-quad .donut{margin:auto;width:90px;height:90px;border-radius:999px;background:conic-gradient(var(--accent) 0 36%,var(--brand) 36% 58%,var(--gold) 58% 76%,var(--teal) 76% 90%,var(--ink-mute) 90% 100%);position:relative}
+  .m-quad .donut::after{content:"";position:absolute;inset:18px;background:#fffdfb;border-radius:999px}
+  .m-quad svg{width:100%;flex:1}
+  .m-quad .reg{display:flex;flex-direction:column;gap:5px;font-size:10px}
+  .m-quad .reg .row{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px dashed var(--rule)}
+  .m-quad .reg .row:last-child{border:0}
+  .m-quad .reg .row .dot{width:6px;height:6px;border-radius:999px}
+
+  /* Logos */
+  .logos{padding:48px 0;text-align:center;border-bottom:1px solid var(--rule);background:var(--paper-2)}
+  .logos .lbl{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:24px}
+  .logos .row{display:flex;justify-content:center;gap:48px;font-family:'Fraunces';font-weight:700;font-size:20px;color:var(--ink-mute);flex-wrap:wrap;align-items:center}
+  .logos .row span{opacity:.7}
+
+  /* Section heads */
+  .sec-head{max-width:720px;margin:0 0 56px}
+  .sec-head .eyebrow{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+  .sec-head h2{font-family:'Fraunces';font-weight:900;font-size:48px;letter-spacing:-.025em;line-height:1.05;margin:0 0 14px}
+  .sec-head p{margin:0;font-family:'Fraunces';font-style:italic;font-weight:400;font-size:18px;color:var(--ink-soft);line-height:1.5;max-width:580px}
+
+  /* Features */
+  .features{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
+  .feat{padding:32px 0;border-top:1px solid var(--ink)}
+  .feat .num{font-family:'JetBrains Mono';font-size:11px;font-weight:700;color:var(--ink-mute);margin-bottom:14px}
+  .feat h3{font-family:'Fraunces';font-weight:700;font-size:22px;letter-spacing:-.01em;margin:0 0 10px;line-height:1.2}
+  .feat p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.6}
+
+  /* How */
+  .how{display:grid;grid-template-columns:1.1fr 1fr;gap:64px;align-items:center}
+  .how-list{display:flex;flex-direction:column;gap:0}
+  .how-step{padding:24px 0;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:60px 1fr;gap:18px;align-items:flex-start}
+  .how-step:first-child{border-top:1px solid var(--rule)}
+  .how-step .n{font-family:'Fraunces';font-weight:900;font-size:36px;line-height:.9;color:var(--accent);letter-spacing:-.02em}
+  .how-step h4{font-family:'Fraunces';font-weight:700;font-size:18px;margin:0 0 6px}
+  .how-step p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.55}
+  .how .visual{border:1px solid var(--rule);background:var(--paper-2);border-radius:8px;padding:32px;font-family:'JetBrains Mono';font-size:11px;color:var(--ink-soft);box-shadow:var(--shadow);min-height:380px}
+  .how .visual h5{font-family:'Fraunces';font-weight:700;font-size:18px;color:var(--ink);margin:0 0 4px}
+  .how .visual .meta{font-family:'Inter Tight';font-size:11px;color:var(--ink-mute);margin-bottom:18px}
+  .how .visual .line{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dotted var(--rule)}
+  .how .visual .line b{color:var(--ink);font-family:'JetBrains Mono'}
+
+  /* Quote */
+  .pull{padding:96px 0;background:var(--paper-2);border-bottom:1px solid var(--rule)}
+  .pull .wrap{max-width:920px;text-align:center}
+  .pull .mark{font-family:'Fraunces';font-weight:900;font-size:120px;line-height:.5;color:var(--brand);opacity:.3}
+  .pull blockquote{font-family:'Fraunces';font-weight:700;font-size:38px;line-height:1.25;letter-spacing:-.015em;margin:24px 0 28px;color:var(--ink)}
+  .pull cite{font-style:normal;display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--ink-soft)}
+  .pull cite b{color:var(--ink);font-weight:700;font-size:14px}
+
+  /* Pricing */
+  .price-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .price{border:1px solid var(--rule);background:#fffdfb;border-radius:8px;padding:32px 32px;display:flex;flex-direction:column;gap:18px}
+  .price.featured{border-color:var(--accent);box-shadow:0 0 0 3px rgba(27,43,94,.08)}
+  .price .tag{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute)}
+  .price.featured .tag{color:var(--accent)}
+  .price h3{font-family:'Fraunces';font-weight:900;font-size:28px;margin:0;letter-spacing:-.015em}
+  .price .p{font-family:'JetBrains Mono';font-size:32px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+  .price .p small{font-family:'Inter Tight';font-size:12px;color:var(--ink-mute);font-weight:500}
+  .price .desc{font-size:12px;color:var(--ink-soft);line-height:1.5;margin:-6px 0 0}
+  .price ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--ink-soft)}
+  .price ul li{display:flex;gap:8px;align-items:flex-start}
+  .price ul li .ms{color:var(--good-fg);font-size:14px;margin-top:2px}
+  .price .btn{justify-content:center;padding:12px;font-size:12px;margin-top:auto}
+
+  /* CTA */
+  .cta-end{padding:120px 0;text-align:center;background:var(--ink);color:#fff;border-bottom:0}
+  .cta-end h2{font-family:'Fraunces';font-weight:900;font-size:56px;letter-spacing:-.025em;line-height:1.05;margin:0 0 18px;color:#fff}
+  .cta-end p{font-family:'Fraunces';font-style:italic;font-weight:400;font-size:20px;color:#bdb1ab;max-width:560px;margin:0 auto 32px;line-height:1.5}
+  .cta-end .btn.primary{background:#fff;color:var(--ink);border-color:#fff;padding:14px 24px}
+  .cta-end .btn.primary:hover{background:var(--paper)}
+  .cta-end .btn.ghost{color:#bdb1ab;border-color:transparent}
+  .cta-end .btn.ghost:hover{color:#fff;background:rgba(255,255,255,.06)}
+
+  /* Footer */
+  footer.site{background:var(--ink);color:#928680;padding:64px 48px 32px;border-bottom:0}
+  footer.site .grid{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:48px}
+  footer.site .brand b{font-family:'Fraunces';font-weight:900;font-size:20px;color:#fff;display:block;margin:10px 0 8px}
+  footer.site .brand p{font-size:11px;line-height:1.6;max-width:280px;margin:0}
+  footer.site h5{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#fff;margin:0 0 14px}
+  footer.site ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;font-size:12px}
+  footer.site ul a{color:#928680}
+  footer.site ul a:hover{color:#fff}
+  footer.site .legal{max-width:1160px;margin:48px auto 0;padding-top:24px;border-top:1px solid #2a2624;display:flex;justify-content:space-between;font-size:11px}
+</style></head>
+<body>
+
+  <nav class="nav">
+    <div class="brand"><div class="logo">C</div><b>ChiefRiskBot</b></div>
+    <div class="links">
+      <a href="#product">Product</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="briefing.html">Sample briefing</a>
+      <a href="#security">Security</a>
+    </div>
+    <div class="grow"></div>
+    <div class="right">
+      <a href="login.html">Sign in</a>
+      <a href="onboarding.html" class="btn primary">Request access</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="eyebrow"><span class="dot"></span> Now onboarding family offices · Spring 2026</div>
+      <h1 class="serif">The weekly briefing<br/>for family office CIOs.<br/><em style="color:var(--brand)">Written by Claude. Trusted by you.</em></h1>
+      <p class="lede">Connect your custodians, upload your statements, and every Monday at 6am you get the memo your investment committee actually needs. Risks ranked. Talking points written. Actions priced.</p>
+      <div class="cta">
+        <a href="onboarding.html" class="btn primary">Request access <span class="ms">arrow_forward</span></a>
+        <a href="briefing.html" class="btn">Read a sample briefing</a>
+      </div>
+      <div class="meta">
+        <div><b class="mono">142</b>Family offices onboarded</div>
+        <div><b class="mono">$84B</b>AUM monitored</div>
+        <div><b class="mono">99.98%</b>Uptime, last 90 days</div>
+        <div><b class="mono">SOC 2</b>Type II certified</div>
+      </div>
+
+      <!-- Mock dashboard -->
+      <div class="mock-wrap">
+        <div class="mock-bar">
+          <div class="d"></div><div class="d"></div><div class="d"></div>
+          <div class="url">app.chiefriskbot.com / aldridge-fo / cockpit</div>
+        </div>
+        <div class="mock-img">
+          <div class="m-side">
+            <div class="s">Workspace</div>
+            <a class="on"><span class="ms">dashboard</span>Cockpit</a>
+            <a><span class="ms">description</span>Briefings</a>
+            <a><span class="ms">monitoring</span>Markets</a>
+            <div class="s">Data</div>
+            <a><span class="ms">cable</span>Sources</a>
+            <a><span class="ms">table_view</span>Table</a>
+          </div>
+          <div class="m-main">
+            <div class="m-strip">
+              <div class="m-tile"><div class="l">AUM</div><div class="v">$153.9M</div></div>
+              <div class="m-tile"><div class="l">VaR 95%</div><div class="v">−2.4%</div></div>
+              <div class="m-tile"><div class="l">Active risks</div><div class="v">4</div></div>
+              <div class="m-tile"><div class="l">HHI</div><div class="v">0.082</div></div>
+              <div class="m-tile"><div class="l">Cash</div><div class="v">5.1%</div></div>
+            </div>
+            <div class="m-quads">
+              <div class="m-quad">
+                <h4 class="serif">Portfolio composition</h4>
+                <div class="donut"></div>
+              </div>
+              <div class="m-quad">
+                <h4 class="serif">Value at risk · 6m</h4>
+                <svg viewBox="0 0 300 100" preserveAspectRatio="none">
+                  <polyline fill="none" stroke="#1B2B5E" stroke-width="1.5" points="0,60 20,55 40,58 60,50 80,52 100,42 120,45 140,38 160,40 180,30 200,34 220,25 240,28 260,22 280,30 300,42"/>
+                  <line x1="0" y1="80" x2="300" y2="80" stroke="#e8ddd6"/>
+                </svg>
+              </div>
+              <div class="m-quad">
+                <h4 class="serif">Active risk register</h4>
+                <div class="reg">
+                  <div class="row"><span class="dot" style="background:var(--pri-fg)"></span>US equity drawdown<span style="margin-left:auto;font-family:'JetBrains Mono'">P 18%</span></div>
+                  <div class="row"><span class="dot" style="background:var(--ele-fg)"></span>AI capex unwind<span style="margin-left:auto;font-family:'JetBrains Mono'">P 14%</span></div>
+                  <div class="row"><span class="dot" style="background:var(--ele-fg)"></span>HY credit spreads<span style="margin-left:auto;font-family:'JetBrains Mono'">P 11%</span></div>
+                  <div class="row"><span class="dot" style="background:var(--wat-fg)"></span>USD/JPY intervention<span style="margin-left:auto;font-family:'JetBrains Mono'">P 7%</span></div>
+                </div>
+              </div>
+              <div class="m-quad">
+                <h4 class="serif">Mitigation tree</h4>
+                <svg viewBox="0 0 300 130" preserveAspectRatio="xMidYMid meet">
+                  <line x1="40" y1="65" x2="120" y2="30" stroke="#d3c3bc"/>
+                  <line x1="40" y1="65" x2="120" y2="65" stroke="#d3c3bc"/>
+                  <line x1="40" y1="65" x2="120" y2="100" stroke="#d3c3bc"/>
+                  <line x1="160" y1="30" x2="240" y2="20" stroke="#d3c3bc"/>
+                  <line x1="160" y1="30" x2="240" y2="40" stroke="#d3c3bc"/>
+                  <line x1="160" y1="65" x2="240" y2="65" stroke="#d3c3bc"/>
+                  <line x1="160" y1="100" x2="240" y2="90" stroke="#d3c3bc"/>
+                  <line x1="160" y1="100" x2="240" y2="110" stroke="#d3c3bc"/>
+                  <circle cx="40" cy="65" r="6" fill="#1B2B5E"/>
+                  <circle cx="140" cy="30" r="5" fill="#72594c"/>
+                  <circle cx="140" cy="65" r="5" fill="#72594c"/>
+                  <circle cx="140" cy="100" r="5" fill="#72594c"/>
+                  <circle cx="240" cy="20" r="4" fill="#3F7A4F"/>
+                  <circle cx="240" cy="40" r="4" fill="#1B2B5E"/>
+                  <circle cx="240" cy="65" r="4" fill="#A38108"/>
+                  <circle cx="240" cy="90" r="4" fill="#1B2B5E"/>
+                  <circle cx="240" cy="110" r="4" fill="#C2741C"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- LOGOS -->
+  <div class="logos">
+    <div class="lbl">Built on data from</div>
+    <div class="row">
+      <span>Charles Schwab</span>
+      <span>Pershing</span>
+      <span>Pictet</span>
+      <span>Julius Baer</span>
+      <span>Interactive Brokers</span>
+      <span>Carta</span>
+      <span>FRED</span>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section id="product">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">The product</div>
+        <h2 class="serif">A reading room, not a trading terminal.</h2>
+        <p>Most risk products were built for sell-side desks. ChiefRiskBot was built for the person preparing the Monday memo for the family principal.</p>
+      </div>
+      <div class="features">
+        <div class="feat">
+          <div class="num">01</div>
+          <h3 class="serif">A weekly briefing that reads like Pictet's, not Robinhood's.</h3>
+          <p>Editorial-quality memo every Monday: lede, talking points, recommended actions, audit footer. Print-ready PDF in one click. Reviewed by you before it goes to the committee.</p>
+        </div>
+        <div class="feat">
+          <div class="num">02</div>
+          <h3 class="serif">A live cockpit with the four things that actually matter.</h3>
+          <p>Composition, value-at-risk with event markers, ranked risk register with Monte Carlo, mitigation tree. Updated every morning from your custodians. Same data Claude reads.</p>
+        </div>
+        <div class="feat">
+          <div class="num">03</div>
+          <h3 class="serif">Custodian APIs and PDFs, in the same table.</h3>
+          <p>Connect Schwab, Pershing, Pictet, IBKR via OAuth. Upload Julius Baer statements as PDFs and Claude extracts the positions. Manual entries for art, real estate, and direct deals.</p>
+        </div>
+        <div class="feat">
+          <div class="num">04</div>
+          <h3 class="serif">Concentration limits the committee can trust.</h3>
+          <p>Set HHI thresholds, single-name caps, and asset-class bands. Get flagged the day a position breaches them, not the quarter after.</p>
+        </div>
+        <div class="feat">
+          <div class="num">05</div>
+          <h3 class="serif">Audit log a Big Four signs off on.</h3>
+          <p>Every action by every member, every API call, every Claude generation, append-only and hash-chained. Export to your auditor in CSV or Avro. SOC 2 Type II from day one.</p>
+        </div>
+        <div class="feat">
+          <div class="num">06</div>
+          <h3 class="serif">Single-tenant. Your data, your encryption keys.</h3>
+          <p>Each client gets an isolated workspace and an isolated database. BYOK encryption available on the Enterprise tier. Your custodian credentials are never shared across tenants.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">How it works</div>
+        <h2 class="serif">From custodian to committee in five steps.</h2>
+        <p>Most CIOs are reading their first real briefing within two hours of signing in.</p>
+      </div>
+      <div class="how">
+        <div class="how-list">
+          <div class="how-step">
+            <div class="n mono">01</div>
+            <div>
+              <h4 class="serif">Connect your custodians</h4>
+              <p>OAuth into Schwab, Pershing, IBKR, Pictet, Carta, and a dozen others. Read-only, read-only, read-only. Five minutes per source.</p>
+            </div>
+          </div>
+          <div class="how-step">
+            <div class="n mono">02</div>
+            <div>
+              <h4 class="serif">Upload the things that aren't on an API</h4>
+              <p>Drop in Julius Baer statements, Sequoia capital account reports, Knight Frank appraisals. Claude extracts positions and ties them to your table.</p>
+            </div>
+          </div>
+          <div class="how-step">
+            <div class="n mono">03</div>
+            <div>
+              <h4 class="serif">We build your cockpit</h4>
+              <p>Composition, VaR, risk register, mitigation tree. Reconciled to your most recent statement. Concentration limits set to your committee's actual policy.</p>
+            </div>
+          </div>
+          <div class="how-step">
+            <div class="n mono">04</div>
+            <div>
+              <h4 class="serif">Claude writes the briefing</h4>
+              <p>Every Monday at 6am workspace time. Same model that wrote the briefing this page links to. Reviewed by you before it goes anywhere.</p>
+            </div>
+          </div>
+          <div class="how-step">
+            <div class="n mono">05</div>
+            <div>
+              <h4 class="serif">You walk into the room ready</h4>
+              <p>Eleven talking points. Three priced actions. One memo the principal actually reads.</p>
+            </div>
+          </div>
+        </div>
+        <div class="visual">
+          <h5 class="serif">Week 14 · Apr 1 – Apr 7, 2026</h5>
+          <div class="meta">Generated by Claude · reviewed by Omar Kutbi · v3 published</div>
+          <div class="line"><span>AUM</span><b>$153,920,484</b></div>
+          <div class="line"><span>1-week VaR (95%)</span><b>−2.4%</b></div>
+          <div class="line"><span>P(loss > 5% / 20d)</span><b>18%</b></div>
+          <div class="line"><span>Active risks</span><b>4</b></div>
+          <div class="line"><span>HHI concentration</span><b>0.082</b></div>
+          <div class="line"><span>Talking points</span><b>11</b></div>
+          <div class="line"><span>Recommended actions</span><b>3</b></div>
+          <div class="line"><span>Sources reconciled</span><b>14 / 14</b></div>
+          <div class="line"><span>Token cost</span><b>$0.42</b></div>
+          <div style="margin-top:18px;font-family:'Fraunces';font-style:italic;font-size:14px;color:var(--ink);line-height:1.4">"Two of the four risks we flagged last week moved to elevated. The book is still long quality growth, but the marginal hedge dollar should now favor duration over puts."</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUOTE -->
+  <section class="pull">
+    <div class="wrap">
+      <div class="mark">"</div>
+      <blockquote class="serif">Reads like the Monday memo from a sell-side desk. Only this one is built around our book.</blockquote>
+      <cite><b>Helena Voss</b><span>Chief Investment Officer · Aldridge Family Office · $1.4B AUM</span></cite>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">Pricing</div>
+        <h2 class="serif">Annual plans. No setup fees. No per-seat creep.</h2>
+        <p>Scoped to family offices and small fund managers. If you're a multi-billion-dollar institution, talk to us about Enterprise.</p>
+      </div>
+      <div class="price-grid">
+        <div class="price">
+          <div class="tag">Single Office</div>
+          <h3 class="serif">Starter</h3>
+          <div class="p">$1,200<small> / month · billed annually</small></div>
+          <p class="desc">For single-family offices managing $50M–$250M with one CIO and an analyst.</p>
+          <ul>
+            <li><span class="ms">check</span>1 client workspace</li>
+            <li><span class="ms">check</span>5 seats</li>
+            <li><span class="ms">check</span>Up to 8 connected sources</li>
+            <li><span class="ms">check</span>Weekly briefing + ad-hoc</li>
+            <li><span class="ms">check</span>SOC 2 Type II</li>
+          </ul>
+          <button class="btn">Start with Starter</button>
+        </div>
+        <div class="price featured">
+          <div class="tag">Most chosen</div>
+          <h3 class="serif">Family Office</h3>
+          <div class="p">$2,400<small> / month · billed annually</small></div>
+          <p class="desc">For multi-strategy family offices with a real investment committee and multiple custodians.</p>
+          <ul>
+            <li><span class="ms">check</span>Up to 3 client workspaces</li>
+            <li><span class="ms">check</span>20 seats</li>
+            <li><span class="ms">check</span>Unlimited sources</li>
+            <li><span class="ms">check</span>SAML SSO + audit log export</li>
+            <li><span class="ms">check</span>Custom risk policy &amp; limits</li>
+            <li><span class="ms">check</span>Dedicated onboarding</li>
+          </ul>
+          <button class="btn primary">Request access</button>
+        </div>
+        <div class="price">
+          <div class="tag">Enterprise</div>
+          <h3 class="serif">Multi-Family</h3>
+          <div class="p">Talk to us</div>
+          <p class="desc">For MFOs and small fund managers with multiple legal entities and BYOK requirements.</p>
+          <ul>
+            <li><span class="ms">check</span>Unlimited workspaces</li>
+            <li><span class="ms">check</span>Unlimited seats</li>
+            <li><span class="ms">check</span>BYOK encryption</li>
+            <li><span class="ms">check</span>Single-tenant deployment</li>
+            <li><span class="ms">check</span>White-label briefings</li>
+            <li><span class="ms">check</span>Quarterly business reviews</li>
+          </ul>
+          <button class="btn">Contact sales</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-end">
+    <div class="wrap">
+      <h2 class="serif">Walk into Monday ready.</h2>
+      <p>Connect your first custodian today. Read your first real briefing this week.</p>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <a href="onboarding.html" class="btn primary">Request access <span class="ms">arrow_forward</span></a>
+        <a href="briefing.html" class="btn ghost">Read sample briefing</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site">
+    <div class="grid">
+      <div class="brand">
+        <div style="display:flex;align-items:center;gap:10px"><div class="logo" style="width:30px;height:30px;border-radius:6px;background:#fff;color:var(--ink);display:grid;place-items:center;font-family:'Fraunces';font-weight:900;font-size:15px">C</div><b>ChiefRiskBot</b></div>
+        <p>The weekly risk briefing for family office CIOs. Built in London. Trusted by 142 offices across Europe, the GCC, and North America.</p>
+      </div>
+      <div>
+        <h5>Product</h5>
+        <ul><li><a href="#product">Features</a></li><li><a href="#how">How it works</a></li><li><a href="#pricing">Pricing</a></li><li><a href="briefing.html">Sample briefing</a></li><li><a href="login.html">Sign in</a></li></ul>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <ul><li><a href="#">About</a></li><li><a href="#">Careers</a></li><li><a href="#">Press</a></li><li><a href="#">Contact</a></li></ul>
+      </div>
+      <div>
+        <h5>Trust</h5>
+        <ul><li><a href="#">Security</a></li><li><a href="#">SOC 2</a></li><li><a href="#">Privacy</a></li><li><a href="#">Status</a></li></ul>
+      </div>
+      <div>
+        <h5>Legal</h5>
+        <ul><li><a href="#">Terms</a></li><li><a href="#">Privacy policy</a></li><li><a href="#">DPA</a></li><li><a href="#">Cookies</a></li></ul>
+      </div>
+    </div>
+    <div class="legal">
+      <span>© 2026 ChiefRiskBot Inc. · Registered in England &amp; Wales · 14 St James's Square, London SW1Y 4LB</span>
+      <span style="font-family:'JetBrains Mono'">v 1.0.0 · all systems operational</span>
+    </div>
+  </footer>
+
+</body></html>

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Something broke — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  body{min-height:100vh;display:flex;flex-direction:column}
+  .top{height:64px;border-bottom:1px solid var(--rule);display:flex;align-items:center;padding:0 32px;gap:14px;background:var(--paper)}
+  .top .logo{width:30px;height:30px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:'Fraunces';font-weight:900;font-size:15px}
+  .top b{font-family:'Fraunces';font-weight:900;font-size:17px}
+  .top .grow{flex:1}
+  .stage{flex:1;display:grid;grid-template-columns:1.1fr 1fr;gap:0}
+  .left{padding:80px 64px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--rule)}
+  .num{font-family:'Fraunces';font-weight:900;font-size:160px;line-height:.9;letter-spacing:-.04em;color:var(--ink);margin:0 0 12px}
+  .left h1{font-family:'Fraunces';font-weight:900;font-size:36px;letter-spacing:-.02em;line-height:1.1;margin:0 0 12px;max-width:520px}
+  .left p{margin:0 0 24px;color:var(--ink-soft);font-size:15px;line-height:1.55;max-width:520px}
+  .left .actions{display:flex;gap:10px;margin-bottom:32px;flex-wrap:wrap}
+  .meta{display:flex;gap:24px;font-size:11px;color:var(--ink-mute);padding-top:18px;border-top:1px solid var(--rule);max-width:520px;flex-wrap:wrap}
+  .meta b{color:var(--ink);font-family:'JetBrains Mono';font-weight:600}
+  .right{background:var(--paper-2);padding:64px 56px;display:flex;flex-direction:column;justify-content:center;gap:14px}
+  .right h3{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);margin:0 0 4px}
+  .status{border:1px solid var(--rule);background:var(--paper);border-radius:6px;padding:18px 20px}
+  .status .row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--rule);font-size:12px}
+  .status .row:last-child{border-bottom:0}
+  .status .row .dot{width:7px;height:7px;border-radius:999px;background:var(--good-fg)}
+  .status .row .dot.bad{background:var(--pri-fg)}
+  .status .row .dot.wat{background:var(--wat-fg)}
+  .status .row .name{flex:1;font-weight:500;color:var(--ink)}
+  .status .row .v{font-family:'JetBrains Mono';font-size:11px;color:var(--ink-mute)}
+  .status h4{font-family:'Fraunces';font-size:14px;font-weight:700;margin:0 0 6px}
+  .status p{margin:0 0 10px;font-size:11px;color:var(--ink-mute)}
+  .help{font-size:11px;color:var(--ink-mute);line-height:1.55}
+  .help a{color:var(--accent);font-weight:600}
+  @media (max-width:880px){.stage{grid-template-columns:1fr}.right{border-top:1px solid var(--rule);padding:40px 24px}.left{padding:40px 24px}.num{font-size:96px}.left h1{font-size:28px}}
+</style></head>
+<body>
+  <div class="top">
+    <div class="logo">C</div><b>ChiefRiskBot</b>
+    <div class="grow"></div>
+    <a href="cockpit.html" class="btn"><span class="ms">arrow_back</span>Back to cockpit</a>
+  </div>
+  <div class="stage">
+    <section class="left">
+      <div class="num mono">500</div>
+      <h1 class="serif">Something broke on our side.</h1>
+      <p>This isn't your fault. The error has been logged with full context and our on-call engineer was paged. No data was lost. Your last save is intact. Try again in a moment, or check status below.</p>
+      <div class="actions">
+        <button class="btn primary" onclick="location.reload()"><span class="ms">refresh</span>Try again</button>
+        <a href="cockpit.html" class="btn"><span class="ms">dashboard</span>Back to cockpit</a>
+        <button class="btn ghost"><span class="ms">support</span>Contact support</button>
+      </div>
+      <div class="meta">
+        <span>Incident · <b>inc_2026_04_07_a14</b></span>
+        <span>Time · <b>2026-04-07 14:22 GMT</b></span>
+        <span>Status · <b>500</b></span>
+      </div>
+    </section>
+    <aside class="right">
+      <h3>System status</h3>
+      <div class="status">
+        <h4 class="serif">All systems</h4>
+        <p>Live from status.chiefriskbot.com · refreshed 30s ago</p>
+        <div class="row"><span class="dot"></span><span class="name">API · positions, briefings, audit</span><span class="v">200 · 84ms</span></div>
+        <div class="row"><span class="dot"></span><span class="name">Claude generation</span><span class="v">healthy</span></div>
+        <div class="row"><span class="dot bad"></span><span class="name">Document parser</span><span class="v">degraded</span></div>
+        <div class="row"><span class="dot wat"></span><span class="name">Schwab ingest</span><span class="v">retrying</span></div>
+        <div class="row"><span class="dot"></span><span class="name">Auth · SSO</span><span class="v">200 · 38ms</span></div>
+      </div>
+      <div class="help">If this keeps happening, email <a href="mailto:support@chiefriskbot.com">support@chiefriskbot.com</a> and include the incident ID above. We respond within 30 minutes during market hours.</div>
+    </aside>
+  </div>
+</body></html>

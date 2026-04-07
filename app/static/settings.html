@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Settings — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  .layout{display:grid;grid-template-columns:220px 1fr;gap:24px}
+  .sidenav{position:sticky;top:80px;align-self:start;display:flex;flex-direction:column;gap:1px}
+  .sidenav h4{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);padding:14px 10px 6px}
+  .sidenav a{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:5px;color:var(--ink-soft);font-size:12px;font-weight:500}
+  .sidenav a:hover{background:var(--paper-3);color:var(--ink)}
+  .sidenav a.on{background:var(--paper-3);color:var(--ink);font-weight:600;box-shadow:inset 2px 0 0 var(--accent)}
+
+  .panels{display:flex;flex-direction:column;gap:18px;max-width:820px}
+  .sec{border:1px solid var(--rule);border-radius:6px;background:#fffdfb;box-shadow:var(--shadow)}
+  .sec header{padding:18px 24px;border-bottom:1px solid var(--rule);display:flex;align-items:flex-start;justify-content:space-between}
+  .sec header h2{font-family:'Fraunces';font-weight:700;font-size:18px;margin:0 0 4px}
+  .sec header p{margin:0;font-size:11px;color:var(--ink-mute);max-width:480px}
+  .sec .body{padding:22px 24px;display:flex;flex-direction:column;gap:18px}
+  .sec footer{padding:14px 24px;border-top:1px solid var(--rule);background:var(--paper-2);display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--ink-mute);border-radius:0 0 6px 6px}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .toggle{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:14px 0;border-bottom:1px solid var(--rule)}
+  .toggle:last-child{border-bottom:0}
+  .toggle .l{display:flex;flex-direction:column;gap:3px}
+  .toggle .l b{font-size:13px;font-weight:600}
+  .toggle .l small{font-size:11px;color:var(--ink-mute);max-width:540px;line-height:1.5}
+  .sw{width:38px;height:22px;background:var(--paper-4);border-radius:999px;position:relative;cursor:pointer;flex-shrink:0;border:1px solid var(--rule)}
+  .sw::after{content:"";position:absolute;width:16px;height:16px;background:#fff;border-radius:999px;top:2px;left:2px;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .sw.on{background:var(--accent);border-color:var(--accent)}
+  .sw.on::after{left:18px}
+
+  .key{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--rule);background:var(--paper-2);border-radius:5px;font-family:'JetBrains Mono';font-size:11px}
+  .key b{color:var(--ink-mute);font-weight:600;margin-right:6px;font-family:'Inter Tight';font-size:11px}
+  .key code{flex:1;color:var(--ink)}
+  .key button{border:0;background:transparent;color:var(--ink-mute);cursor:pointer}
+
+  .danger{border-color:#f3d4d0;background:#fff8f7}
+  .danger header h2{color:var(--pri-fg)}
+  .danger .toggle b{color:var(--ink)}
+  .danger .btn{background:#fff;border-color:#f3d4d0;color:var(--pri-fg)}
+  .danger .btn:hover{background:var(--pri-bg)}
+</style></head>
+<body>
+<div class="app" id="app-root">
+  <main>
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <h1 class="serif">Settings</h1>
+          <p>Workspace, briefing cadence, integrations, billing, and the things you only touch once. All changes are logged in audit.</p>
+        </div>
+      </div>
+
+      <div class="layout">
+        <nav class="sidenav">
+          <h4>Workspace</h4>
+          <a class="on"><span class="ms" style="font-size:16px">tune</span>General</a>
+          <a><span class="ms" style="font-size:16px">palette</span>Branding</a>
+          <a><span class="ms" style="font-size:16px">schedule</span>Briefing cadence</a>
+          <a><span class="ms" style="font-size:16px">notifications</span>Notifications</a>
+          <h4>Security</h4>
+          <a><span class="ms" style="font-size:16px">key</span>SSO &amp; SAML</a>
+          <a><span class="ms" style="font-size:16px">shield</span>Sessions &amp; 2FA</a>
+          <a><span class="ms" style="font-size:16px">api</span>API keys</a>
+          <h4>Integrations</h4>
+          <a><span class="ms" style="font-size:16px">smart_toy</span>AI model</a>
+          <a><span class="ms" style="font-size:16px">webhook</span>Webhooks</a>
+          <h4>Billing</h4>
+          <a><span class="ms" style="font-size:16px">credit_card</span>Plan &amp; invoices</a>
+          <h4>Danger zone</h4>
+          <a style="color:var(--pri-fg)"><span class="ms" style="font-size:16px">warning</span>Delete workspace</a>
+        </nav>
+
+        <div class="panels">
+
+          <section class="sec">
+            <header>
+              <div>
+                <h2 class="serif">Workspace details</h2>
+                <p>The name and identity of the entity using ChiefRiskBot. Shown in briefings and exported reports.</p>
+              </div>
+            </header>
+            <div class="body">
+              <div class="row2">
+                <div class="field"><label>Workspace name</label><input value="Aldridge Family Office"/></div>
+                <div class="field"><label>Slug</label><input value="aldridge-fo" class="mono"/><span class="hint">Used in URLs and audit logs.</span></div>
+                <div class="field"><label>Reporting currency</label><select><option>USD — US Dollar</option><option>EUR — Euro</option><option>CHF — Swiss Franc</option><option>GBP — British Pound</option></select></div>
+                <div class="field"><label>Timezone</label><select><option>Europe/London (GMT+1)</option><option>America/New_York (EST)</option><option>Asia/Dubai (GST)</option></select></div>
+                <div class="field" style="grid-column:1/-1"><label>Address</label><input value="14 St James's Square, London SW1Y 4LB"/></div>
+              </div>
+            </div>
+            <footer><span>Last updated by Omar Kutbi · Mar 28, 2026</span><button class="btn primary">Save changes</button></footer>
+          </section>
+
+          <section class="sec">
+            <header>
+              <div>
+                <h2 class="serif">Briefing cadence</h2>
+                <p>When Claude generates the weekly briefing and who gets it. The CIO is always copied.</p>
+              </div>
+              <span class="pill good">Active</span>
+            </header>
+            <div class="body">
+              <div class="row2">
+                <div class="field"><label>Day</label><select><option>Monday</option><option>Sunday evening</option><option>Friday afternoon</option></select></div>
+                <div class="field"><label>Time</label><input value="06:00" class="mono"/><span class="hint">Workspace timezone (Europe/London)</span></div>
+                <div class="field" style="grid-column:1/-1"><label>Recipients</label><input value="omar@aldridge.fo, helena@aldridge.fo, investment-committee@aldridge.fo"/></div>
+              </div>
+              <div class="toggle">
+                <div class="l"><b>Auto-publish if no changes flagged</b><small>If Claude generates a briefing and no risks moved category, it publishes automatically. Otherwise it waits for CIO review.</small></div>
+                <div class="sw on"></div>
+              </div>
+              <div class="toggle">
+                <div class="l"><b>Send PDF attachment</b><small>Generate a print-ready PDF and attach to the email. Adds ~12 seconds to delivery.</small></div>
+                <div class="sw on"></div>
+              </div>
+              <div class="toggle">
+                <div class="l"><b>Include audit footer</b><small>Append source provenance, model version, and review history to every published briefing.</small></div>
+                <div class="sw on"></div>
+              </div>
+            </div>
+            <footer><span>Next briefing: Mon Apr 14, 06:00 GMT</span><button class="btn primary">Save changes</button></footer>
+          </section>
+
+          <section class="sec">
+            <header>
+              <div>
+                <h2 class="serif">AI model</h2>
+                <p>Which Anthropic model generates briefings, and how aggressive Claude should be when calling out risks.</p>
+              </div>
+            </header>
+            <div class="body">
+              <div class="row2">
+                <div class="field"><label>Model</label><select><option>claude-opus-4-5 (recommended)</option><option>claude-sonnet-4-5</option></select></div>
+                <div class="field"><label>Risk tone</label><select><option>Balanced (default)</option><option>Conservative — flag earlier</option><option>Aggressive — only material moves</option></select></div>
+              </div>
+              <div class="field"><label>Custom instructions</label><textarea rows="4">Always prefer institutional tone over conversational. The audience is the family principal and the investment committee. Never use emoji in headlines. Talking points should fit on one printed page.</textarea></div>
+              <div class="toggle">
+                <div class="l"><b>Allow Claude to draft trade actions</b><small>If off, Claude only flags risks and never proposes specific trades. Most CIOs leave this on.</small></div>
+                <div class="sw on"></div>
+              </div>
+            </div>
+            <footer><span>Token usage this month · <b class="mono">14.2M in / 3.8M out</b></span><button class="btn primary">Save changes</button></footer>
+          </section>
+
+          <section class="sec">
+            <header>
+              <div>
+                <h2 class="serif">API keys</h2>
+                <p>For programmatic access to your cockpit data. Treat as passwords. Rotate every 90 days.</p>
+              </div>
+              <button class="btn"><span class="ms">add</span>New key</button>
+            </header>
+            <div class="body" style="gap:10px">
+              <div class="key"><b>Production</b><code>crb_live_8e2f••••••••••••••••••3a14</code><span class="pill good">Active</span><button><span class="ms">content_copy</span></button><button><span class="ms">delete</span></button></div>
+              <div class="key"><b>Read-only</b><code>crb_read_4c1a••••••••••••••••••9f02</code><span class="pill good">Active</span><button><span class="ms">content_copy</span></button><button><span class="ms">delete</span></button></div>
+              <div class="key"><b>Webhook signing</b><code>whsec_d8b3••••••••••••••••••e741</code><span class="pill wat">Rotate soon</span><button><span class="ms">content_copy</span></button><button><span class="ms">delete</span></button></div>
+            </div>
+            <footer><span>Last rotation · 87 days ago</span><a href="#" style="color:var(--accent);font-weight:600">View API docs →</a></footer>
+          </section>
+
+          <section class="sec">
+            <header>
+              <div>
+                <h2 class="serif">Plan &amp; billing</h2>
+                <p>You're on the Family Office plan. Billed annually. Next invoice Apr 28, 2026.</p>
+              </div>
+              <span class="pill accent">Family Office</span>
+            </header>
+            <div class="body">
+              <div class="row2">
+                <div class="field"><label>Plan</label><input value="Family Office · Annual" readonly/></div>
+                <div class="field"><label>Seats</label><input value="20 (8 used)" readonly/></div>
+                <div class="field"><label>Monthly equivalent</label><input value="$2,400 / month" class="mono" readonly/></div>
+                <div class="field"><label>Next invoice</label><input value="Apr 28, 2026 · $28,800" class="mono" readonly/></div>
+              </div>
+              <div style="display:flex;gap:8px"><button class="btn">Update payment method</button><button class="btn">Download invoices</button><button class="btn ghost">Change plan</button></div>
+            </div>
+          </section>
+
+          <section class="sec danger">
+            <header>
+              <div>
+                <h2 class="serif">Danger zone</h2>
+                <p>Permanent and irreversible. Audit log will retain a tombstone record for 7 years per SOC 2.</p>
+              </div>
+            </header>
+            <div class="body">
+              <div class="toggle">
+                <div class="l"><b>Disconnect all data sources</b><small>Revoke OAuth tokens for all connected custodians. Manual entries are preserved.</small></div>
+                <button class="btn">Disconnect all</button>
+              </div>
+              <div class="toggle">
+                <div class="l"><b>Export everything</b><small>Generate a complete archive of positions, briefings, documents, and audit log. Delivered to your email within 24 hours.</small></div>
+                <button class="btn">Request export</button>
+              </div>
+              <div class="toggle">
+                <div class="l"><b>Delete workspace</b><small>Permanently remove Aldridge Family Office, all members, and all data. Cannot be undone.</small></div>
+                <button class="btn">Delete workspace</button>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="_shell.js"></script>
+<script>CRB.mount('settings.html', ['Workspace','Admin','Settings'])</script>
+</body></html>

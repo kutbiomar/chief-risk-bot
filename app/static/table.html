@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Table Editor — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  :root{
+    --paper:#fff8f6; --paper-2:#f9f2f0; --paper-3:#f4ecea; --paper-4:#eee7e4;
+    --rule:#e8ddd6; --rule-strong:#d3c3bc;
+    --ink:#1e1b1a; --ink-soft:#4f453f; --ink-mute:#81756f;
+    --brand:#72594c; --accent:#1B2B5E; --accent-soft:#3a4a7a;
+    --gold:#C9A449; --teal:#006972;
+    --pri-fg:#B91C1C; --pri-bg:#FBE9E7;
+    --ele-fg:#C2741C; --ele-bg:#FBF1E2;
+    --wat-fg:#A38108; --wat-bg:#FAF5DC;
+    --good-fg:#3F7A4F; --good-bg:#E8F1EA;
+    --shadow:0 1px 0 rgba(114,89,76,.04),0 1px 2px rgba(30,27,26,.03);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:'Inter Tight',sans-serif;font-size:13px;font-weight:500;-webkit-font-smoothing:antialiased}
+  .mono{font-family:'JetBrains Mono',monospace;font-feature-settings:"tnum"}
+  .serif{font-family:'Fraunces',serif;font-optical-sizing:auto}
+  .uplabel{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute)}
+  a{color:inherit;text-decoration:none}
+  .ms{font-family:'Material Symbols Outlined';font-weight:400;font-style:normal;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 20;vertical-align:middle}
+
+  /* Shell */
+  .app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+  .sidebar{background:var(--paper-2);border-right:1px solid var(--rule);padding:18px 14px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh}
+  .brand-row{display:flex;align-items:center;gap:10px;padding:4px 6px}
+  .logo{width:28px;height:28px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:'Fraunces';font-weight:900;font-size:15px}
+  .brand-name{font-family:'Fraunces';font-weight:900;font-size:17px;letter-spacing:-.01em}
+  .client{border:1px solid var(--rule);border-radius:6px;padding:10px 12px;background:var(--paper);display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}
+  .client .who{display:flex;flex-direction:column;gap:2px}
+  .client .who small{font-size:10px;color:var(--ink-mute);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+  .client .who b{font-size:13px;font-weight:700}
+  .nav{display:flex;flex-direction:column;gap:1px;margin-top:4px}
+  .nav .section{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);padding:14px 8px 6px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:5px;color:var(--ink-soft);font-weight:500}
+  .nav a:hover{background:var(--paper-3);color:var(--ink)}
+  .nav a.active{background:var(--paper);color:var(--accent);font-weight:600;box-shadow:inset 2px 0 0 var(--accent)}
+  .nav a .ms{font-size:18px;color:inherit}
+  .side-foot{margin-top:auto;border-top:1px solid var(--rule);padding-top:12px;display:flex;align-items:center;gap:10px}
+  .avatar{width:30px;height:30px;border-radius:999px;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px}
+
+  /* Top bar */
+  .top{height:56px;border-bottom:1px solid var(--rule);background:var(--paper);display:flex;align-items:center;padding:0 24px;gap:18px;position:sticky;top:0;z-index:5}
+  .crumbs{display:flex;align-items:center;gap:8px;color:var(--ink-mute);font-size:12px;font-weight:500}
+  .crumbs b{color:var(--ink);font-weight:600}
+  .top .grow{flex:1}
+  .search{display:flex;align-items:center;gap:8px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px;padding:6px 10px;width:280px;color:var(--ink-mute)}
+  .search input{border:0;background:transparent;outline:0;font:inherit;color:var(--ink);width:100%}
+  .kbd{font-family:'JetBrains Mono';font-size:10px;background:var(--paper-3);border:1px solid var(--rule);border-radius:3px;padding:1px 5px;color:var(--ink-mute)}
+  .iconbtn{width:32px;height:32px;border-radius:6px;border:1px solid var(--rule);background:var(--paper-2);display:grid;place-items:center;color:var(--ink-soft);cursor:pointer}
+  .iconbtn:hover{background:var(--paper-3);color:var(--ink)}
+
+  /* Main */
+  main{display:flex;flex-direction:column;min-width:0}
+  .content{padding:24px 28px 16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px}
+  .page-head h1{font-family:'Fraunces';font-weight:900;font-size:28px;letter-spacing:-.02em;margin:0;line-height:1.05}
+  .page-head p{margin:6px 0 0;color:var(--ink-soft);font-size:13px;max-width:640px}
+  .head-actions{display:flex;gap:8px}
+  .btn{display:inline-flex;align-items:center;gap:6px;border-radius:6px;padding:9px 14px;font-size:12px;font-weight:600;border:1px solid var(--rule);background:var(--paper-3);color:var(--ink);cursor:pointer}
+  .btn:hover{background:var(--paper-4)}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn.primary:hover{background:var(--accent-soft)}
+  .btn .ms{font-size:16px}
+
+  /* Toolbar */
+  .toolbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px;flex-wrap:wrap}
+  .tselect{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--rule);border-radius:5px;padding:6px 10px;font-weight:600;cursor:pointer}
+  .tselect .ms{font-size:18px;color:var(--ink-mute)}
+  .rowcount{font-family:'JetBrains Mono';font-size:11px;color:var(--ink-mute);font-weight:500;padding:0 6px;border-right:1px solid var(--rule);margin-right:2px}
+  .tbtn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--ink-soft);background:transparent;border:1px solid transparent;border-radius:5px;padding:6px 9px;cursor:pointer}
+  .tbtn:hover{background:var(--paper-3);color:var(--ink)}
+  .tbtn .ms{font-size:15px}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:4px 9px;border-radius:999px;border:1px solid var(--rule);background:var(--paper);color:var(--ink-soft);cursor:pointer}
+  .chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .chip .dot{width:5px;height:5px;border-radius:999px;background:currentColor}
+  .toolbar .grow{flex:1}
+  .tsearch{display:flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--rule);border-radius:5px;padding:5px 9px;width:200px;color:var(--ink-mute);font-size:11px}
+  .tsearch input{border:0;background:transparent;outline:0;font:inherit;color:var(--ink);width:100%}
+
+  /* Workarea */
+  .work{display:grid;grid-template-columns:260px 1fr 360px;gap:14px;min-width:0;flex:1;min-height:0}
+  @media (max-width:1280px){.work{grid-template-columns:240px 1fr}}
+  @media (max-width:900px){.work{grid-template-columns:1fr}}
+
+  /* Source list (extracted documents) */
+  .sources{border:1px solid var(--rule);border-radius:6px;background:var(--paper);box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .sources header{padding:12px 14px;border-bottom:1px solid var(--rule);background:var(--paper-2);display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .sources header .ttl{font-family:'Fraunces';font-weight:700;font-size:13px;letter-spacing:-.01em}
+  .sources header .ct{font-family:'JetBrains Mono';font-size:10px;color:var(--ink-mute);font-weight:600}
+  .sources .upload{display:flex;align-items:center;gap:6px;padding:9px 12px;border-bottom:1px solid var(--rule);font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;background:var(--paper)}
+  .sources .upload:hover{background:var(--paper-2)}
+  .sources .upload .ms{font-size:15px}
+  .src-list{flex:1;overflow:auto;display:flex;flex-direction:column}
+  .src-item{padding:10px 12px;border-bottom:1px solid var(--rule);cursor:pointer;display:flex;flex-direction:column;gap:4px;position:relative}
+  .src-item:hover{background:var(--paper-2)}
+  .src-item.active{background:#f4f1f9;box-shadow:inset 3px 0 0 var(--accent)}
+  .src-item .top-row{display:flex;align-items:center;gap:6px;min-width:0}
+  .src-item .ico{width:22px;height:22px;border-radius:4px;display:grid;place-items:center;flex-shrink:0;font-size:13px}
+  .src-item .ico.pdf{background:#f5ede8;color:#584236}
+  .src-item .ico.csv{background:var(--good-bg);color:var(--good-fg)}
+  .src-item .ico.xls{background:#eef0f7;color:var(--accent)}
+  .src-item .ico.man{background:var(--paper-3);color:var(--ink-soft)}
+  .src-item .fname{font-size:12px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+  .src-item .meta{display:flex;align-items:center;gap:8px;padding-left:28px;font-size:10px;color:var(--ink-mute);font-family:'JetBrains Mono';font-weight:500}
+  .src-item .meta .who{font-family:'Inter Tight';font-weight:500}
+  .src-item .meta .dot{width:3px;height:3px;border-radius:999px;background:var(--ink-mute)}
+  .src-item .badges{display:flex;gap:4px;padding-left:28px;margin-top:2px}
+  .src-item .badge{font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 6px;border-radius:999px;background:var(--paper-3);color:var(--ink-soft);border:1px solid var(--rule)}
+  .src-item .badge.ok{background:var(--good-bg);color:var(--good-fg);border-color:#cfe1d3}
+  .src-item .badge.wat{background:var(--wat-bg);color:var(--wat-fg);border-color:#ede5b8}
+  .src-item.all{background:var(--paper-2)}
+  .src-item.all .fname{font-family:'Fraunces';font-weight:700}
+  .grid-wrap{border:1px solid var(--rule);border-radius:6px;background:var(--paper);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;min-width:0}
+  .scroller{overflow:auto;max-height:calc(100vh - 320px)}
+  table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
+  table.sheet thead th{position:sticky;top:0;z-index:3;background:var(--paper-2);border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);padding:0 10px;height:32px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);white-space:nowrap}
+  table.sheet thead th .ms{font-size:12px;margin-left:3px;opacity:.6}
+  table.sheet td{border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);padding:0 10px;height:36px;white-space:nowrap;color:var(--ink);background:var(--paper)}
+  table.sheet tr:hover td{background:var(--paper-2)}
+  table.sheet tr.sel td{background:#f4f1f9}
+  table.sheet tr.sel:hover td{background:#ece8f3}
+  table.sheet td.num,table.sheet th.num{text-align:right;font-family:'JetBrains Mono';font-weight:600;font-feature-settings:"tnum"}
+  table.sheet td.computed{background:var(--paper-2);color:var(--ink-soft)}
+  table.sheet tr:hover td.computed{background:var(--paper-3)}
+  table.sheet th.fix,table.sheet td.fix{position:sticky;left:0;z-index:2;background:var(--paper-2);border-right:1px solid var(--rule-strong)}
+  table.sheet thead th.fix{z-index:4}
+  table.sheet td.fix{background:var(--paper)}
+  table.sheet tr:hover td.fix{background:var(--paper-2)}
+  table.sheet th.fix2,table.sheet td.fix2{position:sticky;left:44px;z-index:2;border-right:1px solid var(--rule-strong);font-weight:700}
+  table.sheet thead th.fix2{z-index:4;background:var(--paper-2)}
+  table.sheet td.fix2{background:var(--paper)}
+  table.sheet tr:hover td.fix2{background:var(--paper-2)}
+  table.sheet td.rownum{font-family:'JetBrains Mono';font-size:10px;color:var(--ink-mute);text-align:center;width:44px;padding:0}
+  table.sheet td.rownum input{margin-right:4px}
+  tr.dirty td.fix{box-shadow:inset 3px 0 0 var(--wat-fg)}
+  .src{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:var(--ink-soft);padding:2px 7px;border-radius:999px;background:var(--paper-3);border:1px solid var(--rule)}
+  .src .ms{font-size:12px}
+  .src.api{color:var(--accent);background:#eef0f7;border-color:#dfe3ef}
+  .src.pdf{color:var(--brand-deep,#584236);background:#f5ede8;border-color:#e7d8cf}
+  .src.man{color:var(--good-fg);background:var(--good-bg);border-color:#cfe1d3}
+  .src.ai{color:var(--teal);background:#dff1f2;border-color:#bfe1e3}
+  .ac{display:inline-flex;align-items:center;gap:5px}
+  .ac::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--ink-mute)}
+  .ac.eq::before{background:var(--accent)}
+  .ac.fi::before{background:var(--brand)}
+  .ac.pe::before{background:var(--gold)}
+  .ac.re::before{background:var(--teal)}
+  .ac.ca::before{background:var(--ink-mute)}
+  .pct{font-family:'JetBrains Mono';font-feature-settings:"tnum"}
+  .pos{color:var(--good-fg)}
+  .neg{color:var(--pri-fg)}
+  .empty{color:var(--ink-mute);font-style:italic}
+
+  /* Side panel */
+  .panel{border:1px solid var(--rule);border-radius:6px;background:var(--paper);box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  .panel header{padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--paper-2);display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  .panel header .who{display:flex;flex-direction:column;gap:3px}
+  .panel header .ticker{font-family:'Fraunces';font-weight:900;font-size:22px;letter-spacing:-.01em;line-height:1}
+  .panel header .name{font-size:11px;color:var(--ink-mute);font-weight:500}
+  .panel .body{padding:14px 18px;overflow:auto;display:flex;flex-direction:column;gap:16px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute)}
+  .field input,.field select,.field textarea{border:1px solid var(--rule);background:var(--paper-2);border-radius:4px;padding:7px 9px;font:inherit;color:var(--ink);outline:0}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);background:var(--paper)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .prov{border:1px solid var(--rule);background:var(--paper-2);border-radius:5px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--ink-soft)}
+  .prov .row{display:flex;justify-content:space-between;gap:10px}
+  .prov .row b{color:var(--ink);font-weight:600}
+  .sparkbox{border:1px solid var(--rule);border-radius:5px;background:var(--paper-2);padding:10px}
+  .sparkbox .lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:10px;color:var(--ink-mute);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+  .sparkbox .val{font-family:'JetBrains Mono';font-size:18px;font-weight:700}
+  .linked{display:flex;flex-direction:column;gap:6px}
+  .linked a{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--rule);border-radius:5px;background:var(--paper-2);font-size:11px;color:var(--ink-soft)}
+  .linked a:hover{background:var(--paper-3);color:var(--ink)}
+  .linked a .pill{margin-left:auto;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:999px}
+  .pill.ele{background:var(--ele-bg);color:var(--ele-fg)}
+  .pill.wat{background:var(--wat-bg);color:var(--wat-fg)}
+  .pill.pri{background:var(--pri-bg);color:var(--pri-fg)}
+  .docs{display:flex;flex-direction:column;gap:5px}
+  .docs a{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink-soft);padding:5px 0}
+  .docs a .ms{font-size:14px}
+
+  /* Status bar */
+  .statusbar{border-top:1px solid var(--rule);background:var(--paper-2);padding:9px 24px;display:flex;align-items:center;gap:16px;font-size:11px;color:var(--ink-mute);font-weight:500}
+  .statusbar .dot{width:6px;height:6px;border-radius:999px;background:var(--good-fg);display:inline-block;margin-right:6px}
+  .statusbar b{color:var(--ink);font-weight:600;font-family:'JetBrains Mono';font-feature-settings:"tnum"}
+  .statusbar .grow{flex:1}
+  .statusbar .warn{color:var(--wat-fg)}
+</style>
+</head>
+<body>
+<div class="app" id="app-root">
+<main>
+    <div class="content">
+
+      <div class="page-head">
+        <div>
+          <h1 class="serif">Table Editor</h1>
+          <p>Edit positions and reference data inline. Cells sourced from custodian APIs are read-only. Manual overrides are tracked and reversible.</p>
+        </div>
+        <div class="head-actions">
+          <button class="btn"><span class="ms">history</span>History</button>
+          <button class="btn"><span class="ms">file_download</span>Export</button>
+          <button class="btn primary"><span class="ms">add</span>New row</button>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <button class="tselect"><span class="ms">table_view</span> positions <span class="ms">expand_more</span></button>
+        <span class="rowcount">68 rows</span>
+        <button class="tbtn"><span class="ms">filter_alt</span>Filter <span class="mono" style="color:var(--ink-mute)">2</span></button>
+        <button class="tbtn"><span class="ms">sort</span>Sort <span class="mono" style="color:var(--ink-mute)">1</span></button>
+        <button class="tbtn"><span class="ms">visibility_off</span>Hide</button>
+        <button class="tbtn"><span class="ms">view_column</span>Columns</button>
+        <span style="width:1px;height:18px;background:var(--rule);margin:0 4px"></span>
+        <span class="uplabel" style="color:var(--ink-mute)">Source</span>
+        <span class="chip on">All</span>
+        <span class="chip"><span class="ms" style="font-size:11px">link</span>Schwab</span>
+        <span class="chip"><span class="ms" style="font-size:11px">link</span>Pershing</span>
+        <span class="chip"><span class="ms" style="font-size:11px">edit</span>Manual</span>
+        <span class="chip"><span class="ms" style="font-size:11px">picture_as_pdf</span>Parsed PDFs</span>
+        <div class="grow"></div>
+        <div class="tsearch"><span class="ms" style="font-size:14px">search</span><input placeholder="Search rows"/></div>
+      </div>
+
+      <!-- Workarea -->
+      <div class="work">
+        <!-- Source list: every extracted document, with date + uploader for accountability -->
+        <aside class="sources">
+          <header>
+            <span class="ttl serif">Sources</span>
+            <span class="ct">14 files</span>
+          </header>
+          <div class="upload"><span class="ms">upload_file</span>Upload document</div>
+          <div class="src-list">
+            <div class="src-item all active">
+              <div class="top-row">
+                <span class="ico man"><span class="ms" style="font-size:14px">all_inbox</span></span>
+                <span class="fname">All sources</span>
+              </div>
+              <div class="meta"><span>68 rows</span><span class="dot"></span><span>5 documents</span></div>
+            </div>
+            <div class="src-item">
+              <div class="top-row">
+                <span class="ico pdf"><span class="ms" style="font-size:14px">picture_as_pdf</span></span>
+                <span class="fname">Schwab_Q1_2026_Statement.pdf</span>
+              </div>
+              <div class="meta"><span>2026-04-05 09:14</span><span class="dot"></span><span class="who">OK</span></div>
+              <div class="badges"><span class="badge">24 rows</span><span class="badge ok">parsed</span></div>
+            </div>
+            <div class="src-item">
+              <div class="top-row">
+                <span class="ico pdf"><span class="ms" style="font-size:14px">picture_as_pdf</span></span>
+                <span class="fname">Pershing_March_Holdings.pdf</span>
+              </div>
+              <div class="meta"><span>2026-04-03 16:42</span><span class="dot"></span><span class="who">OK</span></div>
+              <div class="badges"><span class="badge">18 rows</span><span class="badge ok">parsed</span></div>
+            </div>
+            <div class="src-item">
+              <div class="top-row">
+                <span class="ico xls"><span class="ms" style="font-size:14px">table_chart</span></span>
+                <span class="fname">PE_Funds_Capital_Calls.xlsx</span>
+              </div>
+              <div class="meta"><span>2026-04-01 11:08</span><span class="dot"></span><span class="who">JL</span></div>
+              <div class="badges"><span class="badge">12 rows</span><span class="badge ok">parsed</span></div>
+            </div>
+            <div class="src-item">
+              <div class="top-row">
+                <span class="ico csv"><span class="ms" style="font-size:14px">description</span></span>
+                <span class="fname">RealEstate_LP_Quarterly.csv</span>
+              </div>
+              <div class="meta"><span>2026-03-28 14:22</span><span class="dot"></span><span class="who">OK</span></div>
+              <div class="badges"><span class="badge">8 rows</span><span class="badge wat">3 unmapped</span></div>
+            </div>
+            <div class="src-item">
+              <div class="top-row">
+                <span class="ico pdf"><span class="ms" style="font-size:14px">picture_as_pdf</span></span>
+                <span class="fname">Citi_PB_FX_Positions_Mar.pdf</span>
+              </div>
+              <div class="meta"><span>2026-03-27 08:55</span><span class="dot"></span><span class="who">OK</span></div>
+              <div class="badges"><span class="badge">6 rows</span><span class="badge ok">parsed</span></div>
+            </div>
+            <div class="src-item">
+              <div class="top-row">
+                <span class="ico man"><span class="ms" style="font-size:14px">edit</span></span>
+                <span class="fname">Manual entries</span>
+              </div>
+              <div class="meta"><span>ongoing</span><span class="dot"></span><span class="who">OK · JL</span></div>
+              <div class="badges"><span class="badge">14 rows</span></div>
+            </div>
+          </div>
+        </aside>
+        <div class="grid-wrap">
+          <div class="scroller">
+          <table class="sheet">
+            <thead>
+              <tr>
+                <th class="fix" style="width:44px"></th>
+                <th class="fix2" style="left:44px;width:90px">Ticker <span class="ms">unfold_more</span></th>
+                <th style="min-width:200px">Name</th>
+                <th style="min-width:120px">Asset Class</th>
+                <th style="min-width:140px">Sector</th>
+                <th style="min-width:90px">Geo</th>
+                <th style="min-width:120px">Custodian</th>
+                <th style="min-width:120px">Source</th>
+                <th class="num" style="min-width:110px">Quantity</th>
+                <th class="num" style="min-width:110px">Price</th>
+                <th class="num" style="min-width:140px">Market Value <span class="ms" title="Computed">lock</span></th>
+                <th class="num" style="min-width:90px">% Port</th>
+                <th class="num" style="min-width:90px">30D Vol</th>
+                <th class="num" style="min-width:100px">90D Return</th>
+                <th style="min-width:200px">Notes</th>
+                <th style="min-width:140px">Last Edited</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="sel">
+                <td class="rownum fix"><input type="checkbox" checked/>1</td>
+                <td class="fix2">SPY</td>
+                <td>SPDR S&amp;P 500 ETF Trust</td>
+                <td><span class="ac eq">US Equity</span></td>
+                <td>Index / Broad</td>
+                <td>US</td>
+                <td>Schwab</td>
+                <td><span class="src api"><span class="ms">link</span>API</span></td>
+                <td class="num">42,500</td>
+                <td class="num">512.84</td>
+                <td class="num computed">21,795,700</td>
+                <td class="num">14.2%</td>
+                <td class="num">11.4%</td>
+                <td class="num pos">+6.2%</td>
+                <td class="empty">—</td>
+                <td>Schwab · 3m ago</td>
+              </tr>
+              <tr>
+                <td class="rownum fix"><input type="checkbox"/>2</td>
+                <td class="fix2">NVDA</td>
+                <td>NVIDIA Corp</td>
+                <td><span class="ac eq">US Equity</span></td>
+                <td>Semiconductors</td>
+                <td>US</td>
+                <td>Schwab</td>
+                <td><span class="src api"><span class="ms">link</span>API</span></td>
+                <td class="num">18,200</td>
+                <td class="num">894.12</td>
+                <td class="num computed">16,272,984</td>
+                <td class="num">10.6%</td>
+                <td class="num">38.7%</td>
+                <td class="num pos">+22.4%</td>
+                <td>Concentration flag</td>
+                <td>Schwab · 3m ago</td>
+              </tr>
+              <tr>
+                <td class="rownum fix"><input type="checkbox"/>3</td>
+                <td class="fix2">AAPL</td>
+                <td>Apple Inc</td>
+                <td><span class="ac eq">US Equity</span></td>
+                <td>Hardware</td>
+                <td>US</td>
+                <td>Pershing</td>
+                <td><span class="src api"><span class="ms">link</span>API</span></td>
+                <td class="num">24,000</td>
+                <td class="num">218.40</td>
+                <td class="num computed">5,241,600</td>
+                <td class="num">3.4%</td>
+                <td class="num">19.2%</td>
+                <td class="num pos">+4.8%</td>
+                <td class="empty">—</td>
+                <td>Pershing · 5m ago</td>
+              </tr>
+              <tr>
+                <td class="rownum fix"><input type="checkbox"/>4</td>
+                <td class="fix2">TLT</td>
+                <td>iShares 20+ Year Treasury Bond ETF</td>
+                <td><span class="ac fi">Fixed Income</span></td>
+                <td>Sovereign / Long Duration</td>
+                <td>US</td>
+                <td>Schwab</td>
+                <td><span class="src api"><span class="ms">link</span>API</span></td>
+                <td class="num">62,000</td>
+                <td class="num">92.18</td>
+                <td class="num computed">5,715,160</td>
+                <td class="num">3.7%</td>
+                <td class="num">14.8%</td>
+                <td class="num neg">−3.1%</td>
+                <td>Duration hedge</td>
+                <td>Schwab · 3m ago</td>
+              </tr>
+              <tr class="dirty">
+                <td class="rownum fix"><input type="checkbox"/>5</td>
+                <td class="fix2">SEQ-XIX</td>
+                <td>Sequoia Capital Fund XIX, L.P.</td>
+                <td><span class="ac pe">Private Equity</span></td>
+                <td>Venture / Growth</td>
+                <td>Global</td>
+                <td>Carta</td>
+                <td><span class="src pdf"><span class="ms">picture_as_pdf</span>PDF</span></td>
+                <td class="num">1.00</td>
+                <td class="num">8,400,000</td>
+                <td class="num computed">8,400,000</td>
+                <td class="num">5.5%</td>
+                <td class="num empty">—</td>
+                <td class="num empty">—</td>
+                <td>NAV from Q4 statement</td>
+                <td>You · just now</td>
+              </tr>
+              <tr>
+                <td class="rownum fix"><input type="checkbox"/>6</td>
+                <td class="fix2">KKR-AME</td>
+                <td>KKR Americas Fund XIII</td>
+                <td><span class="ac pe">Private Equity</span></td>
+                <td>Buyout</td>
+                <td>US</td>
+                <td>Carta</td>
+                <td><span class="src pdf"><span class="ms">picture_as_pdf</span>PDF</span></td>
+                <td class="num">1.00</td>
+                <td class="num">6,150,000</td>
+                <td class="num computed">6,150,000</td>
+                <td class="num">4.0%</td>
+                <td class="num empty">—</td>
+                <td class="num empty">—</td>
+                <td>Capital call pending</td>
+                <td>Carta · 1d ago</td>
+              </tr>
+              <tr>
+                <td class="rownum fix"><input type="checkbox"/>7</td>
+                <td class="fix2">DXB-MAR</td>
+                <td>Dubai Marina Penthouse, Tower 2</td>
+                <td><span class="ac re">Real Estate</span></td>
+                <td>Residential / Direct</td>
+                <td>UAE</td>
+                <td>Manual</td>
+                <td><span class="src man"><span class="ms">edit</span>Manual</span></td>
+                <td class="num">1.00</td>
+                <td class="num">4,800,000</td>
+                <td class="num computed">4,800,000</td>
+                <td class="num">3.1%</td>
+                <td class="num empty">—</td>
+                <td class="num pos">+8.2%</td>
+                <td>Knight Frank appraisal Mar-26</td>
+                <td>You · 2d ago</td>
+              </tr>
+              <tr>
+                <td class="rownum fix"><input type="checkbox"/>8</td>
+                <td class="fix2">LON-MAY</td>
+                <td>Mayfair Townhouse, W1K</td>
+                <td><span class="ac re">Real Estate</span></td>
+                <td>Residential / Direct</td>
+                <td>UK</td>
+                <td>Manual</td>
+                <td><span class="src man"><span class="ms">edit</span>Manual</span></td>
+                <td class="num">1.00</td>
+                <td class="num">9,200,000</td>
+                <td class="num computed">9,200,000</td>
+                <td class="num">6.0%</td>
+                <td class="num empty">—</td>
+                <td class="num neg">−1.4%</td>
+                <td>Savills appraisal Feb-26</td>
+                <td>You · 9d ago</td>
+              </tr>
+              <tr>
+                <td class="rownum fix"><input type="checkbox"/>9</td>
+                <td class="fix2">EFA</td>
+                <td>iShares MSCI EAFE ETF</td>
+                <td><span class="ac eq">Intl Equity</span></td>
+                <td>Developed ex-US</td>
+                <td>EAFE</td>
+                <td>Schwab</td>
+                <td><span class="src api"><span class="ms">link</span>API</span></td>
+                <td class="num">52,000</td>
+                <td class="num">82.16</td>
+                <td class="num computed">4,272,320</td>
+                <td class="num">2.8%</td>
+                <td class="num">9.6%</td>
+                <td class="num pos">+3.1%</td>
+                <td class="empty">—</td>
+                <td>Schwab · 3m ago</td>
+              </tr>
+              <tr>
+                <td class="rownum fix"><input type="checkbox"/>10</td>
+                <td class="fix2">EEM</td>
+                <td>iShares MSCI Emerging Markets ETF</td>
+                <td><span class="ac eq">EM Equity</span></td>
+                <td>Emerging Broad</td>
+                <td>EM</td>
+                <td>Schwab</td>
+                <td><span class="src ai"><span class="ms">smart_toy</span>Inferred</span></td>
+                <td class="num">38,000</td>
+                <td class="num">44.92</td>
+                <td class="num computed">1,706,960</td>
+                <td class="num">1.1%</td>
+                <td class="num">15.3%</td>
+                <td class="num neg">−2.6%</td>
+                <td>Geo inferred from holdings</td>
+                <td>System · 1h ago</td>
+              </tr>
+              <tr>
+                <td class="rownum fix"><input type="checkbox"/>11</td>
+                <td class="fix2">GLD</td>
+                <td>SPDR Gold Shares</td>
+                <td><span class="ac ca">Commodity</span></td>
+                <td>Precious Metals</td>
+                <td>Global</td>
+                <td>Pershing</td>
+                <td><span class="src api"><span class="ms">link</span>API</span></td>
+                <td class="num">14,500</td>
+                <td class="num">214.80</td>
+                <td class="num computed">3,114,600</td>
+                <td class="num">2.0%</td>
+                <td class="num">12.1%</td>
+                <td class="num pos">+9.4%</td>
+                <td>Inflation hedge</td>
+                <td>Pershing · 5m ago</td>
+              </tr>
+              <tr>
+                <td class="rownum fix"><input type="checkbox"/>12</td>
+                <td class="fix2">JPM-CR</td>
+                <td>JPM US High Yield Credit Sleeve</td>
+                <td><span class="ac fi">Fixed Income</span></td>
+                <td>Credit / HY</td>
+                <td>US</td>
+                <td>Julius Baer</td>
+                <td><span class="src pdf"><span class="ms">picture_as_pdf</span>PDF</span></td>
+                <td class="num">1.00</td>
+                <td class="num">3,420,000</td>
+                <td class="num computed">3,420,000</td>
+                <td class="num">2.2%</td>
+                <td class="num">7.8%</td>
+                <td class="num pos">+2.6%</td>
+                <td>Spreads widening flag</td>
+                <td>JB statement · 4d ago</td>
+              </tr>
+              <tr>
+                <td class="rownum fix"><input type="checkbox"/>13</td>
+                <td class="fix2">CASH-USD</td>
+                <td>USD Cash &amp; Equivalents</td>
+                <td><span class="ac ca">Cash</span></td>
+                <td>Money Market</td>
+                <td>US</td>
+                <td>Schwab</td>
+                <td><span class="src api"><span class="ms">link</span>API</span></td>
+                <td class="num">7,800,000</td>
+                <td class="num">1.0000</td>
+                <td class="num computed">7,800,000</td>
+                <td class="num">5.1%</td>
+                <td class="num">0.0%</td>
+                <td class="num">+1.3%</td>
+                <td class="empty">—</td>
+                <td>Schwab · 3m ago</td>
+              </tr>
+              <tr>
+                <td class="rownum fix"><input type="checkbox"/>14</td>
+                <td class="fix2">BTC</td>
+                <td>Bitcoin (custodied, BitGo)</td>
+                <td><span class="ac ca">Crypto</span></td>
+                <td>Digital Asset</td>
+                <td>Global</td>
+                <td>BitGo</td>
+                <td><span class="src man"><span class="ms">edit</span>Manual</span></td>
+                <td class="num">42.50</td>
+                <td class="num">68,420</td>
+                <td class="num computed">2,907,850</td>
+                <td class="num">1.9%</td>
+                <td class="num">42.6%</td>
+                <td class="num pos">+18.9%</td>
+                <td>Cold storage</td>
+                <td>You · 14d ago</td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        <!-- Side panel -->
+        <aside class="panel">
+          <header>
+            <div class="who">
+              <span class="ticker serif">SPY</span>
+              <span class="name">SPDR S&amp;P 500 ETF Trust · Schwab</span>
+            </div>
+            <button class="iconbtn" title="Close"><span class="ms">close</span></button>
+          </header>
+          <div class="body">
+
+            <div class="grid2">
+              <div class="field">
+                <label>Quantity</label>
+                <input value="42,500" readonly/>
+              </div>
+              <div class="field">
+                <label>Price (USD)</label>
+                <input value="512.84" readonly/>
+              </div>
+              <div class="field">
+                <label>Asset Class</label>
+                <select disabled><option>US Equity</option></select>
+              </div>
+              <div class="field">
+                <label>Geo</label>
+                <select disabled><option>US</option></select>
+              </div>
+            </div>
+
+            <div class="prov">
+              <div class="row"><span>Source</span><b>Schwab Custodian API</b></div>
+              <div class="row"><span>Connection</span><b>OAuth · since Jan 2026</b></div>
+              <div class="row"><span>Last sync</span><b>3 minutes ago</b></div>
+              <div class="row"><span>Reconciled to</span><b>Statement 2026-03-31</b></div>
+              <div class="row"><span>Editable</span><b style="color:var(--ink-mute)">Read-only (API)</b></div>
+            </div>
+
+            <div class="sparkbox">
+              <div class="lbl"><span>Market value · 90d</span><span style="color:var(--good-fg)">+6.2%</span></div>
+              <div class="val">$21,795,700</div>
+              <svg viewBox="0 0 300 60" width="100%" height="48" preserveAspectRatio="none" style="margin-top:6px">
+                <polyline fill="none" stroke="#1B2B5E" stroke-width="1.5" points="0,42 15,40 30,44 45,38 60,36 75,40 90,34 105,32 120,36 135,30 150,28 165,32 180,24 195,26 210,20 225,22 240,16 255,18 270,12 285,14 300,10"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="uplabel" style="margin-bottom:8px">Linked risks</div>
+              <div class="linked">
+                <a href="cockpit.html"><span class="ms">warning</span>US equity drawdown<span class="pill ele">Elevated</span></a>
+                <a href="cockpit.html"><span class="ms">warning</span>AI capex unwind<span class="pill wat">Watch</span></a>
+                <a href="cockpit.html"><span class="ms">warning</span>Concentration: top-10<span class="pill pri">Priority</span></a>
+              </div>
+            </div>
+
+            <div>
+              <div class="uplabel" style="margin-bottom:8px">Attached documents</div>
+              <div class="docs">
+                <a href="#"><span class="ms">picture_as_pdf</span>Schwab statement Q1 2026.pdf</a>
+                <a href="#"><span class="ms">picture_as_pdf</span>Trade confirmation 2026-03-12.pdf</a>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Notes</label>
+              <textarea rows="3" placeholder="Add a note..."></textarea>
+            </div>
+
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="statusbar">
+      <span><span class="dot"></span>Saved</span>
+      <span>68 rows · <b class="warn">3 unsaved</b> · 2 manual overrides</span>
+      <div class="grow"></div>
+      <span>Total Market Value</span>
+      <b style="color:var(--ink);font-size:13px">$153,920,484</b>
+      <span style="color:var(--ink-mute)">Auto-save in 8s</span>
+    </div>
+
+  </main>
+</div>
+<script src="_shell.js"></script>
+<script>CRB.mount('table.html',['Workspace','Data','Table Editor'])</script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Audit Log — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  .filters{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px;flex-wrap:wrap}
+  .filters .grow{flex:1}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:5px 10px;border-radius:999px;border:1px solid var(--rule);background:var(--paper);color:var(--ink-soft);cursor:pointer}
+  .chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .timeline{border:1px solid var(--rule);border-radius:6px;background:#fffdfb;padding:8px 0}
+  .day{padding:14px 24px 6px;border-bottom:1px solid var(--rule)}
+  .day h3{font-family:'Fraunces';font-weight:700;font-size:14px;margin:0 0 4px}
+  .day .meta{font-size:10px;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:14px}
+  .ev{display:grid;grid-template-columns:90px 28px 1fr auto;gap:14px;align-items:flex-start;padding:10px 0;border-bottom:1px dashed var(--rule)}
+  .ev:last-child{border-bottom:0}
+  .ev .t{font-family:'JetBrains Mono';font-size:11px;color:var(--ink-mute);font-weight:600}
+  .ev .ic{width:26px;height:26px;border-radius:5px;display:grid;place-items:center;background:var(--paper-3);color:var(--ink-soft)}
+  .ev .ic.b{background:#eef0f7;color:var(--accent)}
+  .ev .ic.g{background:var(--good-bg);color:var(--good-fg)}
+  .ev .ic.w{background:var(--wat-bg);color:var(--wat-fg)}
+  .ev .ic.r{background:var(--pri-bg);color:var(--pri-fg)}
+  .ev .ic .ms{font-size:16px}
+  .ev .body{font-size:12px;color:var(--ink-soft);line-height:1.5}
+  .ev .body b{color:var(--ink);font-weight:600}
+  .ev .body code{font-family:'JetBrains Mono';font-size:11px;background:var(--paper-3);border:1px solid var(--rule);padding:1px 5px;border-radius:3px;color:var(--ink)}
+  .ev .body .diff{margin-top:6px;display:flex;gap:14px;font-family:'JetBrains Mono';font-size:11px}
+  .ev .body .diff .old{color:var(--pri-fg);text-decoration:line-through}
+  .ev .body .diff .new{color:var(--good-fg)}
+  .ev .who{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink-mute);white-space:nowrap}
+  .ava-sm{width:22px;height:22px;border-radius:999px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:9px}
+</style></head>
+<body>
+<div class="app" id="app-root">
+  <main>
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <h1 class="serif">Audit log</h1>
+          <p>Every action by every member, every API call, every Claude generation. Append-only, signed, exportable to your auditor in CSV or Avro.</p>
+        </div>
+        <div class="head-actions">
+          <button class="btn"><span class="ms">file_download</span>Export CSV</button>
+          <button class="btn"><span class="ms">verified</span>Verify chain</button>
+        </div>
+      </div>
+
+      <div class="filters">
+        <span class="uplabel">Type</span>
+        <span class="chip on">All</span>
+        <span class="chip">Auth</span>
+        <span class="chip">Data edits</span>
+        <span class="chip">Briefings</span>
+        <span class="chip">Sources</span>
+        <span class="chip">Members</span>
+        <span class="chip">Settings</span>
+        <div class="grow"></div>
+        <span class="uplabel">Member</span>
+        <select class="chip" style="text-transform:none"><option>All members</option></select>
+        <span class="uplabel">Range</span>
+        <select class="chip" style="text-transform:none"><option>Last 7 days</option></select>
+        <div class="search" style="width:220px"><span class="ms" style="font-size:16px">search</span><input placeholder="Search events"/></div>
+      </div>
+
+      <div class="timeline">
+        <div class="day">
+          <h3 class="serif">Today · April 7, 2026</h3>
+          <div class="meta">12 events · all verified</div>
+
+          <div class="ev">
+            <div class="t">14:08:42</div>
+            <div class="ic b"><span class="ms">description</span></div>
+            <div class="body"><b>Omar Kutbi</b> published briefing <code>week-14-2026</code> · v3 · sent to <b>investment-committee@aldridge.fo</b></div>
+            <div class="who"><div class="ava-sm" style="background:var(--brand)">OK</div>web · 8.27.4.12</div>
+          </div>
+
+          <div class="ev">
+            <div class="t">14:06:18</div>
+            <div class="ic"><span class="ms">smart_toy</span></div>
+            <div class="body"><b>Claude</b> regenerated briefing <code>week-14-2026</code> · model <code>claude-opus-4-5</code> · 8,420 input · 2,148 output tokens</div>
+            <div class="who">api · system</div>
+          </div>
+
+          <div class="ev">
+            <div class="t">13:52:04</div>
+            <div class="ic w"><span class="ms">edit</span></div>
+            <div class="body"><b>Omar Kutbi</b> edited row <code>SEQ-XIX</code> in <code>positions</code><div class="diff"><span class="old">price 8,050,000</span><span class="new">price 8,400,000</span></div></div>
+            <div class="who"><div class="ava-sm" style="background:var(--brand)">OK</div>web</div>
+          </div>
+
+          <div class="ev">
+            <div class="t">12:14:30</div>
+            <div class="ic g"><span class="ms">cable</span></div>
+            <div class="body"><b>Pictet OAuth</b> connection completed by <b>Helena Voss</b> · 18 positions ingested · scope <code>read:positions read:transactions</code></div>
+            <div class="who"><div class="ava-sm" style="background:#3a4a7a">HV</div>web</div>
+          </div>
+
+          <div class="ev">
+            <div class="t">11:48:11</div>
+            <div class="ic"><span class="ms">login</span></div>
+            <div class="body"><b>Helena Voss</b> signed in via SAML SSO · device <code>MacBook Pro · Safari 17.4</code></div>
+            <div class="who"><div class="ava-sm" style="background:#3a4a7a">HV</div>89.146.22.4</div>
+          </div>
+
+          <div class="ev">
+            <div class="t">09:22:50</div>
+            <div class="ic r"><span class="ms">error</span></div>
+            <div class="body"><b>Julius Baer source</b> sync failed · HTTP 401 · <code>token_expired</code> · marked for re-auth</div>
+            <div class="who">system</div>
+          </div>
+
+          <div class="ev">
+            <div class="t">06:14:02</div>
+            <div class="ic b"><span class="ms">smart_toy</span></div>
+            <div class="body"><b>Claude</b> generated weekly briefing <code>week-14-2026</code> · v1 · scheduled job</div>
+            <div class="who">cron · system</div>
+          </div>
+
+          <div class="ev">
+            <div class="t">06:12:18</div>
+            <div class="ic g"><span class="ms">sync</span></div>
+            <div class="body">Scheduled sync completed · <b>Schwab</b>, <b>Pershing</b>, <b>IBKR</b>, <b>Carta</b> · 64 positions reconciled</div>
+            <div class="who">cron · system</div>
+          </div>
+        </div>
+
+        <div class="day">
+          <h3 class="serif">Yesterday · April 6, 2026</h3>
+          <div class="meta">8 events</div>
+
+          <div class="ev">
+            <div class="t">17:42:11</div>
+            <div class="ic"><span class="ms">person_add</span></div>
+            <div class="body"><b>Helena Voss</b> invited <code>audit@kpmg.ch</code> as <b>Auditor</b> · scope <b>Aldridge FO · Read-only</b></div>
+            <div class="who"><div class="ava-sm" style="background:#3a4a7a">HV</div>web</div>
+          </div>
+
+          <div class="ev">
+            <div class="t">15:08:04</div>
+            <div class="ic w"><span class="ms">edit</span></div>
+            <div class="body"><b>Marie Kjeldsen</b> bulk-updated <b>4 rows</b> in <code>positions</code> · sector reassignment</div>
+            <div class="who"><div class="ava-sm" style="background:var(--gold)">MK</div>web</div>
+          </div>
+
+          <div class="ev">
+            <div class="t">11:30:42</div>
+            <div class="ic"><span class="ms">upload</span></div>
+            <div class="body"><b>Rashid Al-Otaibi</b> uploaded <code>knight-frank-dxb-marina.pdf</code> to <b>Real estate</b> · 5.8 MB · parsed 14 fields</div>
+            <div class="who"><div class="ava-sm" style="background:var(--teal)">RA</div>web</div>
+          </div>
+
+          <div class="ev">
+            <div class="t">10:14:08</div>
+            <div class="ic"><span class="ms">settings</span></div>
+            <div class="body"><b>Omar Kutbi</b> updated workspace setting <code>briefing.cadence</code><div class="diff"><span class="old">monday 07:00 GMT</span><span class="new">monday 06:00 GMT</span></div></div>
+            <div class="who"><div class="ava-sm" style="background:var(--brand)">OK</div>web</div>
+          </div>
+        </div>
+
+        <div class="day">
+          <h3 class="serif">April 5, 2026</h3>
+          <div class="meta">14 events</div>
+
+          <div class="ev">
+            <div class="t">22:18:40</div>
+            <div class="ic"><span class="ms">person_add</span></div>
+            <div class="body"><b>Omar Kutbi</b> invited <code>tom@aldridge.fo</code> as <b>Analyst</b></div>
+            <div class="who"><div class="ava-sm" style="background:var(--brand)">OK</div>web</div>
+          </div>
+
+          <div class="ev">
+            <div class="t">14:02:14</div>
+            <div class="ic g"><span class="ms">verified</span></div>
+            <div class="body">Audit log integrity verified · hash chain consistent · 12,408 events · last verified seq <code>0x4a8c2f</code></div>
+            <div class="who">system</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:8px;padding:14px 0">
+        <button class="btn ghost"><span class="ms">expand_more</span>Load earlier events</button>
+      </div>
+
+    </div>
+  </main>
+</div>
+<script src="_shell.js"></script>
+<script>CRB.mount('audit.html', ['Workspace','Admin','Audit log'])</script>
+</body></html>

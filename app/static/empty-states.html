@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Empty states — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  .gallery{display:flex;flex-direction:column;gap:24px}
+  .demo{border:1px solid var(--rule);border-radius:6px;background:#fffdfb;overflow:hidden;box-shadow:var(--shadow)}
+  .demo .label{padding:10px 18px;border-bottom:1px solid var(--rule);background:var(--paper-2);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);display:flex;justify-content:space-between}
+  .empty{padding:80px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;max-width:520px;margin:0 auto}
+  .empty .ill{width:84px;height:84px;border-radius:8px;background:var(--paper-2);border:1px solid var(--rule);display:grid;place-items:center;color:var(--brand);position:relative}
+  .empty .ill .ms{font-size:38px}
+  .empty .ill::after{content:"";position:absolute;inset:-6px;border:1px dashed var(--rule);border-radius:12px;pointer-events:none}
+  .empty h2{font-family:'Fraunces';font-weight:900;font-size:24px;letter-spacing:-.015em;margin:6px 0 0;line-height:1.15}
+  .empty p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.55;max-width:440px}
+  .empty .actions{display:flex;gap:8px;margin-top:8px}
+  .empty .meta{font-family:'JetBrains Mono';font-size:10px;color:var(--ink-mute);margin-top:6px}
+
+  /* compact variants for in-card empty */
+  .demo.compact .empty{padding:48px 24px}
+  .demo.compact .ill{width:60px;height:60px}
+  .demo.compact .ill .ms{font-size:28px}
+  .demo.compact h2{font-size:18px}
+</style></head>
+<body>
+<div class="app" id="app-root">
+  <main>
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <h1 class="serif">Empty states</h1>
+          <p>Every surface in ChiefRiskBot has a first-time view. None of them are sad. Each one tells the CIO exactly what to do next and why it matters.</p>
+        </div>
+      </div>
+
+      <div class="gallery">
+
+        <div class="demo">
+          <div class="label"><span>Cockpit · no positions yet</span><span>cockpit.html</span></div>
+          <div class="empty">
+            <div class="ill"><span class="ms">monitoring</span></div>
+            <h2 class="serif">Your cockpit will live here.</h2>
+            <p>Connect a custodian or upload a statement to see your portfolio composition, value-at-risk, and the risks Claude is tracking for you. Most family offices have their first briefing within an hour.</p>
+            <div class="actions">
+              <a href="onboarding.html" class="btn primary"><span class="ms">cable</span>Connect a custodian</a>
+              <a href="sources.html" class="btn"><span class="ms">upload</span>Upload a statement</a>
+            </div>
+            <div class="meta">Takes ~5 minutes · OAuth · read-only</div>
+          </div>
+        </div>
+
+        <div class="demo">
+          <div class="label"><span>Briefings · no briefings yet</span><span>briefings.html</span></div>
+          <div class="empty">
+            <div class="ill"><span class="ms">menu_book</span></div>
+            <h2 class="serif">Your first briefing arrives Monday at 06:00 GMT.</h2>
+            <p>Claude reads your live cockpit, your most recent statements, and this week's macro calendar, then writes the memo your committee actually needs. You can also generate one right now from whatever you've uploaded so far.</p>
+            <div class="actions">
+              <button class="btn primary"><span class="ms">auto_awesome</span>Generate sample briefing</button>
+              <button class="btn">Edit cadence</button>
+            </div>
+            <div class="meta">Sample briefings use mock data and are clearly labeled.</div>
+          </div>
+        </div>
+
+        <div class="demo">
+          <div class="label"><span>Sources · nothing connected</span><span>sources.html</span></div>
+          <div class="empty">
+            <div class="ill"><span class="ms">cable</span></div>
+            <h2 class="serif">No data sources yet.</h2>
+            <p>Connect a custodian to pull positions automatically every morning, or upload statements as PDFs. Both work. Most CIOs run a mix because not every alt platform has an API.</p>
+            <div class="actions">
+              <a href="onboarding.html" class="btn primary"><span class="ms">add</span>Connect first source</a>
+              <button class="btn"><span class="ms">help</span>See supported providers</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo">
+          <div class="label"><span>Table editor · empty table</span><span>table.html</span></div>
+          <div class="empty">
+            <div class="ill"><span class="ms">table_view</span></div>
+            <h2 class="serif">No rows in <span class="mono" style="background:var(--paper-3);padding:2px 8px;border-radius:4px;font-size:18px">positions</span>.</h2>
+            <p>Add positions manually for things that don't live in a custodian (real estate, art, direct private deals), or import a CSV. Connected sources will populate this table on their next sync.</p>
+            <div class="actions">
+              <button class="btn primary"><span class="ms">add</span>Add first row</button>
+              <button class="btn"><span class="ms">upload</span>Import CSV</button>
+              <button class="btn ghost">Use a template</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo">
+          <div class="label"><span>Documents · empty library</span><span>documents.html</span></div>
+          <div class="empty">
+            <div class="ill"><span class="ms">folder_open</span></div>
+            <h2 class="serif">Drop your first statement here.</h2>
+            <p>Upload custodian statements, capital account reports, K-1s, or appraisals. Claude extracts positions and ties them to your table editor automatically. Everything stays encrypted at rest.</p>
+            <div class="actions">
+              <button class="btn primary"><span class="ms">upload</span>Upload documents</button>
+              <button class="btn"><span class="ms">drive_folder_upload</span>Connect Google Drive</button>
+            </div>
+            <div class="meta">PDF · CSV · XLSX · OFX · MT940 · up to 100 MB per file</div>
+          </div>
+        </div>
+
+        <div class="demo">
+          <div class="label"><span>Markets · nothing to watch yet</span><span>markets.html</span></div>
+          <div class="empty">
+            <div class="ill"><span class="ms">monitoring</span></div>
+            <h2 class="serif">Markets unlocks once you have positions.</h2>
+            <p>Once your cockpit is wired up, this page becomes a live monitor of the macro inputs that move your specific book. Same data Claude uses to write your weekly briefing.</p>
+            <div class="actions">
+              <a href="onboarding.html" class="btn primary"><span class="ms">arrow_forward</span>Finish setup</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo compact">
+          <div class="label"><span>In-card · no risks active</span><span>cockpit.html · Q3</span></div>
+          <div class="empty">
+            <div class="ill"><span class="ms">verified</span></div>
+            <h2 class="serif">No active risks. Nice book.</h2>
+            <p>Claude isn't flagging anything above the watch threshold this week. Don't get comfortable. Friday's CPI print could change that.</p>
+          </div>
+        </div>
+
+        <div class="demo compact">
+          <div class="label"><span>Search · no results</span><span>any surface · ⌘K</span></div>
+          <div class="empty">
+            <div class="ill"><span class="ms">search_off</span></div>
+            <h2 class="serif">Nothing matched <span class="mono" style="background:var(--paper-3);padding:2px 8px;border-radius:4px;font-size:18px">"convertible bonds"</span>.</h2>
+            <p>Try a ticker, an asset class, a counterparty, or a risk name. Search covers positions, briefings, documents, and audit log.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+<script src="_shell.js"></script>
+<script>CRB.mount('cockpit.html', ['Workspace','Empty states'])</script>
+</body></html>

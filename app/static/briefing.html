@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Week 14 Briefing — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  .reader{display:grid;grid-template-columns:1fr 260px;gap:48px;max-width:1180px;margin:0 auto;width:100%}
+  .article{max-width:760px}
+  .article .eyebrow{display:flex;align-items:center;gap:10px;color:var(--ink-mute);font-size:11px;font-weight:600;margin-bottom:14px}
+  .article h1.title{font-family:'Fraunces';font-weight:900;font-size:48px;line-height:1.02;letter-spacing:-.025em;margin:0 0 14px}
+  .article .deck{font-family:'Fraunces';font-style:italic;font-weight:400;font-size:20px;line-height:1.45;color:var(--ink-soft);margin:0 0 24px;max-width:680px}
+  .byline{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);font-size:11px;color:var(--ink-mute)}
+  .byline .ava{width:34px;height:34px;border-radius:999px;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:700}
+  .byline b{color:var(--ink);font-weight:600;font-size:12px}
+  .byline .grow{flex:1}
+  .article p{font-size:15px;line-height:1.7;color:var(--ink-soft);margin:0 0 18px}
+  .article p:first-of-type::first-letter{font-family:'Fraunces';font-weight:900;font-size:64px;float:left;line-height:.85;padding:6px 8px 0 0;color:var(--ink)}
+  .article h2{font-family:'Fraunces';font-weight:900;font-size:26px;letter-spacing:-.015em;margin:36px 0 12px;padding-top:24px;border-top:1px solid var(--rule)}
+  .article h3{font-family:'Fraunces';font-weight:700;font-size:18px;margin:24px 0 8px}
+  .article blockquote{border-left:3px solid var(--accent);margin:24px 0;padding:6px 0 6px 22px;font-family:'Fraunces';font-style:italic;font-weight:500;font-size:18px;line-height:1.5;color:var(--ink)}
+  .pull{margin:32px 0;padding:24px 28px;background:var(--paper-2);border-left:4px solid var(--accent);border-radius:0 4px 4px 0}
+  .pull .lbl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+  .pull .quote{font-family:'Fraunces';font-weight:700;font-size:22px;line-height:1.3;color:var(--ink);margin:0}
+  .actions{margin:32px 0;border:1px solid var(--rule);border-radius:6px;background:#fffdfb;padding:22px 24px}
+  .actions h3{font-family:'Fraunces';font-weight:700;font-size:16px;margin:0 0 14px}
+  .action{display:grid;grid-template-columns:auto 1fr auto;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule);align-items:flex-start}
+  .action:last-child{border-bottom:0;padding-bottom:0}
+  .action .num{font-family:'Fraunces';font-weight:900;font-size:24px;color:var(--accent);line-height:1}
+  .action h4{margin:0 0 4px;font-size:14px;font-weight:700}
+  .action p{margin:0;font-size:12px;line-height:1.5}
+  .action .meta{font-family:'JetBrains Mono';font-size:11px;color:var(--ink-mute);text-align:right;white-space:nowrap}
+  .talking{margin:24px 0;border:1px solid var(--rule);border-radius:6px;padding:20px 24px;background:var(--paper-2)}
+  .talking h3{margin:0 0 12px;font-family:'Fraunces';font-weight:700;font-size:16px}
+  .talking ol{margin:0;padding-left:20px;font-size:13px;color:var(--ink-soft);line-height:1.7}
+  .talking ol li{margin-bottom:6px}
+  .footnote{font-size:11px;color:var(--ink-mute);margin-top:36px;padding-top:18px;border-top:1px solid var(--rule);font-family:'JetBrains Mono'}
+
+  .toc{position:sticky;top:80px;align-self:start;display:flex;flex-direction:column;gap:18px}
+  .toc .box{border:1px solid var(--rule);border-radius:6px;background:#fffdfb;padding:16px 18px}
+  .toc h4{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);margin:0 0 10px}
+  .toc nav a{display:block;font-size:12px;color:var(--ink-soft);padding:5px 0;border-bottom:1px dashed var(--rule)}
+  .toc nav a:last-child{border-bottom:0}
+  .toc nav a.active{color:var(--accent);font-weight:600}
+  .toc .stats{display:flex;flex-direction:column;gap:8px}
+  .toc .stat{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-mute)}
+  .toc .stat b{font-family:'JetBrains Mono';font-weight:700;color:var(--ink)}
+</style></head>
+<body>
+<div class="app" id="app-root">
+  <main>
+    <div class="content" style="padding:36px 32px 64px">
+      <div style="max-width:1180px;margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+        <a href="briefings.html" class="btn ghost"><span class="ms">arrow_back</span>All briefings</a>
+        <div style="display:flex;gap:8px">
+          <button class="btn"><span class="ms">edit</span>Edit</button>
+          <button class="btn"><span class="ms">file_download</span>PDF</button>
+          <button class="btn"><span class="ms">share</span>Share</button>
+          <button class="btn primary"><span class="ms">send</span>Send to committee</button>
+        </div>
+      </div>
+
+      <div class="reader">
+        <article class="article">
+          <div class="eyebrow">
+            <span class="pill accent">Weekly briefing</span>
+            <span>Week 14 · Apr 1 – Apr 7, 2026</span>
+            <span class="mono" style="margin-left:auto">v3 · published</span>
+          </div>
+          <h1 class="title serif">AI capex unwind meets a stickier-than-expected core PCE.</h1>
+          <p class="deck">Two of the four risks we flagged last week moved to elevated. The book is still long quality growth, but the marginal hedge dollar should now favor duration over puts. Three actions inside.</p>
+
+          <div class="byline">
+            <div class="ava">C</div>
+            <div>
+              <div><b>Claude</b> · reviewed by <b>Omar Kutbi</b></div>
+              <div>Generated Apr 7, 06:14 GMT · 8 min read</div>
+            </div>
+            <div class="grow"></div>
+            <div>4 risks · 11 talking points · 3 actions</div>
+          </div>
+
+          <h2 id="s1">The setup</h2>
+          <p>Coming into the week the book was carrying its largest gross exposure to US large-cap growth in eighteen months, anchored by three positions: the index sleeve, the direct semis basket, and the quality-bias factor overlay. Each one was working. None of them were independent. That is the entire problem.</p>
+          <p>Friday's core PCE print at 0.34% month-over-month did two things at once. It killed the June-cut narrative for the second time this quarter, and it gave the AI-capex bears their first piece of real macro cover. Within an hour the long end was up nine basis points and the semis basket was down two and a half percent. Neither move is dramatic. Both moves are correlated for the first time since November.</p>
+
+          <blockquote>The cockpit isn't telling you the world is on fire. It's telling you that the three things you bought as separate trades are now the same trade.</blockquote>
+
+          <h2 id="s2">What changed in the cockpit</h2>
+          <p>The Monte Carlo on the risk register moved <em>US equity drawdown</em> from elevated to priority and <em>AI capex unwind</em> from watch to elevated. Probability of a five-percent loss over the next twenty trading days is now 18%, up from 11% last week. The contribution decomposition is unsubtle: 62% of the new tail comes from the semis basket alone.</p>
+
+          <div class="pull">
+            <div class="lbl">The number to remember</div>
+            <p class="quote">62% of next week's modeled tail risk is sitting in one sleeve that is 10.6% of the book.</p>
+          </div>
+
+          <h3>Concentration is the only story</h3>
+          <p>NVDA is now 10.6% of the portfolio at mark, well past the 8% governance threshold the committee set in January. This is not a call on the company. It is a call on the position size. Trimming back to 8% recovers about $4.2M of dry powder and removes roughly a third of the next-week tail. The quality of that risk reduction is the highest of any single action available right now.</p>
+
+          <h2 id="s3">Recommended actions</h2>
+          <div class="actions">
+            <div class="action">
+              <div class="num mono">01</div>
+              <div>
+                <h4>Add 4% to long duration via TLT or direct UST 20Y</h4>
+                <p>Duration is the cheapest hedge against the exact thing the book is most exposed to. Implementation is liquid and reversible. Sizing recovers neutral duration without forcing a view on the curve.</p>
+              </div>
+              <div class="meta">~$6.1M<br/>1 day</div>
+            </div>
+            <div class="action">
+              <div class="num mono">02</div>
+              <div>
+                <h4>Trim NVDA by ~25%</h4>
+                <p>Brings the position from 10.6% to ~8.0%, back inside committee limits. Removes the largest single contributor to the next-week tail. Tax impact is real but manageable; lots are flagged in the table editor.</p>
+              </div>
+              <div class="meta">~$4.2M<br/>same day</div>
+            </div>
+            <div class="action">
+              <div class="num mono">03</div>
+              <div>
+                <h4>Roll the HY hedge to IG</h4>
+                <p>HY spreads have compressed to a level that no longer pays for the protection. IG gives you cleaner correlation to the equity sleeve at a fraction of the cost. Quietly the better trade.</p>
+              </div>
+              <div class="meta">~$3.4M<br/>this week</div>
+            </div>
+          </div>
+
+          <h2 id="s4">Talking points for the committee</h2>
+          <div class="talking">
+            <h3>Eleven things to walk into the room with</h3>
+            <ol>
+              <li>Core PCE at 0.34% is the second sticky print in a row. June cut is now a coin flip, not a base case.</li>
+              <li>Our duration hedge is too small for the new regime. We're proposing to double it.</li>
+              <li>NVDA is past the committee's 8% concentration limit. We are proposing to trim, not exit.</li>
+              <li>The semis basket and the index sleeve are now correlating at 0.92. We were assuming 0.74 in October.</li>
+              <li>Realized vol on the book is still 11% annualized, well below the modeled 14%. That gap closes fast in a drawdown.</li>
+              <li>HY spreads at 312bps are not pricing the credit cycle we keep saying we're worried about.</li>
+              <li>The Pictet OAuth connection is finally live. Three sleeves moved out of manual entry this week.</li>
+              <li>USD/JPY back inside 150 would unwind the carry book globally. Our direct exposure is small but the spillover isn't.</li>
+              <li>The Sequoia XIX NAV came in 4.2% above our prior mark. Real, but not a reason to upsize.</li>
+              <li>Real estate sleeve is the only thing that didn't move this week. That's worth something.</li>
+              <li>Cash is at 5.1% and earning 5.2%. We should not feel bad about it.</li>
+            </ol>
+          </div>
+
+          <h2 id="s5">What we're watching next week</h2>
+          <p>CPI on Wednesday is the only print that matters. A 0.3% or above on core and the duration trade we're proposing today becomes the conversation for the rest of the quarter. A 0.2% and we are early but not wrong.</p>
+          <p>The other thing on the radar is the Q1 earnings cadence kicking off Friday with the banks. Credit commentary in the call transcripts will tell us more about the HY spread question than any CDX print.</p>
+
+          <div class="footnote">
+            Sources: cockpit Monte Carlo (50,000 paths · 20-day horizon), Schwab + Pershing position feeds (synced 06:08 GMT), FRED CPI/PCE series, yfinance equity bars. Reviewed by Omar Kutbi. Briefing version 3.
+          </div>
+        </article>
+
+        <aside class="toc">
+          <div class="box">
+            <h4>In this briefing</h4>
+            <nav>
+              <a href="#s1" class="active">The setup</a>
+              <a href="#s2">What changed in the cockpit</a>
+              <a href="#s3">Recommended actions</a>
+              <a href="#s4">Talking points</a>
+              <a href="#s5">Next week</a>
+            </nav>
+          </div>
+          <div class="box">
+            <h4>At a glance</h4>
+            <div class="stats">
+              <div class="stat"><span>AUM</span><b>$153.9M</b></div>
+              <div class="stat"><span>1-week VaR (95%)</span><b>−2.4%</b></div>
+              <div class="stat"><span>P(loss > 5% / 20d)</span><b>18%</b></div>
+              <div class="stat"><span>Active risks</span><b>4</b></div>
+              <div class="stat"><span>HHI concentration</span><b>0.082</b></div>
+              <div class="stat"><span>Cash</span><b>5.1%</b></div>
+            </div>
+          </div>
+          <div class="box">
+            <h4>Risks called out</h4>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;gap:8px;font-size:11px"><span class="pill pri">Pri</span><span>US equity drawdown</span></div>
+              <div style="display:flex;gap:8px;font-size:11px"><span class="pill ele">Ele</span><span>AI capex unwind</span></div>
+              <div style="display:flex;gap:8px;font-size:11px"><span class="pill ele">Ele</span><span>HY credit spreads</span></div>
+              <div style="display:flex;gap:8px;font-size:11px"><span class="pill wat">Wat</span><span>USD/JPY intervention</span></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="_shell.js"></script>
+<script>CRB.mount('briefings.html', ['Workspace','Briefings','Week 14'])</script>
+</body></html>

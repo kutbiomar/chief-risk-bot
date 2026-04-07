@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sign in — ChiefRiskBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link rel="stylesheet" href="_shell.css"/>
+<style>
+  body{min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr}
+  .left{padding:48px 56px;display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid var(--rule);background:var(--paper)}
+  .right{background:var(--paper-2);padding:48px 56px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .logo{width:32px;height:32px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:'Fraunces';font-weight:900;font-size:16px}
+  .brand b{font-family:'Fraunces';font-weight:900;font-size:18px}
+  .form-wrap{max-width:380px;width:100%;align-self:center;margin:auto 0}
+  .form-wrap h1{font-family:'Fraunces';font-weight:900;font-size:34px;letter-spacing:-.02em;line-height:1.05;margin:0 0 8px}
+  .form-wrap p.lede{color:var(--ink-soft);font-size:13px;margin:0 0 28px;max-width:340px}
+  .form-wrap form{display:flex;flex-direction:column;gap:14px}
+  .form-wrap .row{display:flex;align-items:center;justify-content:space-between;font-size:11px}
+  .form-wrap .row a{color:var(--accent);font-weight:600}
+  .form-wrap .btn.primary{justify-content:center;padding:12px 14px;font-size:13px}
+  .divider{display:flex;align-items:center;gap:10px;margin:18px 0;color:var(--ink-mute);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--rule)}
+  .sso{display:flex;flex-direction:column;gap:8px}
+  .sso button{display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid var(--rule);background:var(--paper);border-radius:6px;padding:10px 14px;font:inherit;font-weight:600;font-size:12px;color:var(--ink);cursor:pointer}
+  .sso button:hover{background:var(--paper-3)}
+  footer.legal{font-size:10px;color:var(--ink-mute);display:flex;gap:14px}
+  footer.legal a{color:inherit}
+  .quote{align-self:center;max-width:440px;margin:auto 0}
+  .quote .mark{font-family:'Fraunces';font-weight:900;font-size:64px;line-height:.6;color:var(--brand);opacity:.4}
+  .quote blockquote{font-family:'Fraunces';font-weight:700;font-size:24px;line-height:1.35;letter-spacing:-.01em;margin:8px 0 18px;color:var(--ink)}
+  .quote cite{font-style:normal;display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--ink-soft)}
+  .quote cite b{color:var(--ink);font-weight:700}
+  .stat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;border-top:1px solid var(--rule);padding-top:24px}
+  .stat-strip .stat .v{font-family:'Fraunces';font-weight:900;font-size:24px;letter-spacing:-.02em}
+  .stat-strip .stat .l{font-size:10px;color:var(--ink-mute);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+  @media (max-width:880px){body{grid-template-columns:1fr}.right{display:none}}
+</style></head>
+<body>
+  <section class="left">
+    <div class="brand"><div class="logo">C</div><b>ChiefRiskBot</b></div>
+    <div class="form-wrap">
+      <h1 class="serif">Welcome back.</h1>
+      <p class="lede">Sign in to your workspace to view this week's briefing and the live risk cockpit.</p>
+      <form>
+        <div class="field">
+          <label>Work email</label>
+          <input type="email" placeholder="omar@aldridge.fo" autocomplete="email"/>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" placeholder="••••••••••••" autocomplete="current-password"/>
+        </div>
+        <div class="row">
+          <label style="display:flex;align-items:center;gap:6px;color:var(--ink-soft);font-weight:500"><input type="checkbox"/> Keep me signed in</label>
+          <a href="#">Forgot password?</a>
+        </div>
+        <button class="btn primary" type="submit">Sign in <span class="ms">arrow_forward</span></button>
+      </form>
+      <div class="divider">or continue with</div>
+      <div class="sso">
+        <button><span class="ms" style="font-size:16px">business</span>Google Workspace</button>
+        <button><span class="ms" style="font-size:16px">key</span>Single Sign-On (SAML)</button>
+      </div>
+      <p style="font-size:11px;color:var(--ink-mute);margin-top:24px">New to ChiefRiskBot? <a href="#" style="color:var(--accent);font-weight:600">Request access</a></p>
+    </div>
+    <footer class="legal">
+      <span>© 2026 ChiefRiskBot Inc.</span>
+      <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Security</a>
+      <span style="margin-left:auto">SOC 2 Type II</span>
+    </footer>
+  </section>
+
+  <section class="right">
+    <div style="display:flex;justify-content:flex-end;gap:14px;font-size:11px;color:var(--ink-mute)">
+      <span><span class="ms" style="font-size:14px;color:var(--good-fg)">circle</span> All systems operational</span>
+    </div>
+    <div class="quote">
+      <div class="mark">"</div>
+      <blockquote>Reads like the Monday memo from a sell-side desk, only this one is built around our book.</blockquote>
+      <cite><b>Helena Voss</b><span>CIO, Aldridge Family Office · $1.4B AUM</span></cite>
+    </div>
+    <div class="stat-strip">
+      <div class="stat"><div class="v mono">142</div><div class="l">Family offices</div></div>
+      <div class="stat"><div class="v mono">$84B</div><div class="l">AUM monitored</div></div>
+      <div class="stat"><div class="v mono">99.98%</div><div class="l">Uptime · 90d</div></div>
+    </div>
+  </section>
+</body></html>
