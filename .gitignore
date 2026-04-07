@@ -1,0 +1,15 @@
+.DS_Store
+.env
+.env.local
+.env*.local
+**/.env
+**/.env.local
+**/.env*.local
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+briefings/
+uploads/
+app/static/.gstack/
