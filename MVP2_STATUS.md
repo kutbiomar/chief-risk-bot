@@ -341,6 +341,212 @@ Follow this sequence strictly. Each phase must be complete before starting the n
 
 ---
 
+## Frontend Components to Build
+
+Design system reference: `frontend-design-ideal/DESIGN.md`.
+Typography: Fraunces (headings), Inter Tight (UI), JetBrains Mono (all numerics).
+Palette: paper `#fff8f6`, navy accent `#1B2B5E`, severity colors for alerts.
+All monetary values, percentages, dates, and ratios use JetBrains Mono with `font-feature-settings: "tnum"`.
+
+Components are grouped by page/feature. Reuse status: ✅ exists (adapt), 🆕 new build.
+
+---
+
+### SHARED / PRIMITIVE COMPONENTS
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `KpiStrip` | 🆕 | Top-of-page row of 4–6 headline numbers. Font: JetBrains Mono 20px/700. Fields: label (Inter Tight uplabel), value (mono-lg), delta (±%, coloured by severity). Used on Dashboard, Holdings, Liquidity pages. |
+| `AlertBanner` | 🆕 | Full-width dismissible bar in 4 severities: CRITICAL (red), HIGH (amber), ELEVATED (orange), WATCH (grey). Shows icon + one-line message + "View" CTA. Stacks vertically if multiple active. |
+| `AlertBadge` | 🆕 | Inline pill: severity colour + label text. Used in table rows and card subheads to surface alert state without a full banner. |
+| `DataFreshnessTag` | 🆕 | Small tag showing days since last update. `< 30d` → neutral. `30–90d` → amber. `> 90d` → red. Appears next to any NAV or valuation figure. |
+| `StatusChip` | ✅ | Existing severity chips (priority/elevated/watch/good). Reuse as-is; extend with `STALE` and `CRITICAL` states. |
+| `EmptyState` | 🆕 | Consistent empty state for tables and charts: illustration-free, Fraunces headline ("No funds added yet"), Inter Tight body, primary CTA button. |
+| `ConfirmDialog` | ✅ | Existing modal pattern. Adapt for destructive actions (delete fund, override reconciliation flag). |
+| `ToastNotification` | 🆕 | Transient bottom-right toast for async feedback: "Document extracted", "Reconciliation flag resolved", "Briefing sent". Auto-dismiss after 4s. |
+| `PageHeader` | ✅ | Fraunces display title + subtitle. Reuse existing pattern. |
+| `SectionDivider` | ✅ | Hairline rule with optional label. Reuse. |
+| `LoadingSpinner` | ✅ | Existing spinner. Reuse. |
+
+---
+
+### NAVIGATION & SHELL
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `Sidebar` | ✅ | Adapt existing sidebar. New nav items: Dashboard, Holdings, Capital Events, Liquidity, Documents, Deals, Briefings, Alerts, Settings. Remove: Risk Scores, Market Data. |
+| `TopBar` | ✅ | Keep workspace name + user avatar + sign out. Add: global alert count badge (red dot if any CRITICAL/HIGH alerts active). |
+| `BreadcrumbNav` | 🆕 | Fund → Commitment → detail drill-down needs breadcrumbs. Inter Tight 12px, paper-3 background, chevron separator. |
+
+---
+
+### DASHBOARD (replaces `cockpit.html`)
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `DashboardKpiStrip` | 🆕 | 5 KPIs: Total Committed, Total Called, Uncalled Commitments, Distributions Received, Portfolio NAV. All JetBrains Mono. Each shows currency-converted base value + data freshness. |
+| `UpcomingCapitalCallsCard` | 🆕 | Card listing capital calls due in the next 30/60/90 days. Columns: Fund, Amount, Due Date, Days Remaining. Due date < 14 days highlighted CRITICAL. Sortable by due date. |
+| `LiquiditySnapshotCard` | 🆕 | Mini version of the cash flow ladder — next 6 months only, bar chart. Inflows (distributions) green, outflows (calls + fees) amber. Net line. "View full projection" CTA. |
+| `AlertsRailCard` | 🆕 | Right-rail card listing all active alerts in severity order. Each row: badge + one-line message + acknowledge button. Collapses if zero alerts. |
+| `DealPipelineSummaryCard` | 🆕 | Compact deal pipeline: count of deals by stage (sourcing / DD / IC review / closed / passed), total target commitment in IC review. CTA: "View all deals". |
+| `RecentDocumentsCard` | 🆕 | Last 5 uploaded documents. Columns: filename, fund, classification, processing status chip, uploaded at. "Review" CTA for documents in `needs_review` state. |
+| `WeeklyBriefingPreviewCard` | ✅ | Adapt existing briefing preview. Show executive summary text + "Read full briefing" CTA. |
+
+---
+
+### HOLDINGS VIEW
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `HoldingsPivotToggle` | 🆕 | Segmented control: Asset Class / Geography / Sector. Switches the breakdown view. Inter Tight 12px. Active state: navy background, white text. |
+| `HoldingsBreakdownTable` | 🆕 | Main holdings table. Columns vary by pivot: Name, Type/Region/Sector, Current Value, % of Portfolio, Cost Basis, Unrealised G/L, Data Freshness. Numeric columns: JetBrains Mono, right-aligned. Stale rows dimmed + DataFreshnessTag. Sortable columns. |
+| `ConcentrationAlert` | 🆕 | Inline banner within Holdings view. Triggered when any single name > 20% or sector > 40% of portfolio. Cites the specific name + threshold breached. |
+| `LookThroughRow` | 🆕 | Expandable row within Holdings table showing cross-fund exposure. E.g. "US Tech Semiconductors: 12% total (Fund A direct 7% + Fund B indirect 5%)". Expand icon + indented child rows. Only visible when underlying holdings data exists from GP reports. |
+| `HoldingsExportButton` | 🆕 | Export filtered table to CSV/Excel. Single button, dropdown with format choice. |
+
+---
+
+### FUND & COMMITMENT TABLES (table editor, replaces `table.html` for portfolio entities)
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `FundTable` | ✅ 🔄 | Adapt existing table editor. Columns: Fund Name, Type, Manager, Vintage, Fund Size, Currency, Jurisdiction. Inline add/edit/delete. Clicking a fund name drills into FundDetailPage. |
+| `CommitmentTable` | 🆕 | Per-fund inline table. Columns: Committed, Called, Uncalled, NAV, NAV Date, Distributions Received, Mgmt Fee %, Carry %. All monetary values: JetBrains Mono. NAV Date shows DataFreshnessTag. |
+| `CapitalEventTable` | 🆕 | Global or per-fund table. Columns: Type chip (call/distribution/fee/recallable), Fund, Amount, Currency, Notice Date, Due Date, Status chip (confirmed/estimated), Source Document link. Upcoming calls with due date < 14d show CRITICAL AlertBadge. Sortable by due date. |
+| `HoldingTable` | 🆕 | Per-fund or global table. Columns: Asset Name, Asset Type, Region, Sector, Currency, Qty, Unit Cost, Current Value, Value Date, Value Source chip. Inline add/edit/delete. |
+| `InlineEditCell` | ✅ | Existing inline cell edit (click to edit, blur/enter to save). Reuse as-is. |
+| `CsvImportButton` | ✅ | Adapt existing CSV import. New templates: fund template, commitment template (different columns from current position template). |
+| `AuditTrailDrawer` | 🆕 | Slide-in right drawer showing cell-level change log for the selected row: field, old value → new value, changed by, timestamp. Triggered by "History" icon on row hover. JetBrains Mono for values, mono-sm for timestamps. |
+
+---
+
+### CAPITAL EVENTS PAGE
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `CapitalEventFilterBar` | 🆕 | Filter row above the CapitalEventTable: Type (all/calls/distributions/fees), Fund (dropdown), Date Range picker, Status (confirmed/estimated). Resets to defaults via "Clear" link. |
+| `CapitalEventCalendarStrip` | 🆕 | Horizontal 12-week strip with dots on dates where capital events fall. Click a dot to jump to that event in the table below. CRITICAL dates (< 14 days) shown in red. |
+| `MarkConfirmedButton` | 🆕 | Inline button on estimated capital events: "Mark as confirmed (notice received)". Updates is_confirmed flag. Shows ReconciliationFlag if the confirmed amount differs from the modelled amount. |
+
+---
+
+### LIQUIDITY PROJECTION PAGE
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `LiquidityCashFlowChart` | 🆕 | 24-month grouped bar chart. Per month: inflows bar (green) + outflows bar (amber). Net cumulative line overlay (navy). Months with liquidity gap highlighted with red background band. X-axis: MMM YY labels. Y-axis: base currency. JetBrains Mono tick labels. Tooltip on hover: fund breakdown of that month's flows. |
+| `ScenarioToggle` | 🆕 | Two-state toggle: Base Case / Stress (distributions delayed 6 months). Switching re-fetches projection data and animates chart. |
+| `LiquidityGapCallout` | 🆕 | If any month has a gap: prominent callout card above the chart. "Liquidity gap detected: Month 7 (Oct 2026) — outflows exceed inflows by $3.2M. Suggested action: [trim S&P position / arrange credit facility]." CRITICAL severity styling. |
+| `MonthlyBreakdownTable` | 🆕 | Below the chart: table with one row per month. Columns: Month, Inflows (by source), Outflows (by fund), Net, Cumulative Balance. Expandable rows to show per-fund breakdown. JetBrains Mono throughout. |
+| `LiquidityBufferSetting` | 🆕 | Small inline control: "Minimum cash buffer: $____". Edits WorkspaceSetting.liquidity_buffer. Updates gap detection immediately. |
+
+---
+
+### DOCUMENT MANAGEMENT PAGE (adapts `documents.html`)
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `DocumentUploadZone` | ✅ | Existing drag-and-drop zone. Reuse. Add: accepted file type tooltip (PDF, XLSX, CSV, .eml, DOCX, max 50MB). |
+| `DocumentListTable` | ✅ | Adapt existing document list. New columns: Provider, Fund (auto-assigned or "Assign →"), Classification chip, Processing Status chip, Reconciliation Flags count badge. |
+| `ClassificationChip` | 🆕 | Colour-coded chip for document type: capital_call (amber), lp_statement (blue), quarterly_report (teal), dd_document (purple), portfolio_summary (grey), other (grey). |
+| `DocumentProcessingStatusChip` | ✅ | Adapt existing extraction status chip. States: pending (grey), processing (animated), done (green), needs_review (amber + count of flags), failed (red). |
+| `FundAssignmentDropdown` | 🆕 | Inline dropdown on unassigned documents. Autocomplete from existing fund list. "Create new fund" option at bottom. Saves on select. |
+| `ReconciliationDiffView` | 🆕 | The most important new component. Shown when user clicks "Review" on a document with needs_review status. Side-by-side: Document says / System has. Per-field rows: field name, document value (JetBrains Mono), system value (JetBrains Mono), variance %. Row background: red if HIGH, amber if MEDIUM. Per-row actions: Accept Document Value / Keep System Value / Investigate. Submit button to resolve all flags. |
+| `ExtractionConfidenceBar` | 🆕 | Per-document confidence indicator: horizontal bar 0–100% with numeric label. Green > 85%, amber 70–85%, red < 70%. Appears in document detail and as a column in DocumentListTable. |
+| `DocumentFolderTree` | 🆕 | Left sidebar on Documents page showing auto-folder hierarchy: Provider > Fund > Doc Type > Year. Clicking a folder filters the table. Collapse/expand. Count badge per folder. |
+| `DocumentSearchBar` | ✅ | Adapt existing search. Full-text search across document content. Debounced, 300ms. |
+
+---
+
+### DEAL PIPELINE PAGE
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `DealKanbanView` | 🆕 | Kanban board with columns: Sourcing / DD / IC Review / Closed / Passed. Each deal is a card: deal name, asset type chip, target commitment (JetBrains Mono), lead analyst avatar, target close date. Drag-to-move between stages (updates Deal.stage via API). |
+| `DealListView` | 🆕 | Toggle from Kanban to table view. Columns: Name, Stage chip, Asset Type, Target Commitment, Target Close Date, Lead Analyst, Documents count, Last Updated. |
+| `DealCard` | 🆕 | Used in Kanban and as detail header. Shows deal name (Fraunces h2), stage chip, target commitment (JetBrains Mono mono-lg), target close date, lead analyst, document count badge. |
+| `DealDetailDrawer` | 🆕 | Slide-in right drawer for deal detail: KPIs at top, notes editor (plain text, auto-save), linked documents list (with upload button), stage history timeline. |
+| `DealDocumentLinkPanel` | 🆕 | Within DealDetailDrawer: shows documents tagged to this deal. Drag existing documents from library or upload new. Thumbnail + filename + classification chip. |
+| `LiquidityImpactNote` | 🆕 | Within DealDetailDrawer: "Adding this commitment will add $Xm outflow in [month]. Liquidity impact: [green OK / amber watch / red gap]." Auto-computed from target_commitment + target_close_date vs. current cash flow ladder. |
+
+---
+
+### WEEKLY BRIEFING PAGE (adapts `briefings.html` + `briefing.html`)
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `BriefingListTable` | ✅ | Adapt existing. Columns: Date, Status chip (draft/published), Capital Events Covered, Alerts Included, Sent To count. Add "Download PDF" button per row. |
+| `BriefingDetailView` | ✅ | Adapt existing rich text view. Sections: Executive Summary, Capital Events This Week, Liquidity Watch, Deal Pipeline Updates, Risk Summary, Documents Received, Data Caveats. Each section collapsible. |
+| `BriefingGenerateButton` | ✅ | Adapt existing. "Generate briefing for this week". Shows loading state with estimated time. |
+| `BriefingRecipientConfig` | 🆕 | Settings sub-panel: add/remove email recipients per briefing section. E.g. "CIO receives all sections; Analyst receives Capital Events + Documents only." |
+| `DataCaveatsSection` | 🆕 | Auto-generated section at bottom of every briefing. Lists: any stale NAVs used (fund name + days stale), any open reconciliation flags not yet resolved, any holdings with estimated valuation source. Styled distinctly (paper-3 background, smaller type). |
+
+---
+
+### ALERTS PAGE
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `AlertsTable` | 🆕 | Full table of all active and recent alerts. Columns: Severity chip, Rule description, Entity (fund name / document name), Value, Threshold, Triggered At, Status (active/acknowledged). |
+| `AcknowledgeButton` | 🆕 | Per-row button on active alerts. Marks alert acknowledged by current user + timestamp. Does not suppress re-triggering if condition persists. |
+| `AlertRulesConfig` | 🆕 | Settings sub-panel: list of all active alert rules with their thresholds. User can adjust: capital call alert days (default 14), concentration threshold (default 20%), NAV staleness threshold (default 90 days), liquidity buffer amount. Saves to WorkspaceSetting. |
+
+---
+
+### ONBOARDING WIZARD (adapts `onboarding.html`)
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `OnboardingWizard` | ✅ 🔄 | Adapt existing wizard shell. New steps: (1) Workspace setup, (2) Add first fund, (3) Add first commitment, (4) Upload first document, (5) Review extraction, (6) Run liquidity projection. Progress bar at top. |
+| `FundSetupStep` | 🆕 | Wizard step 2: inline FundTable in create-only mode. Guided labels, tooltip on each field. "Add another fund" link. |
+| `CommitmentSetupStep` | 🆕 | Wizard step 3: CommitmentTable for the fund just created. Pre-fills fund name. |
+| `FirstDocumentStep` | 🆕 | Wizard step 4: DocumentUploadZone with instructional copy: "Upload a capital call notice or LP statement from any of your fund managers." |
+| `ExtractionReviewStep` | 🆕 | Wizard step 5: if extraction produced results, show a simplified ReconciliationDiffView. Single "Looks good — save" CTA. |
+| `LiquidityPreviewStep` | 🆕 | Wizard step 6: render a 6-month mini LiquidityCashFlowChart from the data just entered. "This is your liquidity position. See the full 24-month projection →". |
+
+---
+
+### SETTINGS PAGE (adapts existing)
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `WorkspaceSettingsForm` | ✅ | Keep existing. Add: base_currency selector, liquidity_buffer_amount field, reconciliation_variance_threshold (%) field, capital_call_alert_days field. |
+| `BriefingScheduleConfig` | ✅ | Keep existing day/time picker for weekly briefing. Add: recipient management (see BriefingRecipientConfig). |
+| `TeamManagementTable` | ✅ | Existing user invite/role table. Reuse as-is. |
+| `AlertRulesConfig` | 🆕 | (Listed above under Alerts — same component surfaced in Settings tab.) |
+| `ApiKeysTable` | ✅ | Existing API key management. Reuse as-is. |
+
+---
+
+### COMPONENT SUMMARY
+
+| Category | New | Adapt | Reuse |
+|----------|-----|-------|-------|
+| Shared / Primitives | 6 | 1 | 4 |
+| Navigation & Shell | 1 | 2 | 0 |
+| Dashboard | 7 | 1 | 0 |
+| Holdings View | 5 | 0 | 0 |
+| Fund / Commitment Tables | 4 | 3 | 2 |
+| Capital Events | 3 | 0 | 0 |
+| Liquidity Projection | 5 | 0 | 0 |
+| Document Management | 6 | 4 | 0 |
+| Deal Pipeline | 6 | 0 | 0 |
+| Weekly Briefing | 2 | 3 | 0 |
+| Alerts | 3 | 0 | 0 |
+| Onboarding | 4 | 1 | 0 |
+| Settings | 1 | 4 | 2 |
+| **Total** | **53** | **19** | **8** |
+
+**53 new components, 19 adaptations, 8 reused as-is.**
+
+The highest-priority components to build first (Phase 3 in build order):
+1. `LiquidityCashFlowChart` — the "aha" feature, must land with Phase 3
+2. `UpcomingCapitalCallsCard` — the first thing an analyst looks at Monday morning
+3. `ReconciliationDiffView` — gating feature for document ingestion to be trusted
+4. `AlertBanner` + `AlertBadge` — needed everywhere before any page ships
+
+---
+
 ## File Reference
 
 - Full product spec: `MVP2_SPEC.md`
