@@ -25,8 +25,7 @@ but the repo is no longer "frontend-only."
   `.venv/bin/python -m pytest backend/tests` passes with 15 tests;
   migrations have been applied successfully to the local SQLite demo database.
 - Still partial or deferred:
-  document parsing is still placeholder extraction, document approval does not yet
-  import into portfolio, weekly scheduler is not built, and live LLM/FRED behavior
+  weekly scheduler is not built, and live LLM/FRED behavior
   depends on `ANTHROPIC_API_KEY` / `FRED_API_KEY` with deterministic fallbacks when absent.
 
 ---

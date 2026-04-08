@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import io
+
 from fastapi.testclient import TestClient
+from openpyxl import Workbook
 from sqlalchemy.orm import Session
 
 from backend.tests.test_auth import seed_user
@@ -25,6 +28,18 @@ def bootstrap_portfolio(client: TestClient, db_session: Session, email: str = "p
     )
     assert upload.status_code == 200
     return {"csrf": csrf, "snapshot_id": upload.json()["snapshot_id"]}
+
+
+def build_statement_xlsx() -> bytes:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Holdings"
+    sheet.append(["Ticker", "Security Name", "Quantity", "Market Value USD", "Asset Class", "Custodian", "Region"])
+    sheet.append(["MSFT", "Microsoft Corp", 12, 5040, "Public Equity", "Goldman", "US"])
+    sheet.append(["BND", "Vanguard Total Bond", 40, 3200, "Fixed Income", "Fidelity", "US"])
+    payload = io.BytesIO()
+    workbook.save(payload)
+    return payload.getvalue()
 
 
 def test_var_risk_and_cockpit_flow(client: TestClient, db_session: Session) -> None:
@@ -80,15 +95,30 @@ def test_briefings_settings_api_keys_and_documents_flow(client: TestClient, db_s
     document = client.post(
         "/api/documents/upload",
         data={"folder": "custodian_statements"},
-        files={"file": ("statement.pdf", b"%PDF-1.4 demo", "application/pdf")},
+        files={
+            "file": (
+                "statement.xlsx",
+                build_statement_xlsx(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
     )
     assert document.status_code == 200
     document_id = document.json()["id"]
     assert client.post(f"/api/documents/{document_id}/parse").status_code == 200
     extraction = client.get(f"/api/documents/{document_id}/extraction")
     assert extraction.status_code == 200
-    assert extraction.json()["needs_review_count"] == 1
-    assert client.post(f"/api/documents/{document_id}/tag", json={"tag": "needs_review"}).status_code == 200
+    extraction_body = extraction.json()
+    assert extraction_body["needs_review_count"] == 0
+    assert extraction_body["positions"][0]["ticker"] == "MSFT"
+    assert extraction_body["positions"][0]["market_value_usd"] == 5040.0
+    approve = client.post(f"/api/documents/{document_id}/approve")
+    assert approve.status_code == 200
+    portfolio_positions = client.get("/api/portfolio/positions")
+    assert portfolio_positions.status_code == 200
+    assert portfolio_positions.json()["total"] == 2
+    assert portfolio_positions.json()["items"][0]["ticker"] == "MSFT"
+    assert client.post(f"/api/documents/{document_id}/tag", json={"tag": "imported"}).status_code == 200
     docs = client.get("/api/documents")
     assert docs.status_code == 200
     assert docs.json()["folder_counts"]["custodian_statements"] == 1

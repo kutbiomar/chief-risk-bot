@@ -11,6 +11,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.db
+storage/documents/
 briefings/
 storage/pdf/
 uploads/

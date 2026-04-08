@@ -532,3 +532,33 @@
   verified locally, and which backend gaps remain partial or deferred.
 - Marked implementation progress against the original Phase A/B/C/D plan so the status
   document reflects execution state rather than only planned sequencing.
+
+---
+
+## 2026-04-08
+
+### Document Extraction + Approval Import
+
+- Replaced the deterministic placeholder parser in `backend/services/documents.py`
+  with bounded real extraction for PDF (`pdfplumber`), DOCX (`python-docx`), and
+  XLSX (`openpyxl`).
+- Tightened document upload handling with signature checks, encrypted-PDF rejection,
+  server-generated storage paths, and persisted upload bytes under `storage/documents/`.
+- Added structured extraction normalization for common holdings-table columns
+  (`ticker`, `security name`, `quantity`, `market value`, `asset class`, etc.)
+  plus per-row confidence scoring and review counts.
+- Implemented approval-time portfolio promotion so `POST /api/documents/{id}/approve`
+  now creates a new current portfolio snapshot from importable extracted rows instead
+  of only tagging the document.
+- Updated `backend/tests/test_phase_cd.py` to exercise XLSX extraction plus approval
+  import into portfolio positions.
+
+### Verification
+
+- Full backend test suite: `.venv/bin/python -m pytest backend/tests` → **15 passed** ✓
+
+### Remaining backend gaps
+
+- Weekly briefing scheduler remains the primary unfinished backend workflow.
+- Live enrichments and live LLM generation still require `ANTHROPIC_API_KEY` and
+  `FRED_API_KEY`; deterministic fallbacks remain in place when credentials are absent.

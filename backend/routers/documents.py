@@ -16,7 +16,7 @@ from backend.schemas.content import (
     DocumentTagRequest,
     ExtractionResponse,
 )
-from backend.services.documents import create_document, parse_document
+from backend.services.documents import approve_document_extraction, create_document, parse_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -99,7 +99,10 @@ def parse_uploaded_document(
     document = db.get(Document, document_id)
     if document is None or document.workspace_id != user.workspace_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
-    parse_document(db, document)
+    try:
+        parse_document(db, document)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     db.commit()
     return MessageResponse(detail="Document parsed")
 
@@ -153,9 +156,12 @@ def approve_document(
     document = db.get(Document, document_id)
     if document is None or document.workspace_id != user.workspace_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
-    document.tag = "reconciled"
+    try:
+        snapshot = approve_document_extraction(db, document)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     db.commit()
-    return MessageResponse(detail="Document extraction approved")
+    return MessageResponse(detail=f"Document extraction approved into snapshot {snapshot.id}")
 
 
 @router.delete("/{document_id}", response_model=MessageResponse)
