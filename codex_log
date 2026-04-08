@@ -566,6 +566,32 @@
 
 ## 2026-04-08
 
+### Thin MVP Frontend Slice
+
+- Reviewed progress against the product spec, honest assessment, and frontend audit.
+- Concluded that the backend is no longer the primary blocker; the main gap shifted to
+  frontend/backend contract drift across the core demo path.
+- Chose not to rewrite the legacy static frontend. Instead, added a separate thin MVP
+  frontend slice under `app/static/mvp/` that reuses the existing design language while
+  wiring directly to the implemented backend.
+- Added MVP screens for login, onboarding, cockpit, briefings, briefing detail,
+  positions, and documents, plus shared client/shell assets.
+- Updated `.claude/serve.js` so the local static server now proxies `/api` requests to
+  the FastAPI backend (default `http://127.0.0.1:8001` via `CRB_API_ORIGIN` override).
+
+### Session Conclusions
+
+- The repo now has a credible backend-backed MVP surface without throwing away the
+  existing prototype UI.
+- The next meaningful work is not greenfield frontend construction; it is browser-level
+  integration and endpoint-shape reconciliation along the core demo path.
+- Legacy `app/static/` pages remain useful as design/reference artifacts, while
+  `app/static/mvp/` is the starting point for the actual MVP app surface.
+
+---
+
+## 2026-04-08
+
 ### Weekly Scheduler Implementation
 
 - Added APScheduler-backed weekly briefing scheduling in `backend/services/scheduler.py`.

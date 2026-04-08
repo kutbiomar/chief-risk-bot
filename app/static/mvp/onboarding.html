@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Onboarding — ChiefRiskBot MVP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="../_shell.css"/>
+  <link rel="stylesheet" href="_mvp.css"/>
+  <script src="_shell.js" defer></script>
+  <script src="_app.js" defer></script>
+</head>
+<body data-page="onboarding">
+  <div class="app" id="app-root">
+    <main>
+      <div class="mvp-page">
+        <div class="mvp-hero">
+          <div>
+            <h1>Get the workspace to first briefing.</h1>
+            <p>This screen compresses the MVP onboarding into the actual backend actions that matter: upload a portfolio, ingest supporting documents, run risk, and generate the first briefing.</p>
+          </div>
+          <div class="mvp-actions">
+            <a class="btn" href="cockpit.html"><span class="ms">dashboard</span>Open cockpit</a>
+          </div>
+        </div>
+        <div id="onboarding-status" class="mvp-notice" hidden data-global-status></div>
+        <div class="mvp-grid two">
+          <section class="mvp-card">
+            <div class="mvp-card-header">
+              <div>
+                <div class="uplabel">Progress</div>
+                <h2>Onboarding state</h2>
+              </div>
+              <div id="onboarding-meta" class="mvp-item-subtle">0 of 5 steps complete</div>
+            </div>
+            <div class="mvp-card-body mvp-list" id="onboarding-steps"></div>
+          </section>
+          <section class="mvp-card">
+            <div class="mvp-card-header">
+              <div>
+                <div class="uplabel">Run the flow</div>
+                <h2>Operator actions</h2>
+              </div>
+            </div>
+            <div class="mvp-card-body">
+              <div class="mvp-form">
+                <form id="csv-form" class="mvp-form">
+                  <div class="mvp-field">
+                    <label for="csv-file">Portfolio CSV</label>
+                    <input id="csv-file" type="file" accept=".csv,.tsv" />
+                  </div>
+                  <button class="btn primary" type="submit"><span class="ms">upload_file</span>Upload portfolio</button>
+                </form>
+                <form id="document-form" class="mvp-form">
+                  <div class="mvp-field">
+                    <label for="document-folder">Document folder</label>
+                    <select id="document-folder">
+                      <option value="custodian_statements">Custodian statements</option>
+                      <option value="private_equity">Private equity</option>
+                      <option value="real_estate">Real estate</option>
+                    </select>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="document-file">Supporting document</label>
+                    <input id="document-file" type="file" accept=".pdf,.docx,.xlsx" />
+                  </div>
+                  <button class="btn" type="submit"><span class="ms">description</span>Upload and parse document</button>
+                </form>
+                <div class="mvp-form-actions" style="justify-content:flex-start">
+                  <button id="run-risk" class="btn" type="button"><span class="ms">warning</span>Run risk analysis</button>
+                  <button id="generate-briefing" class="btn" type="button"><span class="ms">auto_stories</span>Generate briefing</button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -8,10 +8,10 @@ _Last updated: 2026-04-08_
 AI-powered risk briefing platform for family office CIOs. Demo-first MVP.
 FastAPI + Claude API + yfinance + FRED + SQLite (demo) / Postgres (prod).
 
-**Current state: backend MVP scaffold is implemented locally and verified.**
+**Current state: backend MVP scaffold is implemented locally and a thin integrated MVP frontend now exists.**
 The FastAPI backend, database models, migrations, routers, services, and tests now exist under `backend/`.
-The static frontend still contains hardcoded demo pages in `app/static/`, so frontend integration remains incomplete,
-but the repo is no longer "frontend-only."
+The legacy static frontend still contains hardcoded prototype pages in `app/static/`, but a separate backend-aware MVP slice now exists under `app/static/mvp/`.
+Frontend integration is no longer blocked on rewriting the whole UI, but the MVP slice still needs browser-level polish and endpoint-shape reconciliation.
 
 ### Backend implementation snapshot
 
@@ -24,6 +24,10 @@ but the repo is no longer "frontend-only."
 - Verified locally:
   `.venv/bin/python -m pytest backend/tests` passes with 17 tests;
   migrations have been applied successfully to the local SQLite demo database.
+- Frontend MVP slice added:
+  `app/static/mvp/` now contains backend-aware login, onboarding, cockpit,
+  briefings, briefing detail, positions, and documents screens, plus a shared
+  client and shell.
 - Still partial or deferred:
   live LLM/FRED behavior
   depends on `ANTHROPIC_API_KEY` / `FRED_API_KEY` with deterministic fallbacks when absent.
@@ -89,6 +93,20 @@ agent rubrics. Not useful for: schema, routes, or build order.
 | `settings.html` | Workspace, AI, product settings |
 | `onboarding.html` | Initial upload/setup flow |
 | `login.html`, `invite.html`, `forgot.html`, `verify.html` | Auth flows |
+
+### `app/static/mvp/` — thin integrated MVP frontend
+
+| File | Role |
+|------|------|
+| `_app.js` | Shared API client, session handling, CSRF handling, page wiring |
+| `_shell.js` | Shared MVP sidebar/topbar shell |
+| `_mvp.css` | Shared MVP page styles |
+| `login.html` | Backend-wired sign-in |
+| `onboarding.html` | CSV/doc upload flow + first run controls |
+| `cockpit.html` | Live cockpit against `/api/cockpit` |
+| `briefings.html`, `briefing.html` | Briefing archive + detail |
+| `table.html` | Position CRUD editor |
+| `documents.html` | Document upload/parse/approve flow |
 
 ### Root docs
 

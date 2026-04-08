@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Sign in — ChiefRiskBot MVP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="../_shell.css"/>
+  <link rel="stylesheet" href="_mvp.css"/>
+  <script src="_app.js" defer></script>
+</head>
+<body data-page="login">
+  <div class="mvp-login-shell">
+    <section class="mvp-login-left">
+      <div class="mvp-login-brand">
+        <div class="logo">C</div>
+        <b>ChiefRiskBot MVP</b>
+      </div>
+      <div class="mvp-login-card">
+        <h1>Integrated demo frontend.</h1>
+        <p>This is the thin MVP surface wired to the FastAPI backend. Sign in with a seeded workspace user to continue.</p>
+        <div id="login-status" class="mvp-notice" hidden data-global-status></div>
+        <form id="login-form" class="mvp-form" style="margin-top:14px">
+          <div class="mvp-field">
+            <label for="email">Work email</label>
+            <input id="email" type="email" placeholder="owner@example.com" autocomplete="email" required/>
+          </div>
+          <div class="mvp-field">
+            <label for="password">Password</label>
+            <input id="password" type="password" placeholder="secret123" autocomplete="current-password" required/>
+          </div>
+          <div id="totp-wrap" class="mvp-field" hidden>
+            <label for="totp-code">TOTP code</label>
+            <input id="totp-code" type="text" placeholder="000000" inputmode="numeric"/>
+          </div>
+          <button id="login-submit" class="btn primary" type="submit">Sign in <span class="ms">arrow_forward</span></button>
+        </form>
+      </div>
+      <div class="mvp-metadata">
+        <span>Served from `app/static/mvp/`</span>
+        <span>API proxied through `/api`</span>
+      </div>
+    </section>
+    <section class="mvp-login-right">
+      <div class="mvp-metadata" style="justify-content:flex-end">
+        <span><span class="ms" style="font-size:14px;color:var(--good-fg)">circle</span> backend-connected demo</span>
+      </div>
+      <div class="mvp-login-quote">
+        <blockquote>Stop showing me a prototype memo. Show me the memo generated from the actual book.</blockquote>
+        <cite><b>Family office MVP brief</b><span>Consolidation, early warning, explainability</span></cite>
+      </div>
+      <div class="mvp-grid cards-4">
+        <div class="mvp-kpi"><div class="uplabel">Core flow</div><div class="value">7</div><div class="meta">thin MVP screens</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Backend tests</div><div class="value">17</div><div class="meta">passing</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Primary wedge</div><div class="value">Docs</div><div class="meta">statement to portfolio</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Scope</div><div class="value">FO</div><div class="meta">family office-first</div></div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
