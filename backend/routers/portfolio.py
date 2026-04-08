@@ -1,0 +1,385 @@
+from __future__ import annotations
+
+from typing import Optional
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select, update
+from sqlalchemy.orm import Session
+
+from backend.deps import get_db
+from backend.models.portfolio import PortfolioSnapshot, Position
+from backend.routers.auth import require_session
+from backend.schemas.portfolio import (
+    PortfolioSummaryResponse,
+    PositionCreateRequest,
+    PositionListResponse,
+    PositionMutationResponse,
+    PositionResponse,
+    PositionUpdateRequest,
+    SnapshotResponse,
+)
+from backend.services.audit.logger import AuditLogger
+from backend.services.portfolio import summarize_positions
+
+router = APIRouter(prefix="/portfolio", tags=["portfolio"])
+
+
+def _resolve_snapshot(db: Session, workspace_id: str, snapshot_id: Optional[str]) -> PortfolioSnapshot:
+    if snapshot_id:
+        snapshot = db.scalar(
+            select(PortfolioSnapshot).where(
+                PortfolioSnapshot.id == snapshot_id,
+                PortfolioSnapshot.workspace_id == workspace_id,
+            )
+        )
+    else:
+        snapshot = db.scalar(
+            select(PortfolioSnapshot).where(
+                PortfolioSnapshot.workspace_id == workspace_id,
+                PortfolioSnapshot.is_current.is_(True),
+            )
+        )
+    if snapshot is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio snapshot not found")
+    return snapshot
+
+
+@router.get("/snapshot", response_model=SnapshotResponse)
+def get_current_snapshot(
+    snapshot_id: Optional[str] = Query(default=None),
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> SnapshotResponse:
+    _, user = auth
+    snapshot = _resolve_snapshot(db, user.workspace_id, snapshot_id)
+    return SnapshotResponse(
+        snapshot_id=snapshot.id,
+        source=snapshot.source,
+        position_count=snapshot.position_count,
+        total_aum_usd=snapshot.total_aum_usd,
+        created_at=snapshot.created_at,
+        parent_snapshot_id=snapshot.parent_snapshot_id,
+    )
+
+
+@router.get("/summary", response_model=PortfolioSummaryResponse)
+def get_portfolio_summary(
+    snapshot_id: Optional[str] = Query(default=None),
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> PortfolioSummaryResponse:
+    _, user = auth
+    snapshot = _resolve_snapshot(db, user.workspace_id, snapshot_id)
+    positions = db.scalars(
+        select(Position).where(Position.snapshot_id == snapshot.id).order_by(Position.market_value_usd.desc())
+    ).all()
+    summary = summarize_positions(positions)
+    return PortfolioSummaryResponse(snapshot_id=snapshot.id, **summary)
+
+
+@router.get("/positions", response_model=PositionListResponse)
+def list_positions(
+    snapshot_id: Optional[str] = Query(default=None),
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> PositionListResponse:
+    _, user = auth
+    snapshot = _resolve_snapshot(db, user.workspace_id, snapshot_id)
+    positions = db.scalars(
+        select(Position).where(Position.snapshot_id == snapshot.id).order_by(Position.market_value_usd.desc())
+    ).all()
+    items = [
+        PositionResponse(
+            id=position.id,
+            snapshot_id=position.snapshot_id,
+            ticker=position.ticker,
+            name=position.name,
+            quantity=position.quantity,
+            market_value_usd=position.market_value_usd,
+            asset_class=position.asset_class,
+            geo_region=position.geo_region,
+            sector=position.sector,
+            market_segment=position.market_segment,
+            custodian=position.custodian,
+            notes=position.notes,
+        )
+        for position in positions
+    ]
+    return PositionListResponse(snapshot_id=snapshot.id, total=len(items), items=items)
+
+
+# ---------------------------------------------------------------------------
+# Immutable snapshot helper
+# ---------------------------------------------------------------------------
+
+def _materialize_successor_snapshot(
+    db: Session,
+    current_snapshot: PortfolioSnapshot,
+    user_id: str,
+    source: str = "manual_edit",
+) -> PortfolioSnapshot:
+    """Create a successor snapshot, demote the current one, return the new snapshot."""
+    # Copy all current positions into memory before demoting
+    existing_positions = db.scalars(
+        select(Position).where(Position.snapshot_id == current_snapshot.id)
+    ).all()
+
+    # Demote current snapshot
+    db.execute(
+        update(PortfolioSnapshot)
+        .where(PortfolioSnapshot.id == current_snapshot.id)
+        .values(is_current=False)
+    )
+
+    new_snapshot = PortfolioSnapshot(
+        id=str(uuid4()),
+        workspace_id=current_snapshot.workspace_id,
+        parent_snapshot_id=current_snapshot.id,
+        uploaded_by=user_id,
+        source=source,
+        position_count=current_snapshot.position_count,
+        total_aum_usd=current_snapshot.total_aum_usd,
+        is_current=True,
+    )
+    db.add(new_snapshot)
+    db.flush()  # get new_snapshot.id
+
+    # Copy existing positions forward
+    for pos in existing_positions:
+        db.add(
+            Position(
+                id=str(uuid4()),
+                snapshot_id=new_snapshot.id,
+                workspace_id=pos.workspace_id,
+                security_id=pos.security_id,
+                ticker=pos.ticker,
+                name=pos.name,
+                position_currency=pos.position_currency,
+                quantity=pos.quantity,
+                price_local=pos.price_local,
+                price_usd=pos.price_usd,
+                market_value_local=pos.market_value_local,
+                market_value_usd=pos.market_value_usd,
+                asset_class=pos.asset_class,
+                geo_region=pos.geo_region,
+                sector=pos.sector,
+                market_segment=pos.market_segment,
+                custodian=pos.custodian,
+                price_source=pos.price_source,
+                beta_vs_spy=pos.beta_vs_spy,
+                daily_return=pos.daily_return,
+                notes=pos.notes,
+            )
+        )
+
+    db.flush()
+    return new_snapshot, existing_positions
+
+
+def _recalculate_snapshot_totals(db: Session, snapshot: PortfolioSnapshot) -> None:
+    positions = db.scalars(select(Position).where(Position.snapshot_id == snapshot.id)).all()
+    total_aum = sum(float(p.market_value_usd or 0) for p in positions)
+    snapshot.position_count = len(positions)
+    snapshot.total_aum_usd = total_aum
+    db.flush()
+
+
+# ---------------------------------------------------------------------------
+# POST /portfolio/positions — add a position
+# ---------------------------------------------------------------------------
+
+@router.post("/positions", response_model=PositionMutationResponse, status_code=status.HTTP_201_CREATED)
+def create_position(
+    body: PositionCreateRequest,
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> PositionMutationResponse:
+    _, user = auth
+    current = _resolve_snapshot(db, user.workspace_id, None)
+    new_snapshot, _ = _materialize_successor_snapshot(db, current, user.id, source="manual_edit")
+
+    # Derive market_value_usd from price if not provided
+    market_value_usd = body.market_value_usd
+    if market_value_usd is None and body.price_usd is not None:
+        market_value_usd = body.quantity * body.price_usd
+
+    new_position = Position(
+        id=str(uuid4()),
+        snapshot_id=new_snapshot.id,
+        workspace_id=user.workspace_id,
+        ticker=body.ticker.upper().strip(),
+        name=body.name,
+        position_currency=body.position_currency,
+        quantity=body.quantity,
+        price_usd=body.price_usd,
+        market_value_usd=market_value_usd,
+        asset_class=body.asset_class,
+        geo_region=body.geo_region,
+        sector=body.sector,
+        market_segment=body.market_segment,
+        custodian=body.custodian,
+        notes=body.notes,
+        price_source="manual",
+    )
+    db.add(new_position)
+    db.flush()
+    _recalculate_snapshot_totals(db, new_snapshot)
+
+    AuditLogger(db).append_event(
+        workspace_id=user.workspace_id,
+        actor_user_id=user.id,
+        actor_type="user",
+        event_type="position",
+        action="position.created",
+        subject_type="position",
+        subject_id=new_position.id,
+        detail={"ticker": new_position.ticker, "snapshot_id": new_snapshot.id},
+    )
+    db.commit()
+    return PositionMutationResponse(
+        snapshot_id=new_snapshot.id,
+        position_id=new_position.id,
+        parent_snapshot_id=current.id,
+    )
+
+
+# ---------------------------------------------------------------------------
+# PATCH /portfolio/positions/{id} — edit a position
+# ---------------------------------------------------------------------------
+
+@router.patch("/positions/{position_id}", response_model=PositionMutationResponse)
+def update_position(
+    position_id: str,
+    body: PositionUpdateRequest,
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> PositionMutationResponse:
+    _, user = auth
+    current = _resolve_snapshot(db, user.workspace_id, None)
+
+    # Find the target position in the current snapshot
+    target = db.scalar(
+        select(Position).where(
+            Position.id == position_id,
+            Position.snapshot_id == current.id,
+        )
+    )
+    if target is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Position not found in current snapshot")
+
+    new_snapshot, copied_positions = _materialize_successor_snapshot(db, current, user.id, source="manual_edit")
+
+    # Find the copied version of this position in the new snapshot
+    copied_target = db.scalar(
+        select(Position).where(
+            Position.snapshot_id == new_snapshot.id,
+            Position.ticker == target.ticker,
+        )
+    )
+    if copied_target is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to find copied position")
+
+    # Apply updates
+    if body.name is not None:
+        copied_target.name = body.name
+    if body.quantity is not None:
+        copied_target.quantity = body.quantity
+    if body.market_value_usd is not None:
+        copied_target.market_value_usd = body.market_value_usd
+    if body.price_usd is not None:
+        copied_target.price_usd = body.price_usd
+    if body.position_currency is not None:
+        copied_target.position_currency = body.position_currency
+    if body.asset_class is not None:
+        copied_target.asset_class = body.asset_class
+    if body.geo_region is not None:
+        copied_target.geo_region = body.geo_region
+    if body.sector is not None:
+        copied_target.sector = body.sector
+    if body.market_segment is not None:
+        copied_target.market_segment = body.market_segment
+    if body.custodian is not None:
+        copied_target.custodian = body.custodian
+    if body.notes is not None:
+        copied_target.notes = body.notes
+
+    # Recalculate market_value_usd from price if only price updated
+    if body.price_usd is not None and body.market_value_usd is None:
+        copied_target.market_value_usd = copied_target.quantity * body.price_usd
+
+    db.flush()
+    _recalculate_snapshot_totals(db, new_snapshot)
+
+    AuditLogger(db).append_event(
+        workspace_id=user.workspace_id,
+        actor_user_id=user.id,
+        actor_type="user",
+        event_type="position",
+        action="position.updated",
+        subject_type="position",
+        subject_id=copied_target.id,
+        detail={"ticker": copied_target.ticker, "snapshot_id": new_snapshot.id, "original_position_id": position_id},
+    )
+    db.commit()
+    return PositionMutationResponse(
+        snapshot_id=new_snapshot.id,
+        position_id=copied_target.id,
+        parent_snapshot_id=current.id,
+    )
+
+
+# ---------------------------------------------------------------------------
+# DELETE /portfolio/positions/{id} — remove a position
+# ---------------------------------------------------------------------------
+
+@router.delete("/positions/{position_id}", response_model=PositionMutationResponse)
+def delete_position(
+    position_id: str,
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> PositionMutationResponse:
+    _, user = auth
+    current = _resolve_snapshot(db, user.workspace_id, None)
+
+    target = db.scalar(
+        select(Position).where(
+            Position.id == position_id,
+            Position.snapshot_id == current.id,
+        )
+    )
+    if target is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Position not found in current snapshot")
+
+    ticker_to_remove = target.ticker
+    new_snapshot, _ = _materialize_successor_snapshot(db, current, user.id, source="manual_edit")
+
+    # Delete the copied position that matches the removed ticker
+    to_delete = db.scalar(
+        select(Position).where(
+            Position.snapshot_id == new_snapshot.id,
+            Position.ticker == ticker_to_remove,
+        )
+    )
+    if to_delete:
+        db.delete(to_delete)
+        db.flush()
+
+    _recalculate_snapshot_totals(db, new_snapshot)
+
+    AuditLogger(db).append_event(
+        workspace_id=user.workspace_id,
+        actor_user_id=user.id,
+        actor_type="user",
+        event_type="position",
+        action="position.deleted",
+        subject_type="position",
+        subject_id=position_id,
+        detail={"ticker": ticker_to_remove, "snapshot_id": new_snapshot.id},
+    )
+    db.commit()
+    return PositionMutationResponse(
+        snapshot_id=new_snapshot.id,
+        position_id=position_id,
+        parent_snapshot_id=current.id,
+    )

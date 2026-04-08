@@ -1,0 +1,37 @@
+[project]
+name = "chiefriskbot"
+version = "0.1.0"
+description = "ChiefRiskBot backend scaffold"
+requires-python = ">=3.9"
+dependencies = [
+  "alembic>=1.14.0",
+  "anthropic>=0.91.0",
+  "fastapi>=0.115.0",
+  "fredapi>=0.5.2",
+  "pandas>=2.0.0",
+  "passlib[bcrypt]>=1.7.4",
+  "pydantic-settings>=2.6.0",
+  "python-multipart>=0.0.9",
+  "python-jose>=3.3.0",
+  "sqlalchemy>=2.0.36",
+  "uvicorn[standard]>=0.32.0",
+  "weasyprint>=66.0",
+  "yfinance>=1.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.27.0",
+  "pytest>=8.3.0",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+pythonpath = ["."]
