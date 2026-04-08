@@ -22,10 +22,10 @@ but the repo is no longer "frontend-only."
   briefing generation/list/detail/publish/export, settings/API key management,
   document upload/list/parse/review flow, onboarding state, and Alembic migrations.
 - Verified locally:
-  `.venv/bin/python -m pytest backend/tests` passes with 15 tests;
+  `.venv/bin/python -m pytest backend/tests` passes with 17 tests;
   migrations have been applied successfully to the local SQLite demo database.
 - Still partial or deferred:
-  weekly scheduler is not built, and live LLM/FRED behavior
+  live LLM/FRED behavior
   depends on `ANTHROPIC_API_KEY` / `FRED_API_KEY` with deterministic fallbacks when absent.
 
 ---

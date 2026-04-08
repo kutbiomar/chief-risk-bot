@@ -19,6 +19,7 @@ from backend.schemas.content import (
 )
 from backend.services.auth.password import hash_password
 from backend.services.auth.session import utc_now
+from backend.services.scheduler import get_scheduler_manager
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -71,6 +72,7 @@ def patch_settings(
     settings.updated_at = utc_now()
     db.commit()
     db.refresh(settings)
+    get_scheduler_manager().sync_workspace_job(user.workspace_id)
     return _serialize_settings(settings)
 
 

@@ -16,6 +16,7 @@ from backend.routers import (
     settings_router,
     var_router,
 )
+from backend.services.scheduler import get_scheduler_manager
 
 
 def create_app() -> FastAPI:
@@ -41,6 +42,19 @@ def create_app() -> FastAPI:
     app.include_router(risk_router, prefix="/api")
     app.include_router(settings_router, prefix="/api")
     app.include_router(var_router, prefix="/api")
+
+    @app.on_event("startup")
+    def startup_scheduler() -> None:
+        manager = get_scheduler_manager()
+        app.state.scheduler_manager = manager
+        manager.start()
+
+    @app.on_event("shutdown")
+    def shutdown_scheduler() -> None:
+        manager = getattr(app.state, "scheduler_manager", None)
+        if manager is not None:
+            manager.shutdown()
+
     return app
 
 

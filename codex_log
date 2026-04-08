@@ -559,6 +559,32 @@
 
 ### Remaining backend gaps
 
-- Weekly briefing scheduler remains the primary unfinished backend workflow.
+- Live enrichments and live LLM generation still require `ANTHROPIC_API_KEY` and
+  `FRED_API_KEY`; deterministic fallbacks remain in place when credentials are absent.
+
+---
+
+## 2026-04-08
+
+### Weekly Scheduler Implementation
+
+- Added APScheduler-backed weekly briefing scheduling in `backend/services/scheduler.py`.
+- Implemented workspace-level cron job sync from `workspace_settings.briefing_day`,
+  `workspace_settings.briefing_time`, and the workspace timezone.
+- Implemented scheduled execution flow:
+  compute VaR, run risk analysis, generate briefing, auto-publish when enabled,
+  and export the briefing artifact when `briefing_send_pdf` is enabled.
+- Wired the scheduler into FastAPI startup/shutdown in `backend/main.py`.
+- Wired `PATCH /api/settings` to resync the workspace's schedule immediately after settings changes.
+- Added `SCHEDULER_ENABLED` config/env support so background scheduling is opt-in
+  outside test/dev contexts.
+- Added service tests covering job sync and end-to-end scheduled briefing execution.
+
+### Verification
+
+- Full backend test suite: `.venv/bin/python -m pytest backend/tests` → **17 passed** ✓
+
+### Remaining backend gaps
+
 - Live enrichments and live LLM generation still require `ANTHROPIC_API_KEY` and
   `FRED_API_KEY`; deterministic fallbacks remain in place when credentials are absent.

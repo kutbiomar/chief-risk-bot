@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     session_ttl_days: int = 30
     anthropic_api_key: str = Field(default="")
     fred_api_key: str = Field(default="")
+    scheduler_enabled: bool = False
 
 
 @lru_cache
