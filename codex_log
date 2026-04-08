@@ -519,3 +519,16 @@
 - Weekly briefing scheduler not built (post-MVP by design).
 - `ANTHROPIC_API_KEY` and `FRED_API_KEY` must be set in `.env` for live integrations;
   all paths degrade gracefully to deterministic fallbacks when keys are absent.
+
+---
+
+## 2026-04-08
+
+### Status Reconciliation
+
+- Reviewed `CODEBASE_STATUS.md` against the actual repository state and `codex_log`.
+- Corrected the stale top-level claim that the repo was "frontend-only" with no backend.
+- Added a backend implementation snapshot covering what is implemented, what has been
+  verified locally, and which backend gaps remain partial or deferred.
+- Marked implementation progress against the original Phase A/B/C/D plan so the status
+  document reflects execution state rather than only planned sequencing.

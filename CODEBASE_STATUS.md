@@ -8,8 +8,26 @@ _Last updated: 2026-04-08_
 AI-powered risk briefing platform for family office CIOs. Demo-first MVP.
 FastAPI + Claude API + yfinance + FRED + SQLite (demo) / Postgres (prod).
 
-**Current state: frontend-only prototype. No backend exists yet.**
-All HTML pages contain static/hardcoded data. The backend is fully specified in docs but unimplemented.
+**Current state: backend MVP scaffold is implemented locally and verified.**
+The FastAPI backend, database models, migrations, routers, services, and tests now exist under `backend/`.
+The static frontend still contains hardcoded demo pages in `app/static/`, so frontend integration remains incomplete,
+but the repo is no longer "frontend-only."
+
+### Backend implementation snapshot
+
+- Implemented and tested:
+  auth/session basics, CSRF, audit logger foundation, async jobs, CSV ingest,
+  immutable portfolio snapshots, portfolio summary/positions, positions CRUD,
+  market/macro enrichment, VaR, risk run orchestration, cockpit endpoint,
+  briefing generation/list/detail/publish/export, settings/API key management,
+  document upload/list/parse/review flow, onboarding state, and Alembic migrations.
+- Verified locally:
+  `.venv/bin/python -m pytest backend/tests` passes with 15 tests;
+  migrations have been applied successfully to the local SQLite demo database.
+- Still partial or deferred:
+  document parsing is still placeholder extraction, document approval does not yet
+  import into portfolio, weekly scheduler is not built, and live LLM/FRED behavior
+  depends on `ANTHROPIC_API_KEY` / `FRED_API_KEY` with deterministic fallbacks when absent.
 
 ---
 
@@ -139,6 +157,17 @@ Build only after Phase C is stable.
 
 **Milestone 4 done when:** risk run async job executes all agents with partial-failure handling.
 **Milestone 5 done when:** cockpit and briefing flows are end-to-end usable.
+
+### Implementation status against plan
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Phase A | Done | App boot, config, database wiring, health endpoint, foundational migration |
+| Phase B | Done | Auth/session, CSRF, API key lifecycle, audit logger, async job scaffold |
+| Phase C | Done | CSV ingest, snapshot persistence, summary/positions, enrichment, VaR, cockpit |
+| Phase D | Mostly done | Risk orchestration, briefings, documents flow, settings, PDF export, onboarding |
+
+Phase D remaining work is limited to the deferred/non-finalized pieces called out in the implementation snapshot above.
 
 ---
 
