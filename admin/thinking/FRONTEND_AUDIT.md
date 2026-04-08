@@ -1,5 +1,5 @@
 # ChiefRiskBot — Frontend Audit & Screen Inventory
-*Cross-referenced against ARCHITECTURE.md. April 2026.*
+*Cross-referenced against `admin/thinking/ARCHITECTURE.md`. April 2026.*
 
 ---
 
@@ -337,7 +337,7 @@ settings.html    → /settings
 audit.html       → /audit
 ```
 
-FastAPI should serve all static HTML files from `/app/static/` at these routes.
+The local static server should serve the design-ideal HTML files from `/frontend-design-ideal/` at these routes.
 Add a catch-all route that serves `404.html` for any unknown path.
 
 The nav does not include a Login/Logout button. **Add logout to the nav shell.**

@@ -1,0 +1,16 @@
+ticker,name,quantity,market_value_usd,asset_class,geo_region,sector,market_segment,custodian,notes
+AAPL,Apple Inc,2800,588000,public_equity,North America,Technology,Large Cap,Goldman Sachs,Core holding
+MSFT,Microsoft Corp,1600,672000,public_equity,North America,Technology,Large Cap,Goldman Sachs,Core holding
+GOOGL,Alphabet Inc,480,78000,public_equity,North America,Technology,Large Cap,Goldman Sachs,
+AMZN,Amazon.com Inc,420,79000,public_equity,North America,Consumer Discretionary,Large Cap,Goldman Sachs,
+JPM,JPMorgan Chase & Co,2100,378000,public_equity,North America,Financials,Large Cap,Morgan Stanley,
+BRK.B,Berkshire Hathaway B,1200,480000,public_equity,North America,Financials,Large Cap,Morgan Stanley,
+LQD,iShares iBoxx $ IG Corp Bond ETF,3500,385000,fixed_income,North America,Investment Grade Credit,ETF,Custodian Direct,Duration hedge
+TLT,iShares 20+ Year Treasury Bond ETF,2000,218000,fixed_income,North America,Govvies,ETF,Custodian Direct,
+EFA,iShares MSCI EAFE ETF,4200,294000,public_equity,Europe/DM,International Equity,ETF,Morgan Stanley,Developed markets exposure
+EEM,iShares MSCI Emerging Markets ETF,6500,182000,public_equity,Emerging Markets,International Equity,ETF,Morgan Stanley,EM allocation
+VNQ,Vanguard Real Estate ETF,1800,144000,real_assets,North America,Real Estate,ETF,Custodian Direct,REIT exposure
+GLD,SPDR Gold Shares,800,192000,real_assets,Global,Commodities,ETF,Goldman Sachs,Inflation hedge
+PRIV_PE_FUND_A,Carlyle Growth Fund III,1,2400000,private_equity,North America,Private Equity,Illiquid,Goldman Sachs,Vintage 2021 — NAV estimate
+PRIV_RE_FUND_B,Blackstone Real Estate IX,1,1800000,real_assets,North America,Private Real Estate,Illiquid,Goldman Sachs,Vintage 2022 — NAV estimate
+CASH_USD,USD Cash & Money Market,1,610000,cash,North America,Cash,Liquid,Custodian Direct,Operating reserve

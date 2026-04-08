@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     app_name: str = "ChiefRiskBot"
     environment: str = "development"
-    database_url: str = "sqlite:///./chiefriskbot.db"
+    database_url: str = "sqlite:///./backend/runtime/chiefriskbot.db"
     secret_key: str = Field(default="replace-me", min_length=8)
     allowed_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:3000", "http://localhost:8080"]

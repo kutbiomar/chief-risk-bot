@@ -11,8 +11,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.db
-storage/documents/
-briefings/
-storage/pdf/
+backend/runtime/storage/
 uploads/
-app/static/.gstack/
+frontend-design-ideal/.gstack/

@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -19,10 +22,21 @@ from backend.routers import (
 from backend.services.scheduler import get_scheduler_manager
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    manager = get_scheduler_manager()
+    app.state.scheduler_manager = manager
+    manager.start()
+    try:
+        yield
+    finally:
+        manager.shutdown()
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
 
-    app = FastAPI(title=settings.app_name)
+    app = FastAPI(title=settings.app_name, lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
@@ -42,18 +56,6 @@ def create_app() -> FastAPI:
     app.include_router(risk_router, prefix="/api")
     app.include_router(settings_router, prefix="/api")
     app.include_router(var_router, prefix="/api")
-
-    @app.on_event("startup")
-    def startup_scheduler() -> None:
-        manager = get_scheduler_manager()
-        app.state.scheduler_manager = manager
-        manager.start()
-
-    @app.on_event("shutdown")
-    def shutdown_scheduler() -> None:
-        manager = getattr(app.state, "scheduler_manager", None)
-        if manager is not None:
-            manager.shutdown()
 
     return app
 

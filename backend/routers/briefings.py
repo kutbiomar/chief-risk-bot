@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -102,11 +104,14 @@ def export_pdf(
     briefing_id: str,
     auth=Depends(require_session),
     db: Session = Depends(get_db),
-) -> Response:
+) -> FileResponse:
     _, user = auth
     briefing = db.get(BriefingRun, briefing_id)
     if briefing is None or briefing.workspace_id != user.workspace_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Briefing not found")
     path = export_briefing_pdf(db, briefing, user.workspace_id)
     db.commit()
-    return Response(content=path, media_type="text/plain")
+    export_path = Path(path)
+    filename = f"{briefing.week_label}_v{briefing.version}{export_path.suffix}"
+    media_type = "application/pdf" if export_path.suffix.lower() == ".pdf" else "text/plain"
+    return FileResponse(export_path, media_type=media_type, filename=filename)

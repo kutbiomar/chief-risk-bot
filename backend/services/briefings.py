@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
-import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -504,7 +502,7 @@ def _render_briefing_html(briefing: BriefingRun) -> str:
 
 
 def export_briefing_pdf(db: Session, briefing: BriefingRun, workspace_id: str) -> str:
-    export_dir = Path(tempfile.gettempdir()) / "briefings" / workspace_id
+    export_dir = Path("backend/runtime/storage/briefings") / workspace_id
     export_dir.mkdir(parents=True, exist_ok=True)
     export_path = export_dir / f"{briefing.id}_v{briefing.version}.pdf"
 

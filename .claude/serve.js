@@ -15,33 +15,67 @@ const MIME = {
   json: 'application/json',
 };
 
-const ROOT = path.join(__dirname, '..', 'app', 'static');
+const ROOTS = [
+  path.join(__dirname, '..', 'frontend-mvp'),
+  path.join(__dirname, '..', 'frontend-design-ideal'),
+];
 const PORT = Number(process.env.PORT || 8000);
 const API_ORIGIN = process.env.CRB_API_ORIGIN || 'http://127.0.0.1:8001';
+
+function readFileFromRoots(requestedPath, callback) {
+  let index = 0;
+
+  function tryNextRoot() {
+    if (index >= ROOTS.length) {
+      callback(new Error('Not found'));
+      return;
+    }
+
+    const root = ROOTS[index];
+    index += 1;
+    let file = path.join(root, requestedPath);
+
+    if (file.endsWith(path.sep)) {
+      file = path.join(file, 'index.html');
+    }
+
+    fs.stat(file, (statErr, stats) => {
+      if (statErr) {
+        tryNextRoot();
+        return;
+      }
+
+      if (stats.isDirectory()) {
+        file = path.join(file, 'index.html');
+      }
+
+      fs.readFile(file, (readErr, data) => {
+        if (readErr) {
+          tryNextRoot();
+          return;
+        }
+        callback(null, { file, data });
+      });
+    });
+  }
+
+  tryNextRoot();
+}
 
 function sendFile(req, res) {
   const cleanUrl = decodeURIComponent(req.url.split('?')[0]);
   const requested = cleanUrl === '/' ? '/index.html' : cleanUrl;
-  let file = path.join(ROOT, requested);
 
-  if (file.endsWith(path.sep)) {
-    file = path.join(file, 'index.html');
-  }
-
-  fs.stat(file, (err, stats) => {
-    if (!err && stats.isDirectory()) {
-      file = path.join(file, 'index.html');
+  readFileFromRoots(requested, (err, result) => {
+    if (err || !result) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not found');
+      return;
     }
-    fs.readFile(file, (readErr, data) => {
-      if (readErr) {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end('Not found');
-        return;
-      }
-      const ext = path.extname(file).slice(1).toLowerCase();
-      res.writeHead(200, { 'Content-Type': MIME[ext] || 'text/plain' });
-      res.end(data);
-    });
+
+    const ext = path.extname(result.file).slice(1).toLowerCase();
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'text/plain' });
+    res.end(result.data);
   });
 }
 

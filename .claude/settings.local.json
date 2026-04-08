@@ -76,7 +76,20 @@
       "Bash(PATH=\"/usr/local/bin:$HOME/.npm-global/bin:$PATH\" codex exec \"list the top-level files in this directory\" -s read-only -a never)",
       "Bash(PATH=\"/usr/local/bin:$HOME/.npm-global/bin:$PATH\" codex exec --help)",
       "Bash(PATH=\"/usr/local/bin:$HOME/.npm-global/bin:$PATH\" codex exec \"list the top-level files in this directory using ls\" -s read-only --json)",
-      "Bash(PATH=\"/usr/local/bin:$HOME/.npm-global/bin:$PATH\" codex exec \"list the top-level files in this directory using ls\" -s read-only --skip-git-repo-check --json)"
+      "Bash(PATH=\"/usr/local/bin:$HOME/.npm-global/bin:$PATH\" codex exec \"list the top-level files in this directory using ls\" -s read-only --skip-git-repo-check --json)",
+      "Bash(gh auth:*)",
+      "Bash(CODEX_BIN=~/.local/bin/codex)",
+      "Bash(PATH=\"/usr/local/bin:$PATH\" $CODEX_BIN --version)",
+      "Read(//Users/omarkutbi/Documents/Claude/Projects/**)",
+      "Bash(/dev/null echo:*)",
+      "Skill(review)",
+      "Skill(review:*)",
+      "Read(//Users/omarkutbi/.claude/skills/**)",
+      "Read(//Users/omarkutbi/.claude/**)",
+      "Bash(.venv/bin/python -m pytest backend/tests -v)",
+      "Bash(grep -rn \"def \" backend/routers/*.py)",
+      "Bash(grep -n \"@router\\\\.\" backend/routers/*.py)",
+      "Bash(grep -n \"class.*Response\\\\|snapshot_id\\\\|week_label\\\\|display_name\\\\|portfolio_summary\\\\|var_result\\\\|risk_register\\\\|position_contributions\\\\|asset_class\" backend/schemas/*.py)"
     ]
   }
 }

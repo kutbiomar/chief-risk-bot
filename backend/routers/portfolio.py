@@ -118,7 +118,7 @@ def _materialize_successor_snapshot(
     current_snapshot: PortfolioSnapshot,
     user_id: str,
     source: str = "manual_edit",
-) -> PortfolioSnapshot:
+) -> tuple[PortfolioSnapshot, dict[str, str]]:
     """Create a successor snapshot, demote the current one, return the new snapshot."""
     # Copy all current positions into memory before demoting
     existing_positions = db.scalars(
@@ -146,10 +146,13 @@ def _materialize_successor_snapshot(
     db.flush()  # get new_snapshot.id
 
     # Copy existing positions forward
+    copied_position_ids: dict[str, str] = {}
     for pos in existing_positions:
+        copied_position_id = str(uuid4())
+        copied_position_ids[pos.id] = copied_position_id
         db.add(
             Position(
-                id=str(uuid4()),
+                id=copied_position_id,
                 snapshot_id=new_snapshot.id,
                 workspace_id=pos.workspace_id,
                 security_id=pos.security_id,
@@ -174,7 +177,7 @@ def _materialize_successor_snapshot(
         )
 
     db.flush()
-    return new_snapshot, existing_positions
+    return new_snapshot, copied_position_ids
 
 
 def _recalculate_snapshot_totals(db: Session, snapshot: PortfolioSnapshot) -> None:
@@ -268,15 +271,10 @@ def update_position(
     if target is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Position not found in current snapshot")
 
-    new_snapshot, copied_positions = _materialize_successor_snapshot(db, current, user.id, source="manual_edit")
+    new_snapshot, copied_position_ids = _materialize_successor_snapshot(db, current, user.id, source="manual_edit")
 
-    # Find the copied version of this position in the new snapshot
-    copied_target = db.scalar(
-        select(Position).where(
-            Position.snapshot_id == new_snapshot.id,
-            Position.ticker == target.ticker,
-        )
-    )
+    copied_target_id = copied_position_ids.get(target.id)
+    copied_target = db.get(Position, copied_target_id) if copied_target_id else None
     if copied_target is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to find copied position")
 
@@ -352,15 +350,10 @@ def delete_position(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Position not found in current snapshot")
 
     ticker_to_remove = target.ticker
-    new_snapshot, _ = _materialize_successor_snapshot(db, current, user.id, source="manual_edit")
+    new_snapshot, copied_position_ids = _materialize_successor_snapshot(db, current, user.id, source="manual_edit")
 
-    # Delete the copied position that matches the removed ticker
-    to_delete = db.scalar(
-        select(Position).where(
-            Position.snapshot_id == new_snapshot.id,
-            Position.ticker == ticker_to_remove,
-        )
-    )
+    copied_target_id = copied_position_ids.get(target.id)
+    to_delete = db.get(Position, copied_target_id) if copied_target_id else None
     if to_delete:
         db.delete(to_delete)
         db.flush()

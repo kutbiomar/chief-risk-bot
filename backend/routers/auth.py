@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.config import get_settings
 from backend.deps import get_db
-from backend.models.auth import AuthChallenge, PasswordResetToken, User, UserSession
+from backend.models.auth import ApiKey, AuthChallenge, PasswordResetToken, User, UserSession
 from backend.schemas.auth import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
@@ -34,6 +34,7 @@ from backend.services.auth.session import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+AuthContext = Tuple[Optional[UserSession], User]
 
 
 def _serialize_user(user: User) -> UserResponse:
@@ -85,25 +86,54 @@ def _bearer_token(request: Request) -> Optional[str]:
     return value
 
 
+def _resolve_api_key_user(db: Session, raw_token: str) -> Optional[User]:
+    key = db.scalar(
+        select(ApiKey).where(
+            ApiKey.lookup_hash == sha256_hex(raw_token),
+            ApiKey.revoked_at.is_(None),
+        )
+    )
+    if key is None or not verify_password(raw_token, key.key_hash):
+        return None
+
+    user = db.scalar(
+        select(User)
+        .where(
+            User.workspace_id == key.workspace_id,
+            User.disabled_at.is_(None),
+        )
+        .order_by(User.created_at.asc())
+    )
+    if user is None:
+        return None
+
+    key.last_used_at = utc_now()
+    db.flush()
+    return user
+
+
 def require_session(
     request: Request,
     db: Session = Depends(get_db),
-) -> Tuple[UserSession, User]:
+) -> AuthContext:
     raw_token = request.cookies.get(SESSION_COOKIE_NAME) or _bearer_token(request)
     if not raw_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
     session = get_session_by_token(db, raw_token)
-    if session is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session")
+    if session is not None:
+        user = db.get(User, session.user_id)
+        if user is None or user.disabled_at is not None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session")
 
-    user = db.get(User, session.user_id)
-    if user is None or user.disabled_at is not None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session")
+        session.last_seen_at = utc_now()
+        db.flush()
+        return session, user
 
-    session.last_seen_at = utc_now()
-    db.flush()
-    return session, user
+    user = _resolve_api_key_user(db, raw_token)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session")
+    return None, user
 
 
 def require_cookie_csrf(
@@ -198,18 +228,18 @@ def totp_verify(
 def get_session(
     request: Request,
     response: Response,
-    auth: Tuple[UserSession, User] = Depends(require_session),
+    auth: AuthContext = Depends(require_session),
 ) -> SessionResponse:
     session, user = auth
     raw_token = request.cookies.get(SESSION_COOKIE_NAME) or _bearer_token(request)
-    if raw_token:
+    if raw_token and session is not None:
         _set_auth_cookies(response, raw_token, session.csrf_secret)
     return SessionResponse(user=_serialize_user(user))
 
 
 @router.get("/me", response_model=SessionResponse)
 def get_me(
-    auth: Tuple[UserSession, User] = Depends(require_session),
+    auth: AuthContext = Depends(require_session),
 ) -> SessionResponse:
     _, user = auth
     return SessionResponse(user=_serialize_user(user))
@@ -218,10 +248,12 @@ def get_me(
 @router.post("/logout", response_model=MessageResponse, dependencies=[Depends(require_cookie_csrf)])
 def logout(
     response: Response,
-    auth: Tuple[UserSession, User] = Depends(require_session),
+    auth: AuthContext = Depends(require_session),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
     session, _ = auth
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="API key sessions cannot log out")
     session.revoked_at = utc_now()
     db.commit()
     _clear_auth_cookies(response)
@@ -231,10 +263,12 @@ def logout(
 @router.post("/logout-all", response_model=MessageResponse, dependencies=[Depends(require_cookie_csrf)])
 def logout_all(
     response: Response,
-    auth: Tuple[UserSession, User] = Depends(require_session),
+    auth: AuthContext = Depends(require_session),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
     session, _ = auth
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="API key sessions cannot log out")
     db.execute(
         update(UserSession)
         .where(

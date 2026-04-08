@@ -136,7 +136,7 @@ def _truncate_text(text: str) -> tuple[str, bool]:
 
 
 def _ensure_storage_path(workspace_id: str, sha256: str, extension: str) -> Path:
-    root = Path("storage/documents") / workspace_id
+    root = Path("backend/runtime/storage/documents") / workspace_id
     root.mkdir(parents=True, exist_ok=True)
     return root / f"{sha256[:16]}{extension}"
 

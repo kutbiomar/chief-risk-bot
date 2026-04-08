@@ -187,6 +187,54 @@
 - No implementation code exists yet; this pass updated planning/docs only.
 - The `/codex-bitch` queue in `CODEBASE_STATUS.md` is now cleared.
 
+### Queue Item 9
+
+- Source queue entry: `/GScodex-bitch review frontend-mvp/_app.js`
+- Scope executed: reconcile every `api()` and `download()` call in `frontend-mvp/_app.js` against implemented backend routes, HTTP methods, and response field usage
+
+### Work Performed
+
+- Reviewed `frontend-mvp/_app.js` end to end and enumerated the frontend call surface for auth, onboarding, ingest, VaR, risk, cockpit, briefings, positions, documents, and PDF export.
+- Cross-checked each call against the implemented routers in `backend/routers/auth.py`, `backend/routers/onboarding.py`, `backend/routers/ingest.py`, `backend/routers/var.py`, `backend/routers/risk.py`, `backend/routers/cockpit.py`, `backend/routers/briefings.py`, `backend/routers/portfolio.py`, and `backend/routers/documents.py`.
+- Verified that route prefixes, HTTP methods, and primary payload fields line up for all audited calls, including cookie-auth session refresh, CSRF-protected mutating requests, multipart uploads, briefing PDF download, and immutable position mutation flows.
+- Confirmed the briefing and document response shapes consumed by the MVP frontend match the current backend schema definitions.
+- Found one concrete response-shape mismatch in the cockpit register render path: frontend rows read `title` and `ticker`, while backend agent-register entries expose `headline` and `agent`, which causes agent rows to render as generic "Risk flag" / "Portfolio" labels instead of their actual agent name and headline.
+- Updated `CODEBASE_STATUS.md` to mark queue item 9 complete and preserve the discovered follow-up in the completion note.
+
+### Notes
+
+- Diff-style mismatch list:
+  - `frontend-mvp/_app.js` around the cockpit register render should change column mapping from `item.title || item.rule` and `item.ticker || 'Portfolio'` to a shape that matches backend register entries, for example `item.headline || item.rule || 'Risk flag'` and `item.agent || item.ticker || 'Portfolio'`.
+- No source-code patch was applied in this queue run because the queue item was a review task, not a fix request.
+- Remaining queue items 10 through 12 are still pending.
+
+## 2026-04-08
+
+### Queue Item 10
+
+- Source queue entry: `/GScodex-bitch review frontend-mvp/`
+- Scope executed: audit every file in `frontend-mvp/` against `frontend-design-ideal/DESIGN.md` for palette, typography, and token compliance
+
+### Work Performed
+
+- Read `frontend-design-ideal/DESIGN.md` in full and used it as the audit baseline for paper/background tokens, accent usage, Fraunces headings, Inter Tight UI text, and JetBrains Mono numeric rendering.
+- Reviewed every file in `frontend-mvp/`, including `_mvp.css`, `_shell.js`, `_app.js`, and all HTML screens.
+- Verified that the MVP HTML screens all load the correct Google Fonts definitions, but also found that every visible screen points to `../_shell.css`, which does not exist in the repository, so the shared token layer and base typography do not load at runtime.
+- Cross-checked the real shared shell stylesheet in `frontend-design-ideal/_shell.css` to confirm the missing file is where the paper tokens, accent tokens, base `Inter Tight` body font, `uplabel`, `btn`, and shell layout classes are actually defined.
+- Found repeated hardcoded colours in `frontend-mvp/_mvp.css`, including card/table surfaces, severity pill border tints, and a selected-row blue tint that is not represented as a design token.
+- Found repeated JetBrains Mono violations in runtime-generated markup from `frontend-mvp/_app.js`, where currency, percentages, counts, snapshot ids, file sizes, and extraction counts are rendered through generic UI-text classes instead of a numeric/mono class.
+- Updated `CODEBASE_STATUS.md` to mark queue item 10 complete.
+
+### Notes
+
+- Screen-by-screen findings summary:
+  - `login.html`, `onboarding.html`, `cockpit.html`, `briefings.html`, `briefing.html`, `table.html`, and `documents.html` all reference missing `../_shell.css`, so their shared paper palette, Inter Tight body text, accent/button styling, and token definitions are not actually loaded.
+  - `cockpit.html` + `_app.js` render dynamic portfolio counts, currency values, percentages, and register data mostly through generic body styles instead of JetBrains Mono.
+  - `documents.html` + `_app.js` render file sizes, folder counts, extracted quantities, review counts, and market values through generic body styles instead of JetBrains Mono.
+  - `_mvp.css` hardcodes several colours (`#fffdfb`, severity border tints, `#eef0f7`, `#fff`) instead of relying on named tokens, which breaks the explicit design-system audit rule.
+- No source-code patch was applied in this queue run because item 10 was a review task, not a fix request.
+- Queue items 11 and 12 remain pending.
+
 ## 2026-04-08
 
 ### Implementation Proposal
@@ -561,6 +609,77 @@
 
 - Live enrichments and live LLM generation still require `ANTHROPIC_API_KEY` and
   `FRED_API_KEY`; deterministic fallbacks remain in place when credentials are absent.
+
+## 2026-04-08
+
+### Queue Item 11
+
+- Source queue entry: `/GScodex-bitch plan frontend-mvp/`
+- Scope executed: trace the end-to-end MVP demo path across frontend calls, backend routes, response shapes, and visible UI states
+
+### Work Performed
+
+- Mapped the canonical demo path across `frontend-mvp/_app.js`, the MVP HTML screens, and the implemented backend routers for auth, onboarding, ingest, VaR, risk, cockpit, and briefings.
+- Verified the route/method and response-shape contracts for:
+  `POST /api/auth/login`, `POST /api/auth/totp/verify`, `GET /api/auth/session`,
+  `GET /api/onboarding/state`, `POST /api/onboarding/step`, `POST /api/ingest/csv`,
+  `POST /api/var/compute`, `GET /api/cockpit`, `POST /api/risk/run`,
+  `POST /api/briefings/generate`, `GET /api/briefings`, `GET /api/briefings/{id}`,
+  and `GET /api/briefings/{id}/export/pdf`.
+- Confirmed that the core route and response shapes line up for the canonical login → upload → cockpit → risk → briefing → detail → export flow.
+- Identified demo-path gaps that are frontend-UX rather than contract mismatches:
+  onboarding chains long-running ingest/var/step-refresh calls with no visible in-flight state;
+  cockpit initial load and risk rerun offer no loading treatment;
+  briefing generation actions do not disable or communicate progress while waiting;
+  and briefing detail falls back to a misleading "No briefing selected" state when the list prefetch fails.
+- Noted that onboarding drops backend CSV warnings even though `POST /api/ingest/csv` returns a `warnings` array that can contain material import caveats.
+- Updated `CODEBASE_STATUS.md` to mark queue item 11 complete.
+
+### Notes
+
+- Step-by-step gap summary:
+  - Step 1 login: route/shape aligned; status notice and disabled submit exist. No blocker found in the canonical path.
+  - Step 2 onboarding / CSV upload: aligned route/shape; blocker-level missing in-flight state across upload → VaR → state refresh, plus CSV warnings are ignored.
+  - Step 3 cockpit load: aligned route/shape; page loads into empty containers with no visible loading state.
+  - Step 4 re-run risk: aligned route/shape; blocker-level missing disabled/loading guard on a potentially long-running action.
+  - Step 5 generate briefing: aligned route/shape; blocker-level missing disabled/loading state on both onboarding and briefings-page generation actions.
+  - Step 6 briefing detail: aligned route/shape; fallback list-load failure is misreported as "No briefing selected."
+  - Step 7 export PDF: aligned route/shape; no in-flight indicator or duplicate-click guard, but the basic path is wired correctly.
+
+## 2026-04-08
+
+### Queue Item 12
+
+- Source queue entry: `/GScodex-bitch review frontend-mvp/_app.js`
+- Scope executed: audit all MVP API calls and page surfaces for missing loading states, missing user-facing errors, and silent failure paths
+
+### Work Performed
+
+- Reviewed every `api()` and `download()` call in `frontend-mvp/_app.js` together with the related HTML buttons and empty containers in the MVP screens.
+- Flagged all core action buttons that submit network requests without a disabled/loading guard:
+  onboarding upload / document parse / run risk / generate briefing,
+  cockpit refresh / re-run risk,
+  briefings generate,
+  briefing publish / export,
+  positions save / delete,
+  and documents upload / parse / approve / save tag / delete.
+- Flagged blank-on-load data surfaces with no interim loading treatment:
+  onboarding steps,
+  cockpit KPI/allocation/contribution/register sections,
+  briefings list,
+  briefing body,
+  positions table,
+  document folders/list/preview.
+- Found two silent-failure paths:
+  `loadExtraction()` swallows extraction fetch failures and returns `null`, which degrades into a misleading "No extraction yet" preview;
+  and briefing-detail prefetch swallows `/briefings` list failures and replaces them with "No briefing selected."
+- Found that `requireSession()` redirects protected pages to login on any `/auth/session` failure, not just a real 401/expired-session case, which can mask backend outages during a demo.
+- Updated `CODEBASE_STATUS.md` to mark queue item 12 complete.
+
+### Notes
+
+- The dominant risk is not missing backend coverage; it is that long-running demo actions currently look idle rather than busy, so the presenter can double-submit or conclude the app has hung.
+- No source-code patch was applied in this queue run because items 11 and 12 were review tasks, not fix requests.
 
 ---
 

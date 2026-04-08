@@ -59,6 +59,14 @@
     node.hidden = !message;
   }
 
+  function parseDownloadFilename(headerValue, fallback) {
+    if (!headerValue) return fallback;
+    const utf8Match = headerValue.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match) return decodeURIComponent(utf8Match[1]);
+    const simpleMatch = headerValue.match(/filename="?([^";]+)"?/i);
+    return simpleMatch ? simpleMatch[1] : fallback;
+  }
+
   async function api(path, options = {}) {
     const method = (options.method || 'GET').toUpperCase();
     const headers = new Headers(options.headers || {});
@@ -104,6 +112,40 @@
     }
 
     return payload;
+  }
+
+  async function download(path, fallbackName) {
+    const response = await fetch(path.startsWith('/api') ? path : `/api${path}`, {
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      const contentType = response.headers.get('content-type') || '';
+      const payload = contentType.includes('application/json')
+        ? await response.json()
+        : await response.text();
+      const detail =
+        typeof payload === 'object' && payload && 'detail' in payload
+          ? payload.detail
+          : typeof payload === 'string'
+            ? payload
+            : `Request failed (${response.status})`;
+      throw new Error(detail);
+    }
+
+    const blob = await response.blob();
+    const filename = parseDownloadFilename(
+      response.headers.get('content-disposition'),
+      fallbackName
+    );
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return filename;
   }
 
   async function getSession() {
@@ -266,6 +308,16 @@
       return state;
     }
 
+    async function ensureVarReady() {
+      await api('/var/compute', { method: 'POST' });
+      await markOnboardingStep('enrichment_run');
+    }
+
+    async function ensureRiskReady() {
+      await api('/risk/run', { method: 'POST' });
+      await markOnboardingStep('risk_run');
+    }
+
     await refreshState();
 
     document.getElementById('csv-form').addEventListener('submit', async (event) => {
@@ -280,9 +332,9 @@
       try {
         const response = await api('/ingest/csv', { method: 'POST', formData });
         await markOnboardingStep('portfolio_uploaded');
-        await markOnboardingStep('enrichment_run');
+        await ensureVarReady();
         await refreshState();
-        setStatus(status, `Portfolio uploaded. Snapshot ${response.snapshot_id} is now current.`, 'success');
+        setStatus(status, `Portfolio uploaded and VaR computed. Snapshot ${response.snapshot_id} is now current.`, 'success');
       } catch (error) {
         setStatus(status, error.message, 'error');
       }
@@ -310,8 +362,7 @@
 
     document.getElementById('run-risk').addEventListener('click', async () => {
       try {
-        await api('/risk/run', { method: 'POST' });
-        await markOnboardingStep('risk_run');
+        await ensureRiskReady();
         await refreshState();
         setStatus(status, 'Risk analysis completed for the current snapshot.', 'success');
       } catch (error) {
@@ -321,6 +372,8 @@
 
     document.getElementById('generate-briefing').addEventListener('click', async () => {
       try {
+        await ensureVarReady();
+        await ensureRiskReady();
         const briefing = await api('/briefings/generate', { method: 'POST' });
         await markOnboardingStep('briefing_generated');
         await refreshState();
@@ -397,8 +450,8 @@
                 (item) => `
                   <tr>
                     <td><span class="mvp-pill ${severityClass(item.severity)}">${escapeHtml(item.severity)}</span></td>
-                    <td>${escapeHtml(item.title || item.rule || 'Risk flag')}</td>
-                    <td>${escapeHtml(item.ticker || 'Portfolio')}</td>
+                    <td>${escapeHtml(item.headline || item.rule || 'Risk flag')}</td>
+                    <td>${escapeHtml(item.agent || item.ticker || 'Portfolio')}</td>
                     <td>${escapeHtml(item.description || item.headline || '')}</td>
                   </tr>
                 `
@@ -570,8 +623,11 @@
 
     document.getElementById('export-briefing').addEventListener('click', async () => {
       try {
-        const path = await api(`/briefings/${briefingId}/export/pdf`);
-        setStatus(status, `Export written to ${path}`, 'success');
+        const filename = await download(
+          `/briefings/${briefingId}/export/pdf`,
+          `briefing-${briefingId}.pdf`
+        );
+        setStatus(status, `Download started for ${filename}.`, 'success');
       } catch (error) {
         setStatus(status, error.message, 'error');
       }

@@ -36,7 +36,8 @@ def get_cockpit(
     var_result = db.scalar(select(VarResult).where(VarResult.snapshot_id == snapshot.id).order_by(VarResult.computed_at.desc()))
     if var_result is None:
         var_result = compute_var_for_snapshot(db, snapshot)
-        db.flush()
+        db.commit()
+        db.refresh(var_result)
     return CockpitResponse(
         snapshot_id=snapshot.id,
         portfolio_summary=portfolio_summary,

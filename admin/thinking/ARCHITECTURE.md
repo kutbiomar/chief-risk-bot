@@ -112,13 +112,19 @@ chiefrisktbot/
 │       ├── test_agents.py
 │       └── test_auth.py
 │
-├── app/
-│   └── static/                        # Existing frontend HTML/CSS/JS (unchanged)
+├── admin/
+│   ├── business/                     # Product/spec/strategy docs
+│   ├── thinking/                     # Architecture/planning/audit docs
+│   └── status/                       # Working status snapshot + codex log
+├── frontend-design-ideal/            # Legacy static HTML/CSS/JS reference surface
+├── frontend-mvp/                     # Backend-wired MVP frontend
+├── backend/
+│   └── runtime/                      # Local SQLite DB + generated storage artifacts
 │
 ├── alembic.ini
 ├── pyproject.toml
 ├── .env.example
-└── run.sh
+└── .claude/serve.js
 ```
 
 ---

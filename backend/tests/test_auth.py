@@ -4,9 +4,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.models.auth import AuthChallenge, PasswordResetToken, User, UserSession
+from backend.models.auth import ApiKey, AuthChallenge, PasswordResetToken, User, UserSession
 from backend.models.portfolio import Workspace
 from backend.services.auth.password import hash_password, verify_password
+from backend.services.auth.session import sha256_hex
 
 
 def seed_user(db: Session, *, email: str = "owner@example.com", password: str = "secret123", totp: bool = False) -> User:
@@ -142,3 +143,48 @@ def test_reset_password_marks_token_used_and_revokes_sessions(client: TestClient
     ).all()
     assert sessions
     assert all(session.revoked_at is not None for session in sessions)
+
+
+def test_api_key_can_authenticate_request(client: TestClient, db_session: Session) -> None:
+    user = seed_user(db_session, email="apikey@example.com")
+    raw_key = "crb_test_api_key"
+    db_session.add(
+        ApiKey(
+            workspace_id=user.workspace_id,
+            label="Integration",
+            key_type="anthropic",
+            key_prefix=raw_key[:10],
+            lookup_hash=sha256_hex(raw_key),
+            key_hash=hash_password(raw_key),
+        )
+    )
+    db_session.commit()
+
+    response = client.get("/api/auth/me", headers={"Authorization": f"Bearer {raw_key}"})
+
+    assert response.status_code == 200
+    assert response.json()["user"]["email"] == user.email
+
+
+def test_api_key_updates_last_used_and_cannot_logout(client: TestClient, db_session: Session) -> None:
+    user = seed_user(db_session, email="apikey-logout@example.com")
+    raw_key = "crb_test_logout_key"
+    api_key = ApiKey(
+        workspace_id=user.workspace_id,
+        label="Integration",
+        key_type="anthropic",
+        key_prefix=raw_key[:10],
+        lookup_hash=sha256_hex(raw_key),
+        key_hash=hash_password(raw_key),
+    )
+    db_session.add(api_key)
+    db_session.commit()
+
+    me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {raw_key}"})
+    assert me.status_code == 200
+
+    db_session.refresh(api_key)
+    assert api_key.last_used_at is not None
+
+    logout = client.post("/api/auth/logout", headers={"Authorization": f"Bearer {raw_key}"})
+    assert logout.status_code == 400

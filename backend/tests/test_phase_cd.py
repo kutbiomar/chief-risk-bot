@@ -90,7 +90,11 @@ def test_briefings_settings_api_keys_and_documents_flow(client: TestClient, db_s
     assert client.post(f"/api/briefings/{briefing_id}/publish").status_code == 200
     export = client.get(f"/api/briefings/{briefing_id}/export/pdf")
     assert export.status_code == 200
-    assert briefing_id in export.text
+    assert "attachment;" in export.headers["content-disposition"]
+    assert f"week-15-2026_v1" in export.headers["content-disposition"]
+    assert len(export.content) > 0
+    if export.headers["content-type"].startswith("text/plain"):
+        assert "Executive Summary" in export.text
 
     document = client.post(
         "/api/documents/upload",
@@ -126,3 +130,73 @@ def test_briefings_settings_api_keys_and_documents_flow(client: TestClient, db_s
 
     revoke = client.delete(f"/api/settings/api-keys/{key_id}")
     assert revoke.status_code == 200
+
+
+def test_position_mutations_target_the_correct_duplicate_ticker_row(client: TestClient, db_session: Session) -> None:
+    auth = bootstrap_portfolio(client, db_session, email="duplicates@example.com")
+    csrf = auth["csrf"]
+
+    for name, quantity, market_value in (
+        ("Apple Legacy Lot", 3, 333.0),
+        ("Apple New Lot", 7, 777.0),
+    ):
+        created = client.post(
+            "/api/portfolio/positions",
+            json={
+                "ticker": "AAPL",
+                "name": name,
+                "quantity": quantity,
+                "market_value_usd": market_value,
+                "asset_class": "public_equity",
+                "position_currency": "USD",
+            },
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert created.status_code == 201
+
+    positions_before = client.get("/api/portfolio/positions")
+    assert positions_before.status_code == 200
+    duplicate_rows = [
+        item
+        for item in positions_before.json()["items"]
+        if item["ticker"] == "AAPL" and item["name"] in {"Apple Legacy Lot", "Apple New Lot"}
+    ]
+    assert len(duplicate_rows) == 2
+    legacy_row = next(item for item in duplicate_rows if item["name"] == "Apple Legacy Lot")
+    new_row = next(item for item in duplicate_rows if item["name"] == "Apple New Lot")
+
+    update = client.patch(
+        f"/api/portfolio/positions/{legacy_row['id']}",
+        json={"quantity": 11},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert update.status_code == 200
+
+    positions_after_update = client.get("/api/portfolio/positions")
+    assert positions_after_update.status_code == 200
+    updated_rows = [
+        item
+        for item in positions_after_update.json()["items"]
+        if item["ticker"] == "AAPL" and item["name"] in {"Apple Legacy Lot", "Apple New Lot"}
+    ]
+    assert len(updated_rows) == 2
+    assert next(item for item in updated_rows if item["name"] == "Apple Legacy Lot")["quantity"] == 11.0
+    assert next(item for item in updated_rows if item["name"] == "Apple New Lot")["quantity"] == new_row["quantity"]
+
+    refreshed_new_row = next(item for item in updated_rows if item["name"] == "Apple New Lot")
+    delete = client.delete(
+        f"/api/portfolio/positions/{refreshed_new_row['id']}",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert delete.status_code == 200
+
+    positions_after_delete = client.get("/api/portfolio/positions")
+    assert positions_after_delete.status_code == 200
+    final_rows = [
+        item
+        for item in positions_after_delete.json()["items"]
+        if item["ticker"] == "AAPL" and item["name"] in {"Apple Legacy Lot", "Apple New Lot"}
+    ]
+    assert len(final_rows) == 1
+    assert final_rows[0]["name"] == "Apple Legacy Lot"
+    assert final_rows[0]["quantity"] == 11.0

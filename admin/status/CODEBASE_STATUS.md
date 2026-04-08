@@ -10,7 +10,9 @@ FastAPI + Claude API + yfinance + FRED + SQLite (demo) / Postgres (prod).
 
 **Current state: backend MVP scaffold is implemented locally and a thin integrated MVP frontend now exists.**
 The FastAPI backend, database models, migrations, routers, services, and tests now exist under `backend/`.
-The legacy static frontend still contains hardcoded prototype pages in `app/static/`, but a separate backend-aware MVP slice now exists under `app/static/mvp/`.
+The legacy static frontend now lives under `frontend-design-ideal/`, and the backend-aware MVP slice now lives under `frontend-mvp/`.
+Project files are now organized around four primary buckets:
+`admin/`, `frontend-design-ideal/`, `frontend-mvp/`, and `backend/`.
 Frontend integration is no longer blocked on rewriting the whole UI, but the MVP slice still needs browser-level polish and endpoint-shape reconciliation.
 
 ### Backend implementation snapshot
@@ -19,34 +21,35 @@ Frontend integration is no longer blocked on rewriting the whole UI, but the MVP
   auth/session basics, CSRF, audit logger foundation, async jobs, CSV ingest,
   immutable portfolio snapshots, portfolio summary/positions, positions CRUD,
   market/macro enrichment, VaR, risk run orchestration, cockpit endpoint,
-  briefing generation/list/detail/publish/export, settings/API key management,
+  briefing generation/list/detail/publish/export, settings/API key CRUD,
   document upload/list/parse/review flow, onboarding state, and Alembic migrations.
 - Verified locally:
-  `.venv/bin/python -m pytest backend/tests` passes with 17 tests;
+  `.venv/bin/python -m pytest backend/tests` passes with 20 tests;
   migrations have been applied successfully to the local SQLite demo database.
 - Frontend MVP slice added:
-  `app/static/mvp/` now contains backend-aware login, onboarding, cockpit,
+  `frontend-mvp/` now contains backend-aware login, onboarding, cockpit,
   briefings, briefing detail, positions, and documents screens, plus a shared
   client and shell.
 - Still partial or deferred:
   live LLM/FRED behavior
+  TOTP verification remains a demo stub
   depends on `ANTHROPIC_API_KEY` / `FRED_API_KEY` with deterministic fallbacks when absent.
 
 ---
 
 ## Canonical source of truth
 
-**ARCHITECTURE.md is canonical.** It was reviewed and patched by 8 Codex passes.
-Where BACKEND_PLAN.md conflicts with ARCHITECTURE.md, ARCHITECTURE.md wins.
+**`admin/thinking/ARCHITECTURE.md` is canonical.** It was reviewed and patched by 8 Codex passes.
+Where `admin/thinking/BACKEND_PLAN.md` conflicts with `admin/thinking/ARCHITECTURE.md`, `admin/thinking/ARCHITECTURE.md` wins.
 
-Known BACKEND_PLAN.md stale sections — do NOT follow these:
+Known `admin/thinking/BACKEND_PLAN.md` stale sections — do NOT follow these:
 - "No auth in demo mode" (Phase 6) — **wrong**. Auth is in Phase B, first tranche.
 - Project structure (`lib/cache.py`, `lib/schema.py`) — **outdated**. Use ARCHITECTURE.md's `schemas/` layout.
 - Data layer table list — **incomplete**. Missing `auth_challenges`, `password_reset_tokens`,
   `async_jobs`, `fx_cache`, `audit_exports`, `onboarding_progress`, `access_requests`.
 - Build sequence (old: 1A → 1C → 2A → 2B → 3 → 4...) — **outdated**. Use the Phase A/B/C/D sequence below.
 
-BACKEND_PLAN.md is useful for: narrative rationale, demo script, VaR methodology explanation,
+`admin/thinking/BACKEND_PLAN.md` is useful for: narrative rationale, demo script, VaR methodology explanation,
 agent rubrics. Not useful for: schema, routes, or build order.
 
 ---
@@ -74,7 +77,7 @@ agent rubrics. Not useful for: schema, routes, or build order.
 
 ## File map
 
-### `app/static/` — prototype UI (unchanged, do not touch)
+### `frontend-design-ideal/` — prototype UI reference surface
 
 | File | Role |
 |------|------|
@@ -94,7 +97,7 @@ agent rubrics. Not useful for: schema, routes, or build order.
 | `onboarding.html` | Initial upload/setup flow |
 | `login.html`, `invite.html`, `forgot.html`, `verify.html` | Auth flows |
 
-### `app/static/mvp/` — thin integrated MVP frontend
+### `frontend-mvp/` — thin integrated MVP frontend
 
 | File | Role |
 |------|------|
@@ -108,14 +111,23 @@ agent rubrics. Not useful for: schema, routes, or build order.
 | `table.html` | Position CRUD editor |
 | `documents.html` | Document upload/parse/approve flow |
 
-### Root docs
+### Admin docs
 
 | File | Role |
 |------|------|
-| `ARCHITECTURE.md` | **Canonical** — DB schema, API routes, build sequence, auth design |
-| `BACKEND_PLAN.md` | Narrative rationale, VaR methodology, agent rubrics (see stale sections note above) |
-| `FRONTEND_AUDIT.md` | Screen → endpoint mapping; post-MVP items explicitly marked |
-| `DESIGN.md` | Design system: palette, typography, spacing |
+| `admin/business/` | Product spec, strategy deck, user jobs, commercial/reference docs |
+| `admin/status/` | Current status snapshot and historical `codex_log` |
+| `admin/thinking/ARCHITECTURE.md` | **Canonical** — DB schema, API routes, build sequence, auth design |
+| `admin/thinking/BACKEND_PLAN.md` | Narrative rationale, VaR methodology, agent rubrics (see stale sections note above) |
+| `admin/thinking/FRONTEND_AUDIT.md` | Screen → endpoint mapping; post-MVP items explicitly marked |
+| `frontend-design-ideal/DESIGN.md` | Design system: palette, typography, spacing |
+
+### Backend runtime
+
+| Path | Role |
+|------|------|
+| `backend/runtime/chiefriskbot.db` | Local SQLite demo database |
+| `backend/runtime/storage/` | Generated document uploads and briefing export artifacts |
 
 ---
 
@@ -166,10 +178,10 @@ Build the vertical slice that makes the demo work.
 Build only after Phase C is stable.
 
 - Risk run orchestration (`POST /api/risk/run`) — async job, partial failure handling
-- Briefing generation (`POST /api/briefing/generate`, `GET /api/briefings`, `GET /api/briefings/{id}`)
-- Document ingest (`POST /api/ingest/document`) — quarantine, validation, bounded extraction
+- Briefing generation (`POST /api/briefings/generate`, `GET /api/briefings`, `GET /api/briefings/{id}`)
+- Document flow (`POST /api/documents/upload`) — quarantine, validation, bounded extraction
 - Settings (`GET/PATCH /api/settings`) and API key management — before scheduler
-- PDF export (`POST /api/briefing/{id}/export`) — before weekly scheduler
+- PDF export (`GET /api/briefings/{id}/export/pdf`) — before weekly scheduler
 - Weekly briefing scheduler — last, depends on settings + PDF export
 
 **Milestone 4 done when:** risk run async job executes all agents with partial-failure handling.
@@ -281,27 +293,26 @@ POST   /api/auth/logout-all
 GET    /api/auth/me
 POST   /api/auth/forgot-password
 POST   /api/auth/reset-password
-POST   /api/auth/verify-totp
+POST   /api/auth/totp/verify
+GET    /api/auth/session
 GET    /api/health
 
 POST   /api/ingest/csv
-POST   /api/ingest/document
 GET    /api/ingest/status/{job_id}
 
+GET    /api/portfolio/snapshot
 GET    /api/portfolio/summary
 GET    /api/portfolio/positions
 POST   /api/portfolio/positions
-GET    /api/portfolio/positions/{id}
 PATCH  /api/portfolio/positions/{id}
 DELETE /api/portfolio/positions/{id}
 
 POST   /api/risk/run
 GET    /api/risk/scores
 GET    /api/risk/flags
-GET    /api/risk/status/{job_id}
+GET    /api/risk/register
 
 POST   /api/var/compute
-GET    /api/var/history
 
 GET    /api/cockpit
 
@@ -309,26 +320,26 @@ GET    /api/market/prices
 GET    /api/market/macro
 GET    /api/market/movers
 
-POST   /api/briefing/generate
+POST   /api/briefings/generate
 GET    /api/briefings
 GET    /api/briefings/{id}
-PATCH  /api/briefings/{id}
 POST   /api/briefings/{id}/publish
-POST   /api/briefings/{id}/export
+GET    /api/briefings/{id}/export/pdf
 
 POST   /api/documents/upload
 GET    /api/documents
 GET    /api/documents/{id}
 DELETE /api/documents/{id}
 POST   /api/documents/{id}/parse
+GET    /api/documents/{id}/extraction
+POST   /api/documents/{id}/tag
 POST   /api/documents/{id}/approve
 
-GET    /api/audit/events
 GET    /api/settings
 PATCH  /api/settings
-GET    /api/members
-POST   /api/members/invite
-DELETE /api/members/{id}
+GET    /api/settings/api-keys
+POST   /api/settings/api-keys
+DELETE /api/settings/api-keys/{id}
 GET    /api/onboarding/state
 POST   /api/onboarding/step
 
@@ -359,6 +370,10 @@ POST   /api/billing/upgrade
 | 6 | File ingest security audit | Quarantine gates, CSV formula neutralization, server-generated storage paths, malware scan status, extraction text/row caps. | 2026-04-08 |
 | 7 | FRONTEND_AUDIT.md gap review | Screen endpoint lists expanded, stale backend additions pruned, briefing/document response shapes aligned in both docs. | 2026-04-08 |
 | 8 | Build sequence validation | Audit moved earlier, enrichment before analytics, settings before scheduler, PDF export before weekly scheduler. | 2026-04-08 |
+| 9 | Endpoint-shape reconciliation | Audited every `api()`/`download()` call in `frontend-mvp/_app.js`; route/method coverage matched backend, with one cockpit register field-shape mismatch (`headline`/`agent` vs frontend `title`/`ticker`) requiring a frontend follow-up. | 2026-04-08 |
+| 10 | Design system compliance audit | Audited every file in `frontend-mvp/` against `DESIGN.md`; found a blocker-level broken shared stylesheet path on every screen, plus non-token hardcoded colours in `_mvp.css` and repeated JetBrains Mono violations in runtime data rendering. | 2026-04-08 |
+| 11 | Demo path gap analysis | Traced login → onboarding upload → cockpit load → re-run risk → briefing generation → briefing detail → PDF export. Route and response-shape coverage matched the backend, but the core demo path still has blocker-level in-flight UX gaps on onboarding/cockpit/briefing actions, ignored CSV warnings, and a misleading briefing-detail fallback when list loading fails. | 2026-04-08 |
+| 12 | Loading and error state audit | Audited every MVP API call for visible loading/error handling. Found silent extraction-load failure swallowing, protected-page session failures that redirect to login on any session fetch error, blank-on-load data surfaces with no interim state, and missing disabled/loading guards across the main action buttons. | 2026-04-08 |
 
 ---
 
@@ -370,4 +385,4 @@ POST   /api/billing/upgrade
 - UI text: Inter Tight
 - Numerics: JetBrains Mono
 - Aesthetic: "private bank reading room" — no dark mode in v1
-- Full spec: `DESIGN.md`
+- Full spec: `frontend-design-ideal/DESIGN.md`
