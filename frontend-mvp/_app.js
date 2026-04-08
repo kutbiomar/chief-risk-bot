@@ -226,10 +226,17 @@
     return api('/onboarding/step', { method: 'POST', body: { step } });
   }
 
+  async function resolveAuthenticatedLanding(useNext = false) {
+    const next = useNext ? getQueryParam('next') : '';
+    if (next) return next;
+    const state = await api('/onboarding/state');
+    return state.is_complete ? 'cockpit.html' : 'onboarding.html';
+  }
+
   async function initIndex() {
     try {
       await getSession();
-      window.location.href = 'cockpit.html';
+      window.location.href = await resolveAuthenticatedLanding();
     } catch {
       window.location.href = 'login.html';
     }
@@ -238,7 +245,7 @@
   async function initLogin() {
     try {
       await getSession();
-      window.location.href = getQueryParam('next') || 'cockpit.html';
+      window.location.href = await resolveAuthenticatedLanding(true);
       return;
     } catch {
       // stay on login
@@ -280,7 +287,7 @@
         }
 
         await getSession();
-        window.location.href = getQueryParam('next') || 'onboarding.html';
+        window.location.href = await resolveAuthenticatedLanding(true);
       } catch (error) {
         setStatus(status, error.message, 'error');
       } finally {

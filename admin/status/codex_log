@@ -733,3 +733,25 @@
 
 - Live enrichments and live LLM generation still require `ANTHROPIC_API_KEY` and
   `FRED_API_KEY`; deterministic fallbacks remain in place when credentials are absent.
+
+## 2026-04-08
+
+### Queue Item 13
+
+- Source queue entry: `/GScodex-bitch review frontend-mvp/_app.js`
+- Scope executed: fix the default authenticated redirect so completed workspaces land on the cockpit instead of onboarding
+
+### Work Performed
+
+- Files reviewed: `admin/status/CODEBASE_STATUS.md`, `frontend-mvp/_app.js`, `backend/routers/onboarding.py`
+- Confirmed `initLogin()` always defaulted to `onboarding.html` after authentication and `initIndex()` always defaulted to `cockpit.html`, which made the landing behavior inconsistent and ignored onboarding completion state.
+- Verified that `GET /api/onboarding/state` already returns `is_complete`, so the frontend can choose the correct post-auth destination without backend changes.
+- Added `resolveAuthenticatedLanding()` to `frontend-mvp/_app.js` and used it from both `initIndex()` and `initLogin()` so the default landing page is driven by onboarding completion.
+- Preserved explicit `?next=` redirects for protected-page deep links, using onboarding-aware routing only as the default destination.
+- Ran `node --check frontend-mvp/_app.js` to verify the updated script parses cleanly.
+- Updated `CODEBASE_STATUS.md` to mark queue item 13 complete.
+
+### Notes
+
+- This pass verified the backend contract and JavaScript syntax, but did not re-run the full browser demo journey.
+- Queue item 14 is now the next pending task in the `/codex-bitch` queue.
