@@ -15,7 +15,7 @@ from backend.routers.auth import require_session
 from backend.schemas.auth import MessageResponse
 from backend.schemas.content import BriefingListResponse, BriefingResponse
 from backend.services.auth.session import utc_now
-from backend.services.briefings import export_briefing_pdf, generate_briefing
+from backend.services.briefings import PdfExportUnavailableError, export_briefing_pdf, generate_briefing
 
 router = APIRouter(prefix="/briefings", tags=["briefings"])
 
@@ -109,7 +109,10 @@ def export_pdf(
     briefing = db.get(BriefingRun, briefing_id)
     if briefing is None or briefing.workspace_id != user.workspace_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Briefing not found")
-    path = export_briefing_pdf(db, briefing, user.workspace_id)
+    try:
+        path = export_briefing_pdf(db, briefing, user.workspace_id)
+    except PdfExportUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     db.commit()
     export_path = Path(path)
     filename = f"{briefing.week_label}_v{briefing.version}{export_path.suffix}"

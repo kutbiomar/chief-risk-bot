@@ -28,6 +28,8 @@ ASSET_CLASS_ALIASES = {
     "bond": "fixed_income",
     "private equity": "private_equity",
     "private_equity": "private_equity",
+    "real assets": "real_assets",
+    "real_assets": "real_assets",
     "real estate": "real_estate",
     "real_estate": "real_estate",
     "commodity": "commodity",

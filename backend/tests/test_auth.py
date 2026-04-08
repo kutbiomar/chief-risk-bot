@@ -58,6 +58,7 @@ def test_session_endpoint_uses_cookie_session(client: TestClient, db_session: Se
 
     assert response.status_code == 200
     assert response.json()["user"]["email"] == user.email
+    assert response.json()["user"]["workspace_name"] == f"Workspace {user.email}"
 
 
 def test_logout_requires_matching_csrf(client: TestClient, db_session: Session) -> None:
@@ -164,6 +165,7 @@ def test_api_key_can_authenticate_request(client: TestClient, db_session: Sessio
 
     assert response.status_code == 200
     assert response.json()["user"]["email"] == user.email
+    assert response.json()["user"]["workspace_name"] == f"Workspace {user.email}"
 
 
 def test_api_key_updates_last_used_and_cannot_logout(client: TestClient, db_session: Session) -> None:

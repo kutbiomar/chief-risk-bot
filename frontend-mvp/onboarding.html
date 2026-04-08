@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Onboarding — ChiefRiskBot MVP</title>
+  <title>Workspace Setup — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -20,13 +20,23 @@
         <div class="mvp-hero">
           <div>
             <h1>Get the workspace to first briefing.</h1>
-            <p>This screen compresses the MVP onboarding into the actual backend actions that matter: upload a portfolio, ingest supporting documents, run risk, and generate the first briefing.</p>
+            <p>Set up your workspace: upload your portfolio, connect data sources, and generate your first briefing.</p>
           </div>
           <div class="mvp-actions">
             <a class="btn" href="cockpit.html"><span class="ms">dashboard</span>Open cockpit</a>
           </div>
         </div>
         <div id="onboarding-status" class="mvp-notice" hidden data-global-status></div>
+        <section id="onboarding-ready" class="mvp-card pad" hidden>
+          <div class="mvp-item" style="padding:0;border-bottom:0;align-items:center">
+            <div>
+              <div class="uplabel">Ready</div>
+              <div class="mvp-item-title">Your workspace is ready.</div>
+              <div class="mvp-item-subtle">The onboarding steps are complete. Start the demo from the live cockpit.</div>
+            </div>
+            <a class="btn primary" href="cockpit.html"><span class="ms">north_east</span>Go to cockpit</a>
+          </div>
+        </section>
         <div class="mvp-grid two">
           <section class="mvp-card">
             <div class="mvp-card-header">
@@ -41,7 +51,7 @@
           <section class="mvp-card">
             <div class="mvp-card-header">
               <div>
-                <div class="uplabel">Run the flow</div>
+                <div class="uplabel">Actions</div>
                 <h2>Operator actions</h2>
               </div>
             </div>

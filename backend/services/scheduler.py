@@ -16,7 +16,7 @@ from backend.models.auth import User, WorkspaceSetting
 from backend.models.content import BriefingRun
 from backend.models.portfolio import PortfolioSnapshot, Workspace
 from backend.services.auth.session import utc_now
-from backend.services.briefings import export_briefing_pdf, generate_briefing
+from backend.services.briefings import PdfExportUnavailableError, export_briefing_pdf, generate_briefing
 from backend.services.risk import run_risk_analysis
 from backend.services.var import compute_var_for_snapshot
 
@@ -123,13 +123,18 @@ def run_workspace_briefing_cycle(
             briefing.published_by = owner.id if owner is not None else None
 
         exported_path = None
+        detail = "Scheduled briefing run completed"
         if settings.briefing_send_pdf:
-            exported_path = export_briefing_pdf(db, briefing, workspace_id)
+            try:
+                exported_path = export_briefing_pdf(db, briefing, workspace_id)
+            except PdfExportUnavailableError as exc:
+                logger.warning("Scheduled briefing PDF export unavailable for workspace %s: %s", workspace_id, exc)
+                detail = str(exc)
 
         db.commit()
         return SchedulerRunResult(
             status="succeeded",
-            detail="Scheduled briefing run completed",
+            detail=detail,
             briefing_id=briefing.id,
             snapshot_id=snapshot.id,
             exported_path=exported_path,

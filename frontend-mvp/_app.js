@@ -2,7 +2,7 @@
   const STEP_LABELS = {
     workspace_created: 'Workspace created',
     portfolio_uploaded: 'Portfolio uploaded',
-    enrichment_run: 'Market enrichment and VaR ready',
+    enrichment_run: 'Portfolio valued & market data refreshed',
     risk_run: 'Risk analysis completed',
     briefing_generated: 'First briefing generated',
   };
@@ -44,6 +44,47 @@
     return `${formatNumber(value, digits)}%`;
   }
 
+  function formatAssetClass(value) {
+    const key = String(value || '').toLowerCase();
+    const labels = {
+      public_equity: 'Public Equity',
+      fixed_income: 'Fixed Income',
+      private_equity: 'Private Equity',
+      real_assets: 'Real Assets',
+      real_estate: 'Real Estate',
+      cash: 'Cash & Equivalents',
+      alternative: 'Alternative',
+    };
+    return labels[key] || key.replaceAll('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  function isoWeekStart(year, week) {
+    const januaryFourth = new Date(Date.UTC(year, 0, 4));
+    const day = januaryFourth.getUTCDay() || 7;
+    const monday = new Date(januaryFourth);
+    monday.setUTCDate(januaryFourth.getUTCDate() - day + 1 + (week - 1) * 7);
+    return monday;
+  }
+
+  function formatWeekLabel(value) {
+    const match = String(value || '').match(/^week-(\d{1,2})-(\d{4})$/);
+    if (!match) return String(value || '');
+    const monday = isoWeekStart(Number(match[2]), Number(match[1]));
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+    return `Week of ${formatter.format(monday)}`;
+  }
+
+  function truncateText(value, maxLength) {
+    const text = String(value || '').trim();
+    if (!text || text.length <= maxLength) return text;
+    return `${text.slice(0, maxLength - 1).trimEnd()}...`;
+  }
+
   function severityClass(value) {
     const normalized = String(value || '').toLowerCase();
     if (normalized === 'priority') return 'priority';
@@ -54,9 +95,23 @@
 
   function setStatus(node, message, tone) {
     if (!node) return;
+    if (node._successTimer) {
+      window.clearTimeout(node._successTimer);
+      node._successTimer = null;
+    }
     node.className = `mvp-notice${tone ? ` ${tone}` : ''}`;
     node.textContent = message;
     node.hidden = !message;
+    if (message && tone === 'success') {
+      node._successTimer = window.setTimeout(() => {
+        setStatus(node, '', '');
+      }, 3000);
+    }
+  }
+
+  function setEnabled(node, enabled) {
+    if (!node) return;
+    node.disabled = !enabled;
   }
 
   function parseDownloadFilename(headerValue, fallback) {
@@ -168,7 +223,7 @@
     if (avatar) avatar.textContent = initials || 'CR';
     if (name) name.textContent = user.display_name || user.email;
     if (role) role.textContent = `${user.role} · ${user.email}`;
-    if (workspace) workspace.textContent = 'ChiefRiskBot MVP';
+    if (workspace) workspace.textContent = user.workspace_name || 'ChiefRiskBot';
   }
 
   async function requireSession(activePage, crumbs) {
@@ -303,11 +358,15 @@
     const stateNode = document.getElementById('onboarding-steps');
     const status = document.getElementById('onboarding-status');
     const stateMeta = document.getElementById('onboarding-meta');
+    const readyBanner = document.getElementById('onboarding-ready');
 
     async function refreshState() {
       const state = await api('/onboarding/state');
       stateNode.innerHTML = stepMarkup(state);
       stateMeta.textContent = `${state.completed_steps.length} of ${state.total_steps} steps complete`;
+      if (readyBanner) {
+        readyBanner.hidden = !state.is_complete;
+      }
       if (!state.completed_steps.includes('workspace_created')) {
         await markOnboardingStep('workspace_created');
         return refreshState();
@@ -341,7 +400,7 @@
         await markOnboardingStep('portfolio_uploaded');
         await ensureVarReady();
         await refreshState();
-        setStatus(status, `Portfolio uploaded and VaR computed. Snapshot ${response.snapshot_id} is now current.`, 'success');
+        setStatus(status, 'Portfolio uploaded and VaR computed. Your holdings are ready.', 'success');
       } catch (error) {
         setStatus(status, error.message, 'error');
       }
@@ -371,7 +430,7 @@
       try {
         await ensureRiskReady();
         await refreshState();
-        setStatus(status, 'Risk analysis completed for the current snapshot.', 'success');
+        setStatus(status, 'Risk analysis completed for the current portfolio.', 'success');
       } catch (error) {
         setStatus(status, error.message, 'error');
       }
@@ -384,7 +443,7 @@
         const briefing = await api('/briefings/generate', { method: 'POST' });
         await markOnboardingStep('briefing_generated');
         await refreshState();
-        setStatus(status, `Briefing ${briefing.week_label} generated.`, 'success');
+        setStatus(status, `${formatWeekLabel(briefing.week_label)} generated.`, 'success');
       } catch (error) {
         setStatus(status, error.message, 'error');
       }
@@ -401,7 +460,21 @@
     const contributions = document.getElementById('cockpit-contribs');
     const register = document.getElementById('cockpit-register');
 
+    function renderCockpitLoading() {
+      kpis.innerHTML = Array.from({ length: 4 }, () => `
+        <div class="mvp-kpi">
+          <div class="uplabel">Loading</div>
+          <div class="value">...</div>
+          <div class="meta">Fetching cockpit data</div>
+        </div>
+      `).join('');
+      allocations.innerHTML = '<div class="mvp-empty">Loading asset class mix...</div>';
+      contributions.innerHTML = '<div class="mvp-empty">Loading VaR contributors...</div>';
+      register.innerHTML = '<tr><td colspan="4" class="mvp-empty">Loading risk register...</td></tr>';
+    }
+
     async function loadCockpit() {
+      renderCockpitLoading();
       try {
         const body = await api('/cockpit');
         const summary = body.portfolio_summary;
@@ -409,7 +482,7 @@
         const risks = body.risk_register || [];
 
         kpis.innerHTML = `
-          <div class="mvp-kpi"><div class="uplabel">Total AUM</div><div class="value">${formatCurrency(summary.total_aum_usd)}</div><div class="meta">snapshot ${escapeHtml(body.snapshot_id.slice(0, 8))}</div></div>
+          <div class="mvp-kpi"><div class="uplabel">Total AUM</div><div class="value">${formatCurrency(summary.total_aum_usd)}</div><div class="meta">Live</div></div>
           <div class="mvp-kpi"><div class="uplabel">1-Day VaR (95%)</div><div class="value">${formatCurrency(varResult.var_1d_95)}</div><div class="meta">${formatPct(varResult.model_coverage_pct, 0)} modeled coverage</div></div>
           <div class="mvp-kpi"><div class="uplabel">Liquidity</div><div class="value">${formatPct(summary.liquidity_score_pct, 1)}</div><div class="meta">T+1 estimate</div></div>
           <div class="mvp-kpi"><div class="uplabel">Active Risks</div><div class="value">${formatNumber(risks.length)}</div><div class="meta">${formatNumber(risks.filter((item) => item.severity === 'priority').length)} priority</div></div>
@@ -420,7 +493,7 @@
             (bucket) => `
               <div class="mvp-item">
                 <div style="min-width:0">
-                  <div class="mvp-item-title">${escapeHtml(bucket.label)}</div>
+                  <div class="mvp-item-title">${escapeHtml(formatAssetClass(bucket.label))}</div>
                   <div class="mvp-item-subtle">${bucket.position_count} positions</div>
                   <div class="mvp-bar">
                     <div class="mvp-bar-track"><div class="mvp-bar-fill" style="width:${Math.min(bucket.pct_of_portfolio, 100)}%"></div></div>
@@ -466,7 +539,7 @@
               .join('')
           : '<tr><td colspan="4" class="mvp-empty">No risk flags yet. Run analysis to populate the register.</td></tr>';
 
-        setStatus(status, `Cockpit refreshed for snapshot ${body.snapshot_id}.`, 'success');
+        setStatus(status, 'Updated just now.', 'success');
       } catch (error) {
         kpis.innerHTML = '';
         allocations.innerHTML = '';
@@ -501,33 +574,49 @@
 
     const status = document.getElementById('briefings-status');
     const list = document.getElementById('briefings-list');
+    const toggleDrafts = document.getElementById('toggle-drafts');
+    let showDrafts = false;
 
     async function loadBriefings() {
       try {
         const response = await api('/briefings');
-        const items = response.items || [];
-        list.innerHTML = items.length
-          ? items
+        const items = (response.items || []).sort((left, right) => {
+          if (left.status === right.status) return right.version - left.version;
+          return left.status === 'published' ? -1 : 1;
+        });
+        const visibleItems = showDrafts ? items : items.filter((item) => item.status === 'published');
+        if (toggleDrafts) {
+          toggleDrafts.textContent = showDrafts ? 'Hide drafts' : 'Show drafts';
+        }
+        list.innerHTML = visibleItems.length
+          ? visibleItems
               .map(
                 (item) => `
                   <a class="mvp-card pad" href="briefing.html?id=${encodeURIComponent(item.id)}" style="display:block;color:inherit">
                     <div class="mvp-metadata">
                       <span class="mvp-pill ${item.status === 'published' ? 'good' : 'elevated'}">${escapeHtml(item.status)}</span>
-                      <span>${escapeHtml(item.week_label)}</span>
+                      <span>${escapeHtml(formatWeekLabel(item.week_label))}</span>
                       <span>v${escapeHtml(item.version)}</span>
                     </div>
                     <h3 style="font-family:'Fraunces',serif;margin:12px 0 6px">${escapeHtml(item.output.headline || 'Weekly briefing')}</h3>
-                    <p style="margin:0;color:var(--ink-soft);font-size:12px">${escapeHtml(briefingSummary(item.output))}</p>
+                    <p style="margin:0;color:var(--ink-soft);font-size:12px">${escapeHtml(truncateText(item.output.executive_summary || briefingSummary(item.output), 120))}</p>
                   </a>
                 `
               )
               .join('')
-          : '<div class="mvp-empty mvp-card">No briefings yet. Generate the first one from this page.</div>';
-        setStatus(status, `${items.length} briefings loaded.`, 'success');
+          : `<div class="mvp-empty mvp-card">${showDrafts ? 'No briefings yet. Generate the first one from this page.' : 'No published briefings yet. Show drafts or generate a new briefing.'}</div>`;
+        setStatus(status, `${visibleItems.length} briefings loaded.`, 'success');
       } catch (error) {
         list.innerHTML = '<div class="mvp-empty mvp-card">Unable to load briefings.</div>';
         setStatus(status, error.message, 'error');
       }
+    }
+
+    if (toggleDrafts) {
+      toggleDrafts.addEventListener('click', async () => {
+        showDrafts = !showDrafts;
+        await loadBriefings();
+      });
     }
 
     document.getElementById('generate-briefing-action').addEventListener('click', async () => {
@@ -543,13 +632,14 @@
   }
 
   async function initBriefingDetail() {
-    const user = await requireSession('briefings.html', ['Workspace', 'Briefings', 'Detail']);
+    const user = await requireSession('briefing.html', ['Workspace', 'Briefings', 'Briefing']);
     if (!user) return;
 
     const status = document.getElementById('briefing-status');
     const meta = document.getElementById('briefing-meta');
     const title = document.getElementById('briefing-title');
     const body = document.getElementById('briefing-body');
+    const publishButton = document.getElementById('publish-briefing');
     let briefingId = getQueryParam('id');
 
     if (!briefingId) {
@@ -573,9 +663,16 @@
         title.textContent = output.headline || 'Weekly briefing';
         meta.innerHTML = `
           <span class="mvp-pill ${briefing.status === 'published' ? 'good' : 'elevated'}">${escapeHtml(briefing.status)}</span>
-          <span>${escapeHtml(briefing.week_label)}</span>
+          <span>${escapeHtml(formatWeekLabel(briefing.week_label))}</span>
           <span>Version ${escapeHtml(briefing.version)}</span>
         `;
+        if (window.CRBMvpShell?.updateCrumbs) {
+          window.CRBMvpShell.updateCrumbs(['Workspace', 'Briefings', formatWeekLabel(briefing.week_label)]);
+        }
+        publishButton.disabled = briefing.status === 'published';
+        publishButton.innerHTML = briefing.status === 'published'
+          ? '<span class="ms">task_alt</span>Published'
+          : '<span class="ms">publish</span>Publish';
         body.innerHTML = `
           <section class="mvp-card pad">
             <div class="uplabel">Executive summary</div>
@@ -611,7 +708,7 @@
             </ul>
           </section>
         `;
-        setStatus(status, `Loaded briefing ${briefing.week_label}.`, 'success');
+        setStatus(status, `Loaded ${formatWeekLabel(briefing.week_label)}.`, 'success');
       } catch (error) {
         body.innerHTML = '<div class="mvp-empty">Unable to load briefing.</div>';
         setStatus(status, error.message, 'error');
@@ -653,12 +750,18 @@
     const form = document.getElementById('position-form');
     const formTitle = document.getElementById('position-form-title');
     const deleteButton = document.getElementById('delete-position');
+    const submitButton = form.querySelector('button[type="submit"]');
     let selected = null;
+    let mutationBusy = false;
+
+    function syncMutationButtons() {
+      setEnabled(submitButton, !mutationBusy);
+      setEnabled(deleteButton, !mutationBusy && Boolean(selected));
+    }
 
     function setForm(position) {
       selected = position;
       formTitle.textContent = position ? `Edit ${position.ticker}` : 'Add position';
-      deleteButton.disabled = !position;
       document.getElementById('form-ticker').value = position?.ticker || '';
       document.getElementById('form-ticker').disabled = Boolean(position);
       document.getElementById('form-name').value = position?.name || '';
@@ -670,12 +773,13 @@
       document.getElementById('form-segment').value = position?.market_segment || '';
       document.getElementById('form-custodian').value = position?.custodian || '';
       document.getElementById('form-notes').value = position?.notes || '';
+      syncMutationButtons();
     }
 
     async function loadPositions(selectId) {
       try {
         const response = await api('/portfolio/positions');
-        snapshotMeta.textContent = `${response.total} positions · snapshot ${response.snapshot_id.slice(0, 8)}`;
+        snapshotMeta.textContent = `${response.total} positions`;
         tableBody.innerHTML = response.items
           .map(
             (item) => `
@@ -684,7 +788,7 @@
                 <td>${escapeHtml(item.name || '')}</td>
                 <td class="num">${formatNumber(item.quantity, 2)}</td>
                 <td class="num">${formatCurrency(item.market_value_usd || 0)}</td>
-                <td>${escapeHtml(item.asset_class)}</td>
+                <td>${escapeHtml(formatAssetClass(item.asset_class))}</td>
                 <td>${escapeHtml(item.custodian || '')}</td>
               </tr>
             `
@@ -717,6 +821,8 @@
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
+      mutationBusy = true;
+      syncMutationButtons();
       const basePayload = {
         name: document.getElementById('form-name').value.trim() || null,
         quantity: Number(document.getElementById('form-quantity').value || 0),
@@ -746,18 +852,26 @@
         await loadPositions(response.position_id);
       } catch (error) {
         setStatus(status, error.message, 'error');
+      } finally {
+        mutationBusy = false;
+        syncMutationButtons();
       }
     });
 
     deleteButton.addEventListener('click', async () => {
       if (!selected) return;
+      mutationBusy = true;
+      syncMutationButtons();
       try {
-        const response = await api(`/portfolio/positions/${selected.id}`, { method: 'DELETE' });
+        await api(`/portfolio/positions/${selected.id}`, { method: 'DELETE' });
         setForm(null);
         await loadPositions(null);
-        setStatus(status, `Position removed from snapshot ${response.snapshot_id}.`, 'success');
+        setStatus(status, 'Position removed from the current portfolio.', 'success');
       } catch (error) {
         setStatus(status, error.message, 'error');
+      } finally {
+        mutationBusy = false;
+        syncMutationButtons();
       }
     });
 
@@ -773,6 +887,7 @@
     const list = document.getElementById('documents-list');
     const preview = document.getElementById('document-preview');
     const tagInput = document.getElementById('document-tag-input');
+    const parseButton = document.getElementById('parse-document');
     let selectedId = '';
 
     async function loadExtraction(documentId) {
@@ -904,14 +1019,17 @@
       }
     });
 
-    document.getElementById('parse-document').addEventListener('click', async () => {
+    parseButton.addEventListener('click', async () => {
       if (!selectedId) return;
+      setEnabled(parseButton, false);
       try {
         const response = await api(`/documents/${selectedId}/parse`, { method: 'POST' });
         setStatus(status, response.detail, 'success');
         await loadDocuments();
       } catch (error) {
         setStatus(status, error.message, 'error');
+      } finally {
+        setEnabled(parseButton, true);
       }
     });
 

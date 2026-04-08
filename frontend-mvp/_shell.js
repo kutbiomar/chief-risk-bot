@@ -44,7 +44,7 @@
         <div class="client">
           <div class="who">
             <small>Workspace</small>
-            <b id="mvp-workspace-name">ChiefRiskBot Demo</b>
+            <b id="mvp-workspace-name">ChiefRiskBot</b>
           </div>
           <span class="ms">unfold_more</span>
         </div>
@@ -85,6 +85,17 @@
     `;
   }
 
+  function renderCrumbs(crumbs) {
+    const crumbsNode = document.querySelector('.crumbs');
+    if (!crumbsNode) return;
+    crumbsNode.innerHTML = crumbs
+      .map((crumb, index) => {
+        const last = index === crumbs.length - 1;
+        return last ? `<b>${crumb}</b>` : `${crumb} <span class="ms">chevron_right</span>`;
+      })
+      .join(' ');
+  }
+
   function wireResponsive() {
     const sidebarNode = document.querySelector('.sidebar');
     const hamburger = document.getElementById('crb-hamburger');
@@ -116,6 +127,9 @@
       root.insertAdjacentHTML('afterbegin', sidebar(active));
       main.insertAdjacentHTML('afterbegin', topbar(crumbs));
       wireResponsive();
+    },
+    updateCrumbs(crumbs) {
+      renderCrumbs(crumbs);
     },
   };
 })();

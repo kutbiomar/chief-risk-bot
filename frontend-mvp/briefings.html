@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Briefings — ChiefRiskBot MVP</title>
+  <title>Briefings — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -20,13 +20,16 @@
         <div class="mvp-hero">
           <div>
             <h1>Briefings</h1>
-            <p>The briefing layer is now wired to the actual backend. Generate a draft from the current snapshot, then open the detail page to publish or export it.</p>
+            <p>Weekly AI-generated risk memos for your investment committee. Generate a new briefing or review a prior one.</p>
           </div>
           <div class="mvp-actions">
             <button id="generate-briefing-action" class="btn primary"><span class="ms">add</span>Generate briefing</button>
           </div>
         </div>
         <div id="briefings-status" class="mvp-notice" hidden data-global-status></div>
+        <div class="mvp-actions">
+          <button id="toggle-drafts" class="btn" type="button">Show drafts</button>
+        </div>
         <div id="briefings-list" class="mvp-grid two"></div>
       </div>
     </main>

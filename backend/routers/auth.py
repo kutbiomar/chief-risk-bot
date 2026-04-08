@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from backend.config import get_settings
 from backend.deps import get_db
 from backend.models.auth import ApiKey, AuthChallenge, PasswordResetToken, User, UserSession
+from backend.models.portfolio import Workspace
 from backend.schemas.auth import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
@@ -37,13 +38,15 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 AuthContext = Tuple[Optional[UserSession], User]
 
 
-def _serialize_user(user: User) -> UserResponse:
+def _serialize_user(db: Session, user: User) -> UserResponse:
+    workspace = db.get(Workspace, user.workspace_id)
     return UserResponse(
         id=user.id,
         email=user.email,
         display_name=user.display_name,
         role=user.role,
         workspace_id=user.workspace_id,
+        workspace_name=workspace.name if workspace is not None else None,
     )
 
 
@@ -183,7 +186,7 @@ def login(
     session, raw_token = create_session(db, user, request.headers.get("user-agent", "unknown"))
     db.commit()
     _set_auth_cookies(response, raw_token, session.csrf_secret)
-    return LoginResponse(user=_serialize_user(user))
+    return LoginResponse(user=_serialize_user(db, user))
 
 
 @router.post("/totp/verify", response_model=LoginResponse)
@@ -221,7 +224,7 @@ def totp_verify(
     session, raw_token = create_session(db, user, request.headers.get("user-agent", "unknown"))
     db.commit()
     _set_auth_cookies(response, raw_token, session.csrf_secret)
-    return LoginResponse(user=_serialize_user(user))
+    return LoginResponse(user=_serialize_user(db, user))
 
 
 @router.get("/session", response_model=SessionResponse)
@@ -229,20 +232,22 @@ def get_session(
     request: Request,
     response: Response,
     auth: AuthContext = Depends(require_session),
+    db: Session = Depends(get_db),
 ) -> SessionResponse:
     session, user = auth
     raw_token = request.cookies.get(SESSION_COOKIE_NAME) or _bearer_token(request)
     if raw_token and session is not None:
         _set_auth_cookies(response, raw_token, session.csrf_secret)
-    return SessionResponse(user=_serialize_user(user))
+    return SessionResponse(user=_serialize_user(db, user))
 
 
 @router.get("/me", response_model=SessionResponse)
 def get_me(
     auth: AuthContext = Depends(require_session),
+    db: Session = Depends(get_db),
 ) -> SessionResponse:
     _, user = auth
-    return SessionResponse(user=_serialize_user(user))
+    return SessionResponse(user=_serialize_user(db, user))
 
 
 @router.post("/logout", response_model=MessageResponse, dependencies=[Depends(require_cookie_csrf)])

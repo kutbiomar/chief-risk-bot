@@ -30,6 +30,7 @@ class UserResponse(BaseModel):
     display_name: str
     role: str
     workspace_id: str
+    workspace_name: Optional[str] = None
 
 
 class SessionResponse(BaseModel):

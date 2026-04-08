@@ -755,3 +755,193 @@
 
 - This pass verified the backend contract and JavaScript syntax, but did not re-run the full browser demo journey.
 - Queue item 14 is now the next pending task in the `/codex-bitch` queue.
+
+## 2026-04-08
+
+### Queue Item 14
+
+- Source queue entry: `/GScodex-bitch review frontend-mvp/_app.js`
+- Scope executed: fix the briefing detail active-nav page id so the shell highlights the correct sidebar entry
+
+### Work Performed
+
+- Files reviewed: `admin/status/CODEBASE_STATUS.md`, `frontend-mvp/_app.js`
+- Confirmed `initBriefingDetail()` mounted the shell with `requireSession('briefings.html', ...)`, which left the list page highlighted when viewing a single briefing.
+- Changed the active page id to `briefing.html` in `frontend-mvp/_app.js` so the detail page advertises its own route to the shell.
+- Ran `node --check frontend-mvp/_app.js` to verify the updated script parses cleanly.
+- Updated `CODEBASE_STATUS.md` to mark queue item 14 complete.
+
+### Notes
+
+- This pass fixed the nav-highlighting bug only; no browser walkthrough was re-run.
+- Queue item 15 is now the next pending task in the `/codex-bitch` queue.
+
+## 2026-04-08
+
+### Queue Item 15
+
+- Source queue entry: `/GScodex-bitch review frontend-mvp/_app.js`
+- Scope executed: add in-flight button guards to position save and delete actions
+
+### Work Performed
+
+- Files reviewed: `frontend-mvp/_app.js`, `frontend-mvp/table.html`, `admin/status/CODEBASE_STATUS.md`
+- Added a shared mutation-busy state in `initTable()` so the position Save and Delete buttons disable while POST/PATCH/DELETE requests are in flight and restore in `finally`.
+- Kept the Delete button disabled when no row is selected and synchronized both button states after selection changes and reloads.
+- Verified `frontend-mvp/_app.js` parses cleanly with `node --check`.
+
+### Notes
+
+- This pass addressed duplicate-click protection only; no browser-level interaction test was run.
+
+### Queue Item 16
+
+- Source queue entry: `/GScodex-bitch review frontend-mvp/_app.js`
+- Scope executed: add an in-flight guard to the document parse action
+
+### Work Performed
+
+- Files reviewed: `frontend-mvp/_app.js`, `frontend-mvp/documents.html`, `admin/status/CODEBASE_STATUS.md`
+- Updated `initDocuments()` so the Parse button disables before `POST /api/documents/{id}/parse` and re-enables in `finally`, preventing duplicate parse requests.
+- Verified `frontend-mvp/_app.js` parses cleanly with `node --check`.
+
+### Notes
+
+- Other document actions still rely on their existing behavior; this queue item only targeted the parse button.
+
+### Queue Item 17
+
+- Source queue entry: `/GScodex-bitch review frontend-mvp/cockpit.html`
+- Scope executed: add initial loading placeholders to cockpit surfaces
+
+### Work Performed
+
+- Files reviewed: `frontend-mvp/_app.js`, `frontend-mvp/cockpit.html`, `admin/status/CODEBASE_STATUS.md`
+- Added `renderCockpitLoading()` in `initCockpit()` and now populate the KPI grid, allocations list, VaR contribution list, and risk register with lightweight loading placeholders before the cockpit API resolves.
+- Preserved the existing success/error rendering after the request completes.
+- Verified `frontend-mvp/_app.js` parses cleanly with `node --check`.
+
+### Notes
+
+- This is a lightweight loading treatment, not a fully styled skeleton animation.
+
+### Queue Item 18
+
+- Source queue entry: `/GScodex-bitch review frontend-mvp/onboarding.html`
+- Scope executed: show a clear forward CTA when onboarding is complete
+
+### Work Performed
+
+- Files reviewed: `frontend-mvp/onboarding.html`, `frontend-mvp/_app.js`, `admin/status/CODEBASE_STATUS.md`
+- Added a prominent ready-state banner with a `Go to cockpit` button to `frontend-mvp/onboarding.html`.
+- Updated onboarding state refresh logic so the banner appears only when `/api/onboarding/state` reports `is_complete === true`.
+- Verified `frontend-mvp/_app.js` parses cleanly with `node --check`.
+
+### Notes
+
+- The hero-level cockpit link still exists; the new banner is the completion-specific CTA requested by the queue item.
+
+### Queue Item 19
+
+- Source queue entry: `/GScodex-bitch review backend/services/documents.py`
+- Scope executed: replace raw extractor exception text with user-facing parse errors
+
+### Work Performed
+
+- Files reviewed: `backend/services/documents.py`, `backend/routers/documents.py`, `backend/tests/test_phase_cd.py`, `admin/status/CODEBASE_STATUS.md`
+- Added file-type-specific friendly parse messages for PDF, DOCX, and XLSX extractor failures in `parse_document()`.
+- Preserved `400` error semantics through the existing documents router path while preventing raw `pdfplumber`/`python-docx`/`openpyxl` exception strings from leaking to the client.
+- Added a backend test that uploads a deliberately broken PDF and verifies the friendly error detail.
+- Verified backend tests pass.
+
+### Notes
+
+- Upload validation errors still return their existing explicit validation messages; only post-upload extraction failures were changed here.
+
+### Queue Item 20
+
+- Source queue entry: `/GScodex-bitch review backend/services/briefings.py`
+- Scope executed: stop fake-PDF fallback behavior and return an actionable export failure
+
+### Work Performed
+
+- Files reviewed: `backend/services/briefings.py`, `backend/routers/briefings.py`, `backend/tests/test_phase_cd.py`, `admin/status/CODEBASE_STATUS.md`
+- Introduced `PdfExportUnavailableError` and changed `export_briefing_pdf()` to raise it when WeasyPrint cannot load required system libraries.
+- Updated the briefings router to convert that failure into `503 Service Unavailable` with detail `PDF export unavailable — WeasyPrint system libraries not installed`.
+- Updated backend tests so the export path now accepts a successful PDF when WeasyPrint works and explicitly covers the `503` path when it does not.
+- Verified backend tests pass.
+
+### Notes
+
+- The local machine still lacks WeasyPrint runtime libraries, so seeded export verification now surfaces the intended `503`.
+
+### Queue Item 21
+
+- Source queue entry: `/GScodex-bitch review frontend-mvp/login.html`
+- Scope executed: align login placeholders and copy with the seeded demo credentials
+
+### Work Performed
+
+- Files reviewed: `frontend-mvp/login.html`, `admin/demo/seed_demo.py`, `admin/status/CODEBASE_STATUS.md`
+- Updated the email/password placeholders to `cio@demo.chiefriskbot.com` and `DemoPass2026!`.
+- Removed the stale subtitle sentence that hardcoded the seeded-user guidance.
+
+### Notes
+
+- The seed script docstring was also corrected so the documented demo email matches the actual seeded user.
+
+### Queue Item 22
+
+- Source queue entry: `/GScodex-bitch plan admin/demo/seed_demo.py`
+- Scope executed: make the demo seeder runnable against the current codebase, reseed the real demo DB, verify the seeded flow, and record post-seed QA
+
+### Work Performed
+
+- Files reviewed: `admin/demo/seed_demo.py`, `admin/status/CODEBASE_STATUS.md`, `backend/models/*.py`, `backend/services/enrichment.py`, `backend/services/ingest/csv_parser.py`
+- Updated the demo seeder to use the current model/module layout, current onboarding fields, current workspace settings model, the current CSV parser entrypoint, and the current enrichment service.
+- Re-ran `.venv/bin/python admin/demo/seed_demo.py` successfully against `backend/runtime/chiefriskbot.db`.
+- Verified the seeded flow against the real SQLite database via `TestClient`: login succeeded for `cio@demo.chiefriskbot.com`; cockpit returned `$8,500,000` AUM; positions returned `15` rows; briefings list/detail loaded; and PDF export returned the new actionable `503`.
+- Added a new `Post-seed QA` section to `CODEBASE_STATUS.md` documenting the seeded verification results plus the remaining issues found.
+
+### Notes
+
+- Remaining issues after seed:
+- PDF export is unavailable locally until WeasyPrint system libraries are installed.
+- The demo CSV still uses `real_assets`, which the current parser normalizes to `alternative` for three rows, affecting the cockpit asset-class mix.
+- Queue items 15 through 22 are complete; newer follow-up items remain pending in `CODEBASE_STATUS.md`.
+
+### Queue Items 23-38
+
+- Source queue entry: `/GScodex-bitch execute admin/status/CODEBASE_STATUS.md`
+- Scope executed: complete queue items 23 through 38 in order across the frontend MVP, auth/session payloads, CSV ingest normalization, deterministic briefing fallback, and seeded demo QA
+
+### Work Performed
+
+- Files reviewed: `admin/status/CODEBASE_STATUS.md`, `frontend-mvp/_mvp.css`, `frontend-mvp/_app.js`, `frontend-mvp/_shell.js`, `frontend-mvp/login.html`, `frontend-mvp/onboarding.html`, `frontend-mvp/cockpit.html`, `frontend-mvp/briefings.html`, `frontend-mvp/briefing.html`, `frontend-mvp/documents.html`, `frontend-mvp/table.html`, `backend/schemas/auth.py`, `backend/routers/auth.py`, `backend/services/ingest/csv_parser.py`, `backend/services/briefings.py`, `backend/tests/test_auth.py`, `backend/tests/test_ingest.py`
+- Added a global `[hidden]` CSS rule so the login TOTP field stays hidden until the auth flow reveals it.
+- Introduced frontend helpers for human asset-class labels, ISO week formatting, and truncated briefing previews; removed snapshot UUID fragments from user-facing status/meta copy; updated briefing breadcrumb behavior; auto-hide success notices; and disabled the publish button for already-published briefings.
+- Rewrote MVP-facing page copy across the cockpit, briefings, onboarding, positions, documents, and login screens, including the draft toggle and login KPI/value-prop updates.
+- Added `workspace_name` to auth/session responses, populated it from the workspace table, rendered it in the shell, and corrected the router dependency wiring plus Python 3.9-compatible schema typing.
+- Added `real_assets` to CSV ingest normalization, improved deterministic briefing fallback prose and macro context, and covered the new behaviors with auth/session and ingest regression tests.
+- Verified `node --check frontend-mvp/_app.js`, `.venv/bin/python -m pytest backend/tests` (`22 passed`), and `.venv/bin/python admin/demo/seed_demo.py`.
+- Re-verified the seeded demo via `TestClient`: login succeeded, session returned `workspace_name`, cockpit returned `$8.5M` AUM, positions returned `15`, briefings loaded, deterministic briefing copy rendered macro values, PDF export returned the expected `503`, and cockpit asset-class mix now includes `real_assets` with 3 positions.
+
+### Notes
+
+- Remaining local limitation: PDF export still depends on WeasyPrint system libraries that are not installed on this machine.
+- Queue items 23 through 38 are complete; `CODEBASE_STATUS.md` now shows no pending items.
+
+### Queue Follow-up Check
+
+- Source queue entry: `/GScodex-bitch execute admin/status/CODEBASE_STATUS.md`
+- Scope executed: re-check the queue after completion and confirm whether any new pending items were introduced
+
+### Work Performed
+
+- Re-read `admin/status/CODEBASE_STATUS.md` after the last completion pass.
+- Confirmed the `/codex-bitch task queue` still shows `No pending items`.
+- Confirmed the only remaining tracked issue is the local WeasyPrint system-library dependency affecting PDF export.
+
+### Notes
+
+- No additional queue work was available to execute.

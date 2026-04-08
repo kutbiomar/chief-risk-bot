@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Sign in — ChiefRiskBot MVP</title>
+  <title>Sign in — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -17,20 +17,20 @@
     <section class="mvp-login-left">
       <div class="mvp-login-brand">
         <div class="logo">C</div>
-        <b>ChiefRiskBot MVP</b>
+        <b>ChiefRiskBot</b>
       </div>
       <div class="mvp-login-card">
-        <h1>Integrated demo frontend.</h1>
-        <p>This is the thin MVP surface wired to the FastAPI backend. Sign in with a seeded workspace user to continue.</p>
+        <h1>Know your risk before the committee does.</h1>
+        <p>Sign in to your ChiefRiskBot workspace.</p>
         <div id="login-status" class="mvp-notice" hidden data-global-status></div>
         <form id="login-form" class="mvp-form" style="margin-top:14px">
           <div class="mvp-field">
             <label for="email">Work email</label>
-            <input id="email" type="email" placeholder="owner@example.com" autocomplete="email" required/>
+            <input id="email" type="email" placeholder="cio@demo.chiefriskbot.com" autocomplete="email" required/>
           </div>
           <div class="mvp-field">
             <label for="password">Password</label>
-            <input id="password" type="password" placeholder="secret123" autocomplete="current-password" required/>
+            <input id="password" type="password" placeholder="DemoPass2026!" autocomplete="current-password" required/>
           </div>
           <div id="totp-wrap" class="mvp-field" hidden>
             <label for="totp-code">TOTP code</label>
@@ -38,10 +38,6 @@
           </div>
           <button id="login-submit" class="btn primary" type="submit">Sign in <span class="ms">arrow_forward</span></button>
         </form>
-      </div>
-      <div class="mvp-metadata">
-        <span>Served from `frontend-mvp/`</span>
-        <span>API proxied through `/api`</span>
       </div>
     </section>
     <section class="mvp-login-right">
@@ -53,10 +49,10 @@
         <cite><b>Family office MVP brief</b><span>Consolidation, early warning, explainability</span></cite>
       </div>
       <div class="mvp-grid cards-4">
-        <div class="mvp-kpi"><div class="uplabel">Core flow</div><div class="value">7</div><div class="meta">thin MVP screens</div></div>
-        <div class="mvp-kpi"><div class="uplabel">Backend status</div><div class="value">Live</div><div class="meta">API + tests wired</div></div>
-        <div class="mvp-kpi"><div class="uplabel">Primary wedge</div><div class="value">Docs</div><div class="meta">statement to portfolio</div></div>
-        <div class="mvp-kpi"><div class="uplabel">Scope</div><div class="value">FO</div><div class="meta">family office-first</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Setup</div><div class="value">5 min</div><div class="meta">to first briefing</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Coverage</div><div class="value">15+</div><div class="meta">risk factors monitored</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Output</div><div class="value">1-click</div><div class="meta">PDF for the committee</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Focus</div><div class="value">FO-first</div><div class="meta">built for family offices</div></div>
       </div>
     </section>
   </div>

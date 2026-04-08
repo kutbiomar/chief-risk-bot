@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Positions — ChiefRiskBot MVP</title>
+  <title>Positions — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -20,7 +20,7 @@
         <div class="mvp-hero">
           <div>
             <h1>Positions</h1>
-            <p>This MVP page is the working portfolio editor. It uses the immutable snapshot backend, so every create, update, or delete materializes a new current snapshot.</p>
+            <p>Your current portfolio positions. Add, edit, or remove holdings - each change creates a versioned snapshot.</p>
           </div>
           <div class="mvp-actions">
             <button id="new-position" class="btn primary"><span class="ms">add</span>New position</button>
@@ -83,12 +83,13 @@
                   <div class="mvp-field">
                     <label for="form-asset-class">Asset class</label>
                     <select id="form-asset-class">
-                      <option value="public_equity">public_equity</option>
-                      <option value="fixed_income">fixed_income</option>
-                      <option value="private_equity">private_equity</option>
-                      <option value="real_estate">real_estate</option>
-                      <option value="cash">cash</option>
-                      <option value="alternative">alternative</option>
+                      <option value="public_equity">Public Equity</option>
+                      <option value="fixed_income">Fixed Income</option>
+                      <option value="private_equity">Private Equity</option>
+                      <option value="real_assets">Real Assets</option>
+                      <option value="real_estate">Real Estate</option>
+                      <option value="cash">Cash &amp; Equivalents</option>
+                      <option value="alternative">Alternative</option>
                     </select>
                   </div>
                   <div class="mvp-field">

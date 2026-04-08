@@ -361,11 +361,9 @@ Every step was exercised via `TestClient` against the real database.
 |------|-------------|--------|
 | A1 Open `login.html` | Page loads, fonts and CSS visible | ✅ Renders |
 | A2 Enter credentials and submit | `POST /api/auth/login` → 200, session cookie set, no TOTP prompt | ✅ Works — existing demo users have `totp_enabled=False` |
-| A3 Redirect after login | Should land on cockpit if workspace is ready; onboarding if not | ❌ **Always redirects to `onboarding.html`** — code says `|| 'onboarding.html'`, ignores onboarding completion state |
-| A4 Cockpit loads with live data | `GET /api/cockpit` → 200 with AUM, VaR, risk register | ✅ Works — but current demo DB has only $58K AUM/3 positions (needs seed) |
+| A3 Redirect after login | Should land on cockpit if workspace is ready; onboarding if not | ✅ Works — authenticated landing now checks `/api/onboarding/state` before choosing `cockpit.html` vs `onboarding.html` |
+| A4 Cockpit loads with live data | `GET /api/cockpit` → 200 with AUM, VaR, risk register | ✅ Works — seeded demo DB now returns $8.5M AUM and live risk data |
 | A5 Cockpit risk register visible | Risk flags and agent scores rendered in table | ✅ Works |
-
-**Blocker:** A3 — post-login redirect ignores onboarding completion; always dumps user on onboarding screen.
 
 ---
 
@@ -377,11 +375,9 @@ Every step was exercised via `TestClient` against the real database.
 | B2 Upload CSV file | `POST /api/ingest/csv` → 200, snapshot created | ✅ Works |
 | B3 VaR auto-computed | `POST /api/var/compute` called after upload | ✅ Called in `ensureVarReady()` |
 | B4 Risk auto-run optional | "Run risk analysis" button calls `POST /api/risk/run` | ✅ Works |
-| B5 Navigate to cockpit | Explicit link to `cockpit.html` | ⚠️ No CTA on onboarding page once steps complete — user has to know to click sidebar |
+| B5 Navigate to cockpit | Explicit link to `cockpit.html` | ✅ Works — completed onboarding now shows a dedicated `Go to cockpit` CTA |
 | B6 Cockpit reflects uploaded data | `GET /api/cockpit` shows new snapshot | ✅ Works |
 | B7 Generate first briefing button | `POST /api/briefings/generate` | ✅ Works — BUT requires VaR committed first (cockpit auto-commits now; onboarding calls `/var/compute` explicitly) |
-
-**Polish gap:** B5 — completion state on onboarding has no "Go to cockpit →" CTA.
 
 ---
 
@@ -395,9 +391,7 @@ Every step was exercised via `TestClient` against the real database.
 | C4 Risk register table renders | `risk_register[]` with severity/headline/agent | ✅ Works |
 | C5 Refresh button reloads data | Re-calls `GET /api/cockpit` | ✅ Works |
 | C6 Re-run risk button | `POST /api/risk/run` then re-fetch cockpit | ✅ Works |
-| C7 Loading / error state while fetching | Spinner or skeleton before data arrives | ❌ **No loading state** — KPI area is blank white until response arrives |
-
-**Polish gap:** C7 — no loading skeleton; blank white on slow network looks broken.
+| C7 Loading / error state while fetching | Spinner or skeleton before data arrives | ✅ Works — cockpit surfaces now render lightweight loading placeholders before `GET /api/cockpit` resolves |
 
 ---
 
@@ -409,11 +403,8 @@ Every step was exercised via `TestClient` against the real database.
 | D2 Generate new briefing | `POST /api/briefings/generate` → redirects to detail | ✅ Works |
 | D3 Briefing detail: headline, summary, risks, recs visible | `GET /api/briefings/{id}` → output fields rendered | ✅ Works |
 | D4 Publish briefing | `POST /api/briefings/{id}/publish` | ✅ Works |
-| D5 Export PDF | `GET /api/briefings/{id}/export/pdf` → file download | ⚠️ **WeasyPrint fails silently → downloads a `.txt` file with `.pdf` extension** — usable fallback but confusing in demo |
-| D6 Nav active state | Sidebar "Briefings" item highlighted on briefing pages | ❌ `initBriefingDetail` calls `requireSession('briefings.html', ...)` instead of `'briefing.html'` — wrong active nav |
-
-**Issue:** D5 — PDF download is actually a text file. WeasyPrint system deps missing.  
-**Bug:** D6 — wrong active page string passed to shell; sidebar highlights wrong item.
+| D5 Export PDF | `GET /api/briefings/{id}/export/pdf` → file download | ⚠️ Returns `503` with actionable detail when WeasyPrint system libraries are unavailable locally, instead of silently returning a mislabeled text file |
+| D6 Nav active state | Sidebar "Briefings" item highlighted on briefing pages | ✅ Works — briefing detail now mounts the shell with `briefing.html` |
 
 ---
 
@@ -426,9 +417,7 @@ Every step was exercised via `TestClient` against the real database.
 | E3 Select and edit position | `PATCH /api/portfolio/positions/{id}` → successor snapshot | ✅ Works |
 | E4 Delete position | `DELETE /api/portfolio/positions/{id}` in current snapshot | ✅ Works (frontend reloads with new `position_id` from PATCH before delete) |
 | E5 Ticker disabled when editing | `form-ticker` is `disabled` on edit — correct | ✅ UX correct |
-| E6 Loading guard on submit button | Button disabled while in-flight to prevent double-submit | ❌ **No disabled guard on submit button** |
-
-**Bug:** E6 — double-clicking Save submits two concurrent PATCH/POST requests, creating duplicate snapshots.
+| E6 Loading guard on submit button | Button disabled while in-flight to prevent double-submit | ✅ Works — Save and Delete now disable during position mutations |
 
 ---
 
@@ -437,11 +426,11 @@ Every step was exercised via `TestClient` against the real database.
 | Step | Requirement | Status |
 |------|-------------|--------|
 | F1 Upload a PDF/DOCX/XLSX | `POST /api/documents/upload` → 200, `id` returned | ✅ Works |
-| F2 Parse the document | `POST /api/documents/{id}/parse` → extraction runs | ⚠️ **Works only for valid files** — pdfplumber error (`No /Root object`) surfaces raw exception message to user for corrupted/non-PDF files |
+| F2 Parse the document | `POST /api/documents/{id}/parse` → extraction runs | ✅ Works for valid files and now returns a friendly file-type-specific message for corrupted uploads |
 | F3 View extraction results | `GET /api/documents/{id}/extraction` → positions, confidence | ✅ Works when parse succeeds |
 | F4 Approve and import | `POST /api/documents/{id}/approve` → portfolio snapshot created | ✅ Works when parsed |
-| F5 Error when parsing fails | User sees actionable error, not raw stack trace | ❌ **Raw pdfplumber exception text shown** — e.g. "No /Root object! - Is this really a PDF?" |
-| F6 Parse button loading state | Button disabled while parse runs | ❌ **No loading guard** — parse can take seconds; double-click creates double parse |
+| F5 Error when parsing fails | User sees actionable error, not raw stack trace | ✅ Works — backend now returns a friendly parse error instead of raw library text |
+| F6 Parse button loading state | Button disabled while parse runs | ✅ Works — Parse now disables while the request is in flight |
 
 ---
 
@@ -452,8 +441,8 @@ Every step was exercised via `TestClient` against the real database.
 | G1 Wrong password | 401 shown as readable error | ✅ Works |
 | G2 TOTP-enabled user | TOTP field revealed, hint shown | ✅ UI works — but stub only accepts `000000`; hint in UI is adequate for demo |
 | G3 Session expired / invalid | Redirect to login with `?next=` param | ✅ Works |
-| G4 Login page credentials hint | Placeholder shows current demo credentials | ❌ **Placeholder still shows `owner@example.com` / `secret123`** — stale after seed_demo.py creates `cio@demo.chiefriskbot.com` / `DemoPass2026!` |
-| G5 Demo DB seeded before demo | 15 positions, $8.5M AUM visible on cockpit | ❌ **Not yet seeded** — current DB has 3 positions, $58K AUM from test runs |
+| G4 Login page credentials hint | Placeholder shows current demo credentials | ✅ Works — login now shows `cio@demo.chiefriskbot.com` / `DemoPass2026!` placeholders |
+| G5 Demo DB seeded before demo | 15 positions, $8.5M AUM visible on cockpit | ✅ Works — real demo DB was reseeded and verified in `Post-seed QA` |
 
 ---
 
@@ -466,47 +455,19 @@ Confirmed:
 - Cockpit returns `$8,500,000` total AUM.
 - Positions endpoint returns `15` current positions.
 - Briefings list and briefing detail both load for the seeded published briefing.
+- Session payload now includes workspace name `Whitmore Family Office`.
+- Cockpit asset-class mix now preserves `real_assets` with 3 positions (25.13% of portfolio).
+- Deterministic briefing fallback now renders macro-aware market context and prose risk findings.
 
 Remaining issues found after seed:
 - PDF export returns `503` with detail `PDF export unavailable — WeasyPrint system libraries not installed` because the local machine is missing WeasyPrint system libraries (`libgobject-2.0-0` and related deps).
-- `admin/demo/demo_portfolio.csv` still uses `asset_class=real_assets` for `VNQ`, `GLD`, and `PRIV_RE_FUND_B`; the current CSV parser does not recognize that label and defaults those rows to `alternative`, which changes the cockpit asset-class mix even though AUM and position counts are correct.
 
 ---
 
 ## /codex-bitch task queue
 
 ### Pending
-
-**Tier 1 — Blockers (will embarrass in the room)**
-
-| # | Task | Files | Priority |
-|---|------|-------|----------|
-| 23 | **Fix TOTP field always visible on login** — `frontend-mvp/login.html` wraps the TOTP input in `<div id="totp-wrap" hidden>` but `_mvp.css` sets `.mvp-field { display: flex }` which overrides the browser default `[hidden] { display: none }`. Add `[hidden] { display: none !important; }` to the top of `frontend-mvp/_mvp.css`. Confirm by loading `login.html` and asserting `#totp-wrap` is not visible before any form submit. | `frontend-mvp/_mvp.css` | **BLOCKER** |
-| 24 | **Format raw enum values throughout the UI** — The strings `public_equity`, `fixed_income`, `real_assets`, `cash`, `private_equity`, `alternative` appear as-is in the cockpit asset-class breakdown, the positions table Asset Class column, and the position form dropdown. Add a shared `formatAssetClass(value)` helper in `frontend-mvp/_app.js` that maps each snake_case enum to its display label (`public_equity` → `Public Equity`, `fixed_income` → `Fixed Income`, `real_assets` → `Real Assets`, `cash` → `Cash & Equivalents`, `private_equity` → `Private Equity`, `alternative` → `Alternative`). Apply it: (1) cockpit allocation labels `bucket.label`, (2) position table `item.asset_class` cell, (3) position form `<select id="form-asset-class">` option labels. Also fix the asset_class column header in the table from `ASSET CLASS` to `Asset Class`. | `frontend-mvp/_app.js`, `frontend-mvp/table.html` | **BLOCKER** |
-| 25 | **Remove UUIDs from all user-facing strings** — Three places expose raw UUIDs: (1) cockpit KPI meta: `snapshot ${body.snapshot_id.slice(0,8)}` — change to just `"Live"` or remove; (2) cockpit status notice after load: `"Cockpit refreshed for snapshot ${body.snapshot_id}."` — change to `"Updated just now."`; (3) positions page meta: `"${response.total} positions · snapshot ${response.snapshot_id.slice(0,8)}"` — change to `"${response.total} positions"`  All three are in `frontend-mvp/_app.js`. Search for `.slice(0,8)` and `snapshot_id` in that file to find every instance. | `frontend-mvp/_app.js` | **BLOCKER** |
-| 26 | **Fix `real_assets` not recognised by CSV parser** — `admin/demo/demo_portfolio.csv` uses `asset_class=real_assets` for VNQ, GLD, PRIV_RE_FUND_B but `backend/services/ingest/csv_parser.py` normalisation does not include `real_assets` in its allow-list, defaulting those rows to `alternative`. Add `"real_assets"` to the normalised asset-class map in the parser so the cockpit mix reflects the intended allocation. Verify by re-running `seed_demo.py` and checking the cockpit asset-class breakdown. | `backend/services/ingest/csv_parser.py`, `admin/demo/demo_portfolio.csv` | **BLOCKER** |
-
-**Tier 2 — Copy surgery (makes it look built, not scaffolded)**
-
-| # | Task | Files | Priority |
-|---|------|-------|----------|
-| 27 | **Replace all developer-facing page subtitles** — Every page description currently references "MVP", "backend", "wired to", "layer", "snapshot", "materializes", etc. Replace all six with product-facing copy: (1) `cockpit.html` hero `<p>`: `"Your portfolio's current risk picture — VaR, concentration, and the active risk register."` (2) `briefings.html` hero `<p>`: `"Weekly AI-generated risk memos for your investment committee. Generate a new briefing or review a prior one."` (3) `onboarding.html` hero `<p>`: `"Set up your workspace: upload your portfolio, connect data sources, and generate your first briefing."` (4) `table.html` hero `<p>`: `"Your current portfolio positions. Add, edit, or remove holdings — each change creates a versioned snapshot."` (5) `documents.html` hero `<p>`: `"Upload custodian statements and fund reports. ChiefRiskBot extracts positions and maps them to your portfolio."` (6) `briefing.html` hero subtitle (the `<p>` under the title): remove the loading subtitle entirely — the breadcrumb and meta row are sufficient. | `frontend-mvp/cockpit.html`, `briefings.html`, `onboarding.html`, `table.html`, `documents.html`, `briefing.html` | HIGH |
-| 28 | **Fix login page headline, subtitle, and footer** — (1) Replace headline `<h1>Integrated demo frontend.</h1>` with `<h1>Know your risk before the committee does.</h1>` (2) Replace subtitle `<p>This is the thin MVP surface wired to the FastAPI backend…</p>` with `<p>Sign in to your ChiefRiskBot workspace.</p>` (3) Remove the entire `<div class="mvp-metadata">` footer block at the bottom of the left panel that reads "Served from \`frontend-mvp/\`" and "API proxied through \`/api\`". (4) Update email placeholder to `cio@demo.chiefriskbot.com` and password placeholder to `DemoPass2026!`. | `frontend-mvp/login.html` | HIGH |
-| 29 | **Format week codes as human dates everywhere** — `week-15-2026` and similar ISO-week strings appear in: briefing list card metadata, briefing detail title, briefing detail meta row, and the status notice after generating. Add a `formatWeekLabel(str)` helper in `frontend-mvp/_app.js` that converts `"week-15-2026"` → `"Week of 7 Apr 2026"` (using `Date` + `Intl.DateTimeFormat`). The week number can be converted to a Monday date via the ISO week date algorithm. Apply the helper wherever `item.week_label` or `briefing.week_label` is rendered. | `frontend-mvp/_app.js` | HIGH |
-| 30 | **Show workspace name from session in sidebar** — The sidebar `_shell.js` currently hardcodes `"ChiefRiskBot MVP"` as the workspace name in `document.getElementById('mvp-workspace-name').textContent`. The session response (`GET /api/auth/session`) returns `user.workspace_id` but not workspace name. Two options: (a) add `workspace_name` to `UserResponse` / `SessionResponse` schemas in `backend/schemas/auth.py` and populate from the `Workspace` table in the session endpoint; then render it in `updateShellUser()` in `_app.js`; OR (b) as a quick fix, derive the display name from `sessionStorage` or remove "MVP" so it just shows `"ChiefRiskBot"`. Option (a) is preferred. | `backend/schemas/auth.py`, `backend/routers/auth.py`, `frontend-mvp/_app.js` | HIGH |
-| 31 | **Fix briefing detail breadcrumb** — `initBriefingDetail()` passes `['Workspace', 'Briefings', 'Detail']` as the crumbs array to `requireSession()`. Replace the static string `'Detail'` with the loaded briefing's human-formatted week label once the briefing has loaded: after `loadBriefing()` resolves, call `window.CRBMvpShell?.updateCrumb(2, formatWeekLabel(briefing.week_label))` or re-mount the shell with updated crumbs. As a minimum viable fix, change `'Detail'` to `'Briefing'`. | `frontend-mvp/_app.js` | MEDIUM |
-
-**Tier 3 — Polish (designer's eye)**
-
-| # | Task | Files | Priority |
-|---|------|-------|----------|
-| 32 | **Auto-hide the status notice bar after success** — The green `.mvp-notice.success` banner fires on every page load (cockpit refresh, positions load, briefings load, documents load) and stays permanently visible. For success-tone notices only, add a `setTimeout(() => setStatus(node, '', ''), 3000)` after each `setStatus(…, 'success')` call in `_app.js`. Leave error notices persistent (they require user action). This affects `loadCockpit()`, `loadPositions()`, `loadBriefings()`, and `loadDocuments()`. | `frontend-mvp/_app.js` | HIGH |
-| 33 | **Disable / relabel Publish button when briefing is already published** — In `initBriefingDetail()` inside `loadBriefing()`, after rendering the briefing, check `if (briefing.status === 'published')` and set the publish button to `disabled` with label `"Published"`. On re-load after `publishBriefing()` succeeds, the same check will update it. | `frontend-mvp/_app.js` | HIGH |
-| 34 | **Use executive summary as briefing card preview text** — The briefings list cards currently show the raw first portfolio-risk entry: `"Concentration: Concentration Risk Analyst: priority risk (score 9/10)"`. In `initBriefings()` replace `briefingSummary(item.output)` with: use `item.output.executive_summary` truncated to 120 characters as the card preview. Keep `briefingSummary()` as a fallback if `executive_summary` is empty. | `frontend-mvp/_app.js` | HIGH |
-| 35 | **Filter briefings list to published by default** — The list currently shows all drafts alongside published briefings, making it look messy. In `loadBriefings()`, sort `items` so published briefings appear first, then drafts. Add a small toggle button `"Show drafts"` / `"Hide drafts"` above the list that filters the rendered cards. Default to showing published only. | `frontend-mvp/_app.js`, `frontend-mvp/briefings.html` | MEDIUM |
-| 36 | **Richer deterministic briefing fallback content** — When `ANTHROPIC_API_KEY` is absent, `backend/services/briefings.py` `_generate_briefing_deterministic()` produces placeholder copy: market context is one sentence ("Macro environment reflects current market conditions"), and risk narratives are raw agent strings. Improve the deterministic output: (1) build market context from actual `macro_cache` values (VIX, 10Y yield, DXY) — e.g. `"VIX at {vix:.1f}, 10Y at {ust10y:.2f}%, DXY at {dxy:.1f}. {risk_tone} macro backdrop for the portfolio."` (2) for each risk score, construct a prose sentence from `score.agent`, `score.severity`, and `score.score` — e.g. `"Concentration risk is elevated (score {score}/10). The portfolio's largest single holding represents an outsized share of AUM."` This makes the fallback usable in a no-API-key demo. | `backend/services/briefings.py` | MEDIUM |
-| 37 | **Fix onboarding step labels and section title** — Three copy issues in `frontend-mvp/onboarding.html` and `_app.js`: (1) the `STEP_LABELS` map in `_app.js` has `enrichment_run: 'Market enrichment and VaR ready'` — change to `'Portfolio valued & market data refreshed'`; (2) the right-column section title "DO THIS TASK" (rendered as `<div class="uplabel">DO THIS TASK</div>` in `onboarding.html`) — change to `"Actions"`; (3) the onboarding page title in `<title>` still reads "ChiefRiskBot MVP" — change to "Workspace Setup — ChiefRiskBot". | `frontend-mvp/onboarding.html`, `frontend-mvp/_app.js` | MEDIUM |
-| 38 | **Right-panel login KPI copy** — The four KPI tiles on the login right panel currently read: "7 thin MVP screens", "Live backend status", "Docs primary wedge", "FO family office-first". Replace with value-prop stats: (1) `"5 min"` / `"to first briefing"`, (2) `"15+"` / `"risk factors monitored"`, (3) `"1-click"` / `"PDF for the committee"`, (4) `"FO-first"` / `"built for family offices"`. These tiles are hardcoded in `frontend-mvp/login.html` inside `.mvp-grid.cards-4`. | `frontend-mvp/login.html` | MEDIUM |
+No pending items.
 
 ### Completed
 
@@ -535,6 +496,22 @@ Remaining issues found after seed:
 | 20 | Fix PDF export fallback behavior | `backend/services/briefings.py` and `backend/routers/briefings.py` now return a proper `503` with actionable detail when WeasyPrint system libraries are unavailable instead of writing a text fallback with a misleading `.pdf` flow. | 2026-04-08 |
 | 21 | Update login page placeholder credentials | `frontend-mvp/login.html` now uses the seeded demo credentials in the placeholders and removes the stale seeded-user subtitle copy. | 2026-04-08 |
 | 22 | Seed demo DB and verify full journey | `admin/demo/seed_demo.py` was updated to match current models/services, the real demo DB was reseeded successfully, cockpit/briefings/export/positions were verified against the seeded database, and the remaining issues were documented in `Post-seed QA`. | 2026-04-08 |
+| 23 | Fix TOTP field always visible on login | Added `[hidden] { display: none !important; }` to `frontend-mvp/_mvp.css`, restoring the hidden TOTP field behavior until login requests a challenge. | 2026-04-08 |
+| 24 | Format raw enum values throughout the UI | `frontend-mvp/_app.js` now uses a shared `formatAssetClass()` helper for cockpit allocation labels and positions table rows, and `frontend-mvp/table.html` uses product-facing asset-class labels in the form select/header. | 2026-04-08 |
+| 25 | Remove UUIDs from all user-facing strings | `frontend-mvp/_app.js` now removes snapshot UUID fragments from cockpit and positions status/meta strings, replacing them with clean copy like `Live` and `Updated just now.` | 2026-04-08 |
+| 26 | Fix `real_assets` not recognised by CSV parser | `backend/services/ingest/csv_parser.py` now preserves `real_assets`, the demo seed was rerun, and seeded cockpit QA confirmed `real_assets` appears with 3 positions (25.13% of portfolio). | 2026-04-08 |
+| 27 | Replace all developer-facing page subtitles | Updated the MVP page hero copy across cockpit, briefings, onboarding, positions, documents, and briefing detail to product-facing text and removed the briefing-detail loading subtitle. | 2026-04-08 |
+| 28 | Fix login page headline, subtitle, and footer | `frontend-mvp/login.html` now uses the ChiefRiskBot headline/subtitle, removes the developer metadata footer, and keeps the seeded demo credentials in the placeholders. | 2026-04-08 |
+| 29 | Format week codes as human dates everywhere | `frontend-mvp/_app.js` now formats ISO week labels as `Week of …` across onboarding success copy, briefing cards, breadcrumb updates, detail metadata, and briefing load status. | 2026-04-08 |
+| 30 | Show workspace name from session in sidebar | Added `workspace_name` to auth responses, populated it from the `Workspace` table in `backend/routers/auth.py`, rendered it in `frontend-mvp/_app.js`, and changed the shell fallback to `ChiefRiskBot`. | 2026-04-08 |
+| 31 | Fix briefing detail breadcrumb | `frontend-mvp/_app.js` now mounts the briefing detail page with a neutral `Briefing` crumb first, then updates the last breadcrumb to the human-formatted week label after the briefing loads. | 2026-04-08 |
+| 32 | Auto-hide the status notice bar after success | `frontend-mvp/_app.js` now auto-clears success notices after 3 seconds while leaving error notices persistent. | 2026-04-08 |
+| 33 | Disable / relabel Publish button when briefing is already published | `frontend-mvp/_app.js` now disables the publish button and relabels it to `Published` whenever the loaded briefing is already published. | 2026-04-08 |
+| 34 | Use executive summary as briefing card preview text | The briefings list now prefers a truncated executive summary for card previews, falling back to the derived risk summary only when necessary. | 2026-04-08 |
+| 35 | Filter briefings list to published by default | `frontend-mvp/_app.js` and `frontend-mvp/briefings.html` now sort published briefings first, hide drafts by default, and expose a `Show drafts` / `Hide drafts` toggle. | 2026-04-08 |
+| 36 | Richer deterministic briefing fallback content | `backend/services/briefings.py` now builds deterministic market context from macro values and renders prose findings/implications for fallback risk narratives. | 2026-04-08 |
+| 37 | Fix onboarding step labels and section title | Updated onboarding step copy in `frontend-mvp/_app.js` and changed the right-column uplabel/title copy plus `<title>` in `frontend-mvp/onboarding.html`. | 2026-04-08 |
+| 38 | Right-panel login KPI copy | `frontend-mvp/login.html` now uses value-prop KPI tiles (`5 min`, `15+`, `1-click`, `FO-first`) on the sign-in screen. | 2026-04-08 |
 
 ---
 

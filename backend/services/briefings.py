@@ -130,19 +130,58 @@ def _generate_briefing_deterministic(payload: dict) -> dict:
     scores = payload.get("risk_scores", [])
     var = payload.get("var", {})
     portfolio = payload.get("portfolio", {})
+    macro = payload.get("macro", {})
     total_aum = portfolio.get("total_aum_usd", 0)
     var_pct = var.get("var_1d_95_pct_aum", 0)
     priority = [s for s in scores if s.get("severity") == "priority"]
     elevated = [s for s in scores if s.get("severity") == "elevated"]
+
+    def deterministic_implication(agent: str) -> str:
+      implications = {
+          "concentration": "The committee should review whether the largest holdings still match the intended risk budget.",
+          "liquidity": "Near-term cash needs should be checked against the current mix of liquid and illiquid assets.",
+          "macro": "Macro sensitivity should be revisited before the next committee meeting.",
+          "fx": "Cross-currency exposures should be confirmed against the base-currency objective.",
+          "tail": "Stress scenarios should be revisited before increasing risk.",
+      }
+      return implications.get(agent, "The committee should review whether this risk is still within tolerance.")
+
+    def deterministic_finding(score: dict) -> str:
+      agent = str(score.get("agent") or "portfolio").replace("_", " ")
+      severity = str(score.get("severity") or "watch")
+      rating = score.get("score")
+      lead = f"{agent.title()} risk is {severity}"
+      if rating is not None:
+          lead += f" (score {rating}/10)."
+      else:
+          lead += "."
+      details = {
+          "concentration": "The portfolio's largest holdings account for an outsized share of AUM and deserve explicit sizing review.",
+          "liquidity": "Liquidity is uneven across holdings, with private or less-liquid assets reducing flexibility under stress.",
+          "macro": "Current macro readings suggest a cautious backdrop for rate-sensitive and cyclical exposures.",
+          "fx": "Foreign-currency positions can amplify headline moves when the dollar regime shifts.",
+          "tail": "Scenario analysis indicates the downside tail is shaped by a small set of correlated exposures.",
+      }
+      return f"{lead} {details.get(str(score.get('agent') or ''), score.get('headline') or 'The portfolio should be reviewed closely.')}"
 
     portfolio_risks = []
     for score in scores[:4]:
         portfolio_risks.append({
             "risk_area": score.get("agent", "").replace("_", " ").title(),
             "severity": score.get("severity", "watch"),
-            "finding": score.get("headline", ""),
-            "implication": score.get("reasoning", "")[:200] if score.get("reasoning") else "",
+            "finding": deterministic_finding(score),
+            "implication": deterministic_implication(str(score.get("agent") or "")),
         })
+
+    market_bits = []
+    if macro.get("vix") is not None:
+        market_bits.append(f"VIX at {float(macro['vix']):.1f}")
+    if macro.get("ust10y") is not None:
+        market_bits.append(f"10Y at {float(macro['ust10y']):.2f}%")
+    if macro.get("dxy") is not None:
+        market_bits.append(f"DXY at {float(macro['dxy']):.1f}")
+    macro_sentence = ", ".join(market_bits) if market_bits else "Macro readings are in line with the current market backdrop"
+    risk_tone = "cautious" if priority else "balanced"
 
     return {
         "executive_summary": (
@@ -150,7 +189,7 @@ def _generate_briefing_deterministic(payload: dict) -> dict:
             f"1-day 95% VaR is {var_pct:.2f}% of AUM. "
             f"{len(priority)} priority and {len(elevated)} elevated risk findings this week."
         ),
-        "market_context": "Macro environment reflects current market conditions. See risk scores for details.",
+        "market_context": f"{macro_sentence}. {risk_tone.capitalize()} macro backdrop for the portfolio.",
         "portfolio_risks": portfolio_risks,
         "recommendations": [
             "Review the highest-concentration positions before the next committee meeting.",
@@ -501,6 +540,10 @@ def _render_briefing_html(briefing: BriefingRun) -> str:
     )
 
 
+class PdfExportUnavailableError(RuntimeError):
+    pass
+
+
 def export_briefing_pdf(db: Session, briefing: BriefingRun, workspace_id: str) -> str:
     export_dir = Path("backend/runtime/storage/briefings") / workspace_id
     export_dir.mkdir(parents=True, exist_ok=True)
@@ -514,20 +557,10 @@ def export_briefing_pdf(db: Session, briefing: BriefingRun, workspace_id: str) -
         HTML(string=html_content).write_pdf(str(export_path))
         logger.info("WeasyPrint PDF written to %s", export_path)
     except Exception as exc:
-        logger.error("WeasyPrint failed: %s — writing plain-text fallback", exc)
-        # Fallback: write plain text if WeasyPrint fails (e.g., missing system fonts)
-        body = json.loads(briefing.output_json)
-        content = "\n".join(
-            [
-                f"Headline: {body.get('headline', '')}",
-                f"\nExecutive Summary:\n{body.get('executive_summary', '')}",
-                f"\nMarket Context:\n{body.get('market_context', '')}",
-                "\nRecommendations:",
-                *[f"- {rec}" for rec in body.get("recommendations", [])],
-            ]
-        )
-        export_path = export_dir / f"{briefing.id}_v{briefing.version}.txt"
-        export_path.write_bytes(content.encode("utf-8"))
+        logger.error("WeasyPrint failed: %s", exc)
+        raise PdfExportUnavailableError(
+            "PDF export unavailable — WeasyPrint system libraries not installed"
+        ) from exc
 
     briefing.pdf_path = str(export_path)
     db.flush()

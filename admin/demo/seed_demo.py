@@ -11,7 +11,7 @@ runs VaR and risk analysis, and generates a published briefing — so the
 demo starts at the cockpit with real data already loaded.
 
 Demo credentials:
-    email:    cio@demo.chiefrisksbot.com
+    email:    cio@demo.chiefriskbot.com
     password: DemoPass2026!
 """
 from __future__ import annotations
@@ -21,6 +21,8 @@ import io
 import json
 import os
 import sys
+from dataclasses import asdict
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Run from repo root so backend imports resolve
@@ -32,19 +34,18 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///backend/runtime/chiefriskbot.db
 os.environ.setdefault("SECRET_KEY", "demo-secret-key-please-change-in-production!")
 os.environ.setdefault("ENVIRONMENT", "development")
 
+from sqlalchemy import delete, select  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from backend.database import Base, engine, SessionLocal  # noqa: E402
-from backend.models.auth import User, UserSession, ApiKey  # noqa: E402
-from backend.models.core import Workspace, WorkspaceSettings  # noqa: E402
-from backend.models.portfolio import PortfolioSnapshot, Position  # noqa: E402
+from backend.models.auth import ApiKey, AuthChallenge, PasswordResetToken, User, UserSession, WorkspaceSetting  # noqa: E402
+from backend.models.portfolio import PortfolioSnapshot, Position, Workspace  # noqa: E402
 from backend.models.analytics import PriceCache, FxCache, MacroCache, VarResult, RiskScore, RiskFlag  # noqa: E402
 from backend.models.content import BriefingRun  # noqa: E402
 from backend.models.onboarding import OnboardingProgress  # noqa: E402
 from backend.services.auth.password import hash_password  # noqa: E402
-from backend.services.ingest.csv_parser import parse_csv  # noqa: E402
-from backend.services.portfolio import summarize_positions  # noqa: E402
-from backend.services.enrichment import run_enrichment  # noqa: E402
+from backend.services.ingest.csv_parser import parse_csv_upload  # noqa: E402
+from backend.services.enrichment import ensure_enrichment_for_positions  # noqa: E402
 from backend.services.var import compute_var_for_snapshot  # noqa: E402
 from backend.services.risk import run_risk_analysis  # noqa: E402
 from backend.services.briefings import generate_briefing, export_briefing_pdf  # noqa: E402
@@ -57,7 +58,7 @@ DEMO_CSV = ROOT / "admin" / "demo" / "demo_portfolio.csv"
 
 def wipe_demo_workspace(db: Session, workspace_id: str) -> None:
     """Remove all rows tied to an existing demo workspace so we can reseed cleanly."""
-    from sqlalchemy import delete
+    user_ids = db.scalars(select(User.id).where(User.workspace_id == workspace_id)).all()
 
     for model in [
         BriefingRun,
@@ -65,20 +66,20 @@ def wipe_demo_workspace(db: Session, workspace_id: str) -> None:
         RiskScore,
         VarResult,
         MacroCache,
-        FxCache,
-        PriceCache,
         Position,
         PortfolioSnapshot,
         OnboardingProgress,
         ApiKey,
-        UserSession,
-        User,
-        WorkspaceSettings,
+        WorkspaceSetting,
     ]:
         db.execute(delete(model).where(model.workspace_id == workspace_id))  # type: ignore[attr-defined]
 
-    from backend.models.core import Workspace as WS
-    db.execute(delete(WS).where(WS.id == workspace_id))
+    if user_ids:
+        db.execute(delete(UserSession).where(UserSession.user_id.in_(user_ids)))
+        db.execute(delete(AuthChallenge).where(AuthChallenge.user_id.in_(user_ids)))
+        db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id.in_(user_ids)))
+    db.execute(delete(User).where(User.workspace_id == workspace_id))
+    db.execute(delete(Workspace).where(Workspace.id == workspace_id))
     db.commit()
     print(f"  Wiped existing workspace {workspace_id}")
 
@@ -111,13 +112,16 @@ def main() -> None:
         db.add(workspace)
         db.flush()
 
-        settings = WorkspaceSettings(
+        now = datetime.now(timezone.utc)
+
+        settings = WorkspaceSetting(
             workspace_id=workspace_id,
             briefing_day="friday",
             briefing_time="07:00",
             briefing_recipients=DEMO_EMAIL,
             briefing_auto_publish=True,
             briefing_send_pdf=True,
+            updated_at=now,
         )
         db.add(settings)
 
@@ -136,15 +140,16 @@ def main() -> None:
         # --- Onboarding ---
         onboarding = OnboardingProgress(
             workspace_id=workspace_id,
-            current_step="briefing_generated",
-            completed_steps=json.dumps([
+            current_step=5,
+            completed_steps_json=json.dumps([
                 "workspace_created",
                 "portfolio_uploaded",
                 "enrichment_run",
                 "risk_run",
                 "briefing_generated",
             ]),
-            is_complete=True,
+            total_steps=5,
+            completed_at=now,
         )
         db.add(onboarding)
         db.commit()
@@ -153,14 +158,16 @@ def main() -> None:
 
         # --- Portfolio snapshot from CSV ---
         print("  Ingesting demo portfolio...")
-        csv_text = DEMO_CSV.read_text()
-        rows = parse_csv(io.StringIO(csv_text))
+        csv_payload = DEMO_CSV.read_bytes()
+        _, parsed_rows, warnings = parse_csv_upload(DEMO_CSV.name, "text/csv", csv_payload)
+        rows = [asdict(row) for row in parsed_rows]
         snapshot_id = str(uuid.uuid4())
         snapshot = PortfolioSnapshot(
             id=snapshot_id,
             workspace_id=workspace_id,
-            label="Demo Portfolio — Whitmore Family Office",
+            uploaded_by=user_id,
             source="csv_upload",
+            source_ref="admin/demo/demo_portfolio.csv",
             is_current=True,
             position_count=len(rows),
             total_aum_usd=sum(r.get("market_value_usd", 0) for r in rows),
@@ -177,13 +184,17 @@ def main() -> None:
             db.add(pos)
         db.commit()
         print(f"  Snapshot created: {len(rows)} positions, ${snapshot.total_aum_usd:,.0f} AUM")
+        if warnings:
+            print(f"  CSV warnings: {len(warnings)}")
 
         # Reload snapshot after commit
         snapshot = db.get(PortfolioSnapshot, snapshot_id)
+        positions = db.query(Position).filter(Position.snapshot_id == snapshot_id).all()
 
         # --- Enrichment ---
         print("  Running market enrichment (yfinance/FRED or deterministic fallback)...")
-        run_enrichment(db, snapshot)
+        ensure_enrichment_for_positions(db, workspace_id, positions)
+        snapshot.enriched_at = datetime.now(timezone.utc)
         db.commit()
         print("  Enrichment complete")
 

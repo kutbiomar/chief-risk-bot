@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import io
 
+from fastapi import status
 from fastapi.testclient import TestClient
 from openpyxl import Workbook
 from sqlalchemy.orm import Session
 
+from backend.services.briefings import PdfExportUnavailableError
 from backend.tests.test_auth import seed_user
 
 
@@ -89,12 +91,14 @@ def test_briefings_settings_api_keys_and_documents_flow(client: TestClient, db_s
     assert "recommendations" in output
     assert client.post(f"/api/briefings/{briefing_id}/publish").status_code == 200
     export = client.get(f"/api/briefings/{briefing_id}/export/pdf")
-    assert export.status_code == 200
-    assert "attachment;" in export.headers["content-disposition"]
-    assert f"week-15-2026_v1" in export.headers["content-disposition"]
-    assert len(export.content) > 0
-    if export.headers["content-type"].startswith("text/plain"):
-        assert "Executive Summary" in export.text
+    assert export.status_code in {200, status.HTTP_503_SERVICE_UNAVAILABLE}
+    if export.status_code == 200:
+        assert "attachment;" in export.headers["content-disposition"]
+        assert f"week-15-2026_v1" in export.headers["content-disposition"]
+        assert export.headers["content-type"].startswith("application/pdf")
+        assert len(export.content) > 0
+    else:
+        assert export.json()["detail"] == "PDF export unavailable — WeasyPrint system libraries not installed"
 
     document = client.post(
         "/api/documents/upload",
@@ -128,8 +132,43 @@ def test_briefings_settings_api_keys_and_documents_flow(client: TestClient, db_s
     assert docs.json()["folder_counts"]["custodian_statements"] == 1
     assert client.delete(f"/api/documents/{document_id}").status_code == 200
 
+    broken_pdf = client.post(
+        "/api/documents/upload",
+        data={"folder": "custodian_statements"},
+        files={"file": ("broken.pdf", b"%PDF-1.4\nnot really a pdf", "application/pdf")},
+    )
+    assert broken_pdf.status_code == 200
+    broken_parse = client.post(f"/api/documents/{broken_pdf.json()['id']}/parse")
+    assert broken_parse.status_code == 400
+    assert broken_parse.json()["detail"] == (
+        "Unable to parse this PDF - it may be corrupted, password-protected, or not a valid PDF."
+    )
+
     revoke = client.delete(f"/api/settings/api-keys/{key_id}")
     assert revoke.status_code == 200
+
+
+def test_briefing_export_returns_503_when_pdf_backend_is_unavailable(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    bootstrap_portfolio(client, db_session, email="phasecd3@example.com")
+    assert client.post("/api/var/compute").status_code == 200
+    assert client.post("/api/risk/run").status_code == 200
+
+    briefing = client.post("/api/briefings/generate")
+    assert briefing.status_code == 200
+    briefing_id = briefing.json()["id"]
+
+    def fail_export(*_args, **_kwargs):
+        raise PdfExportUnavailableError("PDF export unavailable — WeasyPrint system libraries not installed")
+
+    monkeypatch.setattr("backend.routers.briefings.export_briefing_pdf", fail_export)
+
+    export = client.get(f"/api/briefings/{briefing_id}/export/pdf")
+    assert export.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+    assert export.json()["detail"] == "PDF export unavailable — WeasyPrint system libraries not installed"
 
 
 def test_position_mutations_target_the_correct_duplicate_ticker_row(client: TestClient, db_session: Session) -> None:

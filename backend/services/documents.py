@@ -87,6 +87,12 @@ DEFAULT_EXTRACTED_ROW = {
     "notes": "Manual review required",
 }
 
+FRIENDLY_PARSE_ERRORS = {
+    "pdf": "Unable to parse this PDF - it may be corrupted, password-protected, or not a valid PDF.",
+    "docx": "Unable to parse this DOCX file - it may be corrupted, password-protected, or not a valid Word document.",
+    "xlsx": "Unable to parse this XLSX file - it may be corrupted, password-protected, or not a valid Excel workbook.",
+}
+
 
 def _normalize_text(value: object) -> str | None:
     if value is None:
@@ -329,17 +335,23 @@ def _extract_positions_from_rows(rows: list[list[str]]) -> tuple[list[dict[str, 
 def parse_document(db: Session, document: Document) -> ExtractionResult:
     payload = Path(document.storage_path).read_bytes()
 
-    try:
-        if document.file_type == "pdf":
+    if document.file_type == "pdf":
+        try:
             raw_text, rows, page_count = _extract_pdf(payload)
-        elif document.file_type == "docx":
+        except Exception as exc:
+            raise ValueError(FRIENDLY_PARSE_ERRORS["pdf"]) from exc
+    elif document.file_type == "docx":
+        try:
             raw_text, rows, page_count = _extract_docx(payload)
-        elif document.file_type == "xlsx":
+        except Exception as exc:
+            raise ValueError(FRIENDLY_PARSE_ERRORS["docx"]) from exc
+    elif document.file_type == "xlsx":
+        try:
             raw_text, rows, page_count = _extract_xlsx(payload)
-        else:
-            raise ValueError("Unsupported document type")
-    except Exception as exc:
-        raise ValueError(f"Document extraction failed: {exc}") from exc
+        except Exception as exc:
+            raise ValueError(FRIENDLY_PARSE_ERRORS["xlsx"]) from exc
+    else:
+        raise ValueError("Unsupported document type")
 
     raw_text, truncated = _truncate_text(raw_text)
     positions, confidence = _extract_positions_from_rows(rows)

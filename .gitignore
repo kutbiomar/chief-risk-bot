@@ -14,3 +14,4 @@ __pycache__/
 backend/runtime/storage/
 uploads/
 frontend-design-ideal/.gstack/
+.gstack/
