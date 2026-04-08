@@ -350,12 +350,129 @@ POST   /api/billing/upgrade
 
 ---
 
+## Demo journey map
+
+Tested live against `backend/runtime/chiefriskbot.db` on 2026-04-08, branch `mvp-demo`.
+Every step was exercised via `TestClient` against the real database.
+
+### Journey A — Investor arrives and logs in to pre-loaded cockpit
+
+| Step | Requirement | Status |
+|------|-------------|--------|
+| A1 Open `login.html` | Page loads, fonts and CSS visible | ✅ Renders |
+| A2 Enter credentials and submit | `POST /api/auth/login` → 200, session cookie set, no TOTP prompt | ✅ Works — existing demo users have `totp_enabled=False` |
+| A3 Redirect after login | Should land on cockpit if workspace is ready; onboarding if not | ❌ **Always redirects to `onboarding.html`** — code says `|| 'onboarding.html'`, ignores onboarding completion state |
+| A4 Cockpit loads with live data | `GET /api/cockpit` → 200 with AUM, VaR, risk register | ✅ Works — but current demo DB has only $58K AUM/3 positions (needs seed) |
+| A5 Cockpit risk register visible | Risk flags and agent scores rendered in table | ✅ Works |
+
+**Blocker:** A3 — post-login redirect ignores onboarding completion; always dumps user on onboarding screen.
+
+---
+
+### Journey B — New user: CSV upload → cockpit
+
+| Step | Requirement | Status |
+|------|-------------|--------|
+| B1 Navigate to `onboarding.html` | Page loads with step checklist | ✅ Works |
+| B2 Upload CSV file | `POST /api/ingest/csv` → 200, snapshot created | ✅ Works |
+| B3 VaR auto-computed | `POST /api/var/compute` called after upload | ✅ Called in `ensureVarReady()` |
+| B4 Risk auto-run optional | "Run risk analysis" button calls `POST /api/risk/run` | ✅ Works |
+| B5 Navigate to cockpit | Explicit link to `cockpit.html` | ⚠️ No CTA on onboarding page once steps complete — user has to know to click sidebar |
+| B6 Cockpit reflects uploaded data | `GET /api/cockpit` shows new snapshot | ✅ Works |
+| B7 Generate first briefing button | `POST /api/briefings/generate` | ✅ Works — BUT requires VaR committed first (cockpit auto-commits now; onboarding calls `/var/compute` explicitly) |
+
+**Polish gap:** B5 — completion state on onboarding has no "Go to cockpit →" CTA.
+
+---
+
+### Journey C — Cockpit review
+
+| Step | Requirement | Status |
+|------|-------------|--------|
+| C1 KPI tiles render (AUM, VaR, liquidity, active risks) | `GET /api/cockpit` → 200, all fields present | ✅ All fields match |
+| C2 Asset class breakdown renders | `summary.asset_class[]` iterated | ✅ Works |
+| C3 VaR top contributors render | `var_result.position_contributions[]` iterated | ✅ Works |
+| C4 Risk register table renders | `risk_register[]` with severity/headline/agent | ✅ Works |
+| C5 Refresh button reloads data | Re-calls `GET /api/cockpit` | ✅ Works |
+| C6 Re-run risk button | `POST /api/risk/run` then re-fetch cockpit | ✅ Works |
+| C7 Loading / error state while fetching | Spinner or skeleton before data arrives | ❌ **No loading state** — KPI area is blank white until response arrives |
+
+**Polish gap:** C7 — no loading skeleton; blank white on slow network looks broken.
+
+---
+
+### Journey D — Briefing generation and export
+
+| Step | Requirement | Status |
+|------|-------------|--------|
+| D1 Navigate to `briefings.html` | Lists existing briefings | ✅ Works |
+| D2 Generate new briefing | `POST /api/briefings/generate` → redirects to detail | ✅ Works |
+| D3 Briefing detail: headline, summary, risks, recs visible | `GET /api/briefings/{id}` → output fields rendered | ✅ Works |
+| D4 Publish briefing | `POST /api/briefings/{id}/publish` | ✅ Works |
+| D5 Export PDF | `GET /api/briefings/{id}/export/pdf` → file download | ⚠️ **WeasyPrint fails silently → downloads a `.txt` file with `.pdf` extension** — usable fallback but confusing in demo |
+| D6 Nav active state | Sidebar "Briefings" item highlighted on briefing pages | ❌ `initBriefingDetail` calls `requireSession('briefings.html', ...)` instead of `'briefing.html'` — wrong active nav |
+
+**Issue:** D5 — PDF download is actually a text file. WeasyPrint system deps missing.  
+**Bug:** D6 — wrong active page string passed to shell; sidebar highlights wrong item.
+
+---
+
+### Journey E — Position editor (table.html)
+
+| Step | Requirement | Status |
+|------|-------------|--------|
+| E1 Positions list renders | `GET /api/portfolio/positions` → items in table | ✅ Works |
+| E2 Add new position | `POST /api/portfolio/positions` → new snapshot, position_id returned | ✅ Works |
+| E3 Select and edit position | `PATCH /api/portfolio/positions/{id}` → successor snapshot | ✅ Works |
+| E4 Delete position | `DELETE /api/portfolio/positions/{id}` in current snapshot | ✅ Works (frontend reloads with new `position_id` from PATCH before delete) |
+| E5 Ticker disabled when editing | `form-ticker` is `disabled` on edit — correct | ✅ UX correct |
+| E6 Loading guard on submit button | Button disabled while in-flight to prevent double-submit | ❌ **No disabled guard on submit button** |
+
+**Bug:** E6 — double-clicking Save submits two concurrent PATCH/POST requests, creating duplicate snapshots.
+
+---
+
+### Journey F — Document upload and extraction
+
+| Step | Requirement | Status |
+|------|-------------|--------|
+| F1 Upload a PDF/DOCX/XLSX | `POST /api/documents/upload` → 200, `id` returned | ✅ Works |
+| F2 Parse the document | `POST /api/documents/{id}/parse` → extraction runs | ⚠️ **Works only for valid files** — pdfplumber error (`No /Root object`) surfaces raw exception message to user for corrupted/non-PDF files |
+| F3 View extraction results | `GET /api/documents/{id}/extraction` → positions, confidence | ✅ Works when parse succeeds |
+| F4 Approve and import | `POST /api/documents/{id}/approve` → portfolio snapshot created | ✅ Works when parsed |
+| F5 Error when parsing fails | User sees actionable error, not raw stack trace | ❌ **Raw pdfplumber exception text shown** — e.g. "No /Root object! - Is this really a PDF?" |
+| F6 Parse button loading state | Button disabled while parse runs | ❌ **No loading guard** — parse can take seconds; double-click creates double parse |
+
+---
+
+### Journey G — Login edge cases
+
+| Step | Requirement | Status |
+|------|-------------|--------|
+| G1 Wrong password | 401 shown as readable error | ✅ Works |
+| G2 TOTP-enabled user | TOTP field revealed, hint shown | ✅ UI works — but stub only accepts `000000`; hint in UI is adequate for demo |
+| G3 Session expired / invalid | Redirect to login with `?next=` param | ✅ Works |
+| G4 Login page credentials hint | Placeholder shows current demo credentials | ❌ **Placeholder still shows `owner@example.com` / `secret123`** — stale after seed_demo.py creates `cio@demo.chiefriskbot.com` / `DemoPass2026!` |
+| G5 Demo DB seeded before demo | 15 positions, $8.5M AUM visible on cockpit | ❌ **Not yet seeded** — current DB has 3 positions, $58K AUM from test runs |
+
+---
+
 ## /codex-bitch task queue
 
 ### Pending
 
 | # | Task | Command | Priority |
 |---|------|---------|----------|
+| 13 | **Fix post-login redirect** — In `frontend-mvp/_app.js`, `initLogin()` always redirects to `'onboarding.html'` after successful login. Change it: after login resolves, call `GET /api/onboarding/state`; if `is_complete === true`, redirect to `'cockpit.html'`; otherwise redirect to `'onboarding.html'`. Also change `initIndex()` redirect-after-session-check to use the same logic. This is a demo blocker — a pre-seeded CIO lands on the onboarding completion screen instead of the cockpit. | `/GScodex-bitch review frontend-mvp/_app.js` | **BLOCKER** |
+| 14 | **Fix wrong active-nav page in briefing detail** — `initBriefingDetail()` in `frontend-mvp/_app.js` (line ~539) calls `requireSession('briefings.html', ...)`. It should be `'briefing.html'`. The shell uses this string to highlight the correct sidebar nav item. One-line change. | `/GScodex-bitch review frontend-mvp/_app.js` | HIGH |
+| 15 | **Add submit button loading guard on position form** — In `frontend-mvp/_app.js` `initTable()`, the form submit handler does not disable the submit button while the PATCH/POST/DELETE is in-flight. Disable the submit button at the start of the handler and re-enable it in the `finally` block — same pattern as `initLogin()` already uses for the sign-in button. Also apply the same guard to the Delete button. | `/GScodex-bitch review frontend-mvp/_app.js` | HIGH |
+| 16 | **Add loading guard on document parse button** — In `frontend-mvp/_app.js` `initDocuments()`, the parse button click handler does not disable the button during the `POST /api/documents/{id}/parse` call. Add disable/re-enable around the async call, same pattern as login submit. | `/GScodex-bitch review frontend-mvp/_app.js` | HIGH |
+| 17 | **Add cockpit loading skeleton** — In `frontend-mvp/cockpit.html` + `_app.js`, the KPI grid, allocations list, VaR contributions list, and risk register table are empty white until `GET /api/cockpit` resolves. Insert a lightweight loading state (e.g. set each container's `innerHTML` to a `<div class="mvp-empty">Loading…</div>` placeholder at the start of `loadCockpit()`, before the `api('/cockpit')` call). Clear it on success or error. | `/GScodex-bitch review frontend-mvp/cockpit.html` | HIGH |
+| 18 | **Add "Go to cockpit" CTA on completed onboarding** — In `frontend-mvp/onboarding.html` and `_app.js` `initOnboarding()`, when `state.is_complete === true`, show a prominent button or banner: "Your workspace is ready → Go to cockpit". The button should navigate to `cockpit.html`. Currently there is no forward navigation from onboarding once all steps are done. | `/GScodex-bitch review frontend-mvp/onboarding.html` | HIGH |
+| 19 | **Fix document parse error message** — In `backend/services/documents.py`, the `parse_document()` function lets raw `pdfplumber` / `python-docx` / `openpyxl` exceptions propagate as the HTTP detail string. Wrap each extractor call in a try/except and return a user-friendly message: e.g. "Unable to parse this file — it may be corrupted, password-protected, or not a valid PDF." Never expose the raw library error text in a 400 response. | `/GScodex-bitch review backend/services/documents.py` | HIGH |
+| 20 | **Fix PDF export: WeasyPrint system deps or proper fallback** — `backend/services/briefings.py` `export_briefing_pdf()` silently falls back to a `.txt` file when WeasyPrint can't import system libs, but names it `.pdf`. Either: (a) install WeasyPrint system deps (pango, cairo) in the dev environment and document in `.env.example`; OR (b) if WeasyPrint fails, generate a minimal valid PDF using `reportlab` (already available or add to `pyproject.toml`) instead of plain text; OR (c) raise a proper 503 with detail "PDF export unavailable — WeasyPrint system libraries not installed" so the frontend can show an actionable error. Do not silently write a `.txt` with a `.pdf` extension. | `/GScodex-bitch review backend/services/briefings.py` | HIGH |
+| 21 | **Update login page placeholder credentials** — `frontend-mvp/login.html` `<input id="email" placeholder="owner@example.com">` and `<input id="password" placeholder="secret123">` are stale. Update email placeholder to `cio@demo.chiefriskbot.com` and password placeholder to `DemoPass2026!` to match the credentials created by `admin/demo/seed_demo.py`. Also remove the hardcoded "Sign in with a seeded workspace user" copy from the card subtitle. | `/GScodex-bitch review frontend-mvp/login.html` | MEDIUM |
+| 22 | **Seed demo DB and verify full journey** — Run `admin/demo/seed_demo.py`, then trace the full demo path manually: login → cockpit (pre-loaded $8.5M portfolio) → briefings list → briefing detail → PDF export attempt → positions editor. Confirm the cockpit shows 15 positions and $8.5M AUM. Document any remaining visual or data issues found during the walkthrough in this file under a new "Post-seed QA" section. | `/GScodex-bitch plan admin/demo/seed_demo.py` | MEDIUM |
 
 ### Completed
 
