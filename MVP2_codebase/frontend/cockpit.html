@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Cockpit — ChiefRiskBot MVP2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="_mvp.css"/>
+  <script src="_app.js" defer></script>
+</head>
+<body data-page="cockpit">
+  <div class="app-shell" id="app-shell">
+    <main class="content">
+      <div class="hero">
+        <div>
+          <h2>Portfolio cockpit</h2>
+          <p>The weekly operating view: commitments, capital calls, active alerts, and the next stretch of the liquidity ladder.</p>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="refresh-cockpit" type="button">Refresh</button>
+        </div>
+      </div>
+      <div id="cockpit-status" class="notice" hidden></div>
+      <div id="cockpit-kpis" class="kpi-row"></div>
+      <div class="grid two">
+        <section class="card">
+          <div class="card-header"><h3>Fund shape</h3><p>Committed capital by strategy bucket.</p></div>
+          <div class="card-body" id="cockpit-allocation"></div>
+        </section>
+        <section class="card">
+          <div class="card-header"><h3>Upcoming calls</h3><p>The next capital obligations currently on record.</p></div>
+          <div class="card-body" id="cockpit-calls"></div>
+        </section>
+      </div>
+      <div class="grid two">
+        <section class="card">
+          <div class="card-header"><h3>Alerts</h3><p>Deterministic issues needing review.</p></div>
+          <div class="card-body" id="cockpit-alerts"></div>
+        </section>
+        <section class="card">
+          <div class="card-header"><h3>Liquidity ladder</h3><p>First eight months of base-case cash flow.</p></div>
+          <div class="card-body" id="cockpit-liquidity"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

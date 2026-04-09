@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from backend.deps import get_db
 from backend.models.content import BriefingRun
 from backend.models.portfolio import PortfolioSnapshot
-from backend.routers.auth import require_session
+from backend.routers.auth import require_cookie_csrf, require_session
 from backend.schemas.auth import MessageResponse
 from backend.schemas.content import BriefingListResponse, BriefingResponse
 from backend.services.auth.session import utc_now
@@ -34,7 +34,7 @@ def _serialize(briefing: BriefingRun) -> BriefingResponse:
     )
 
 
-@router.post("/generate", response_model=BriefingResponse)
+@router.post("/generate", response_model=BriefingResponse, dependencies=[Depends(require_cookie_csrf)])
 def generate(
     auth=Depends(require_session),
     db: Session = Depends(get_db),
@@ -59,6 +59,8 @@ def generate(
 
 @router.get("", response_model=BriefingListResponse)
 def list_briefings(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     auth=Depends(require_session),
     db: Session = Depends(get_db),
 ) -> BriefingListResponse:
@@ -66,7 +68,7 @@ def list_briefings(
     items = db.scalars(
         select(BriefingRun).where(BriefingRun.workspace_id == user.workspace_id).order_by(BriefingRun.created_at.desc())
     ).all()
-    return BriefingListResponse(items=[_serialize(item) for item in items])
+    return BriefingListResponse(items=[_serialize(item) for item in items[offset : offset + limit]])
 
 
 @router.get("/{briefing_id}", response_model=BriefingResponse)
@@ -82,7 +84,11 @@ def get_briefing(
     return _serialize(briefing)
 
 
-@router.post("/{briefing_id}/publish", response_model=MessageResponse)
+@router.post(
+    "/{briefing_id}/publish",
+    response_model=MessageResponse,
+    dependencies=[Depends(require_cookie_csrf)],
+)
 def publish_briefing(
     briefing_id: str,
     auth=Depends(require_session),

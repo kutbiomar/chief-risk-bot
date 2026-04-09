@@ -10,6 +10,7 @@ from backend.deps import get_db
 from backend.models.analytics import FxCache, MacroCache, PriceCache
 from backend.models.portfolio import PortfolioSnapshot, Position
 from backend.routers.auth import require_session
+from backend.services.enrichment import _load_price_cache_map, ensure_enrichment_for_positions
 
 router = APIRouter(prefix="/market", tags=["market"])
 
@@ -33,13 +34,17 @@ def get_market_prices(
     if snapshot is None:
         return []
 
+    positions = db.scalars(select(Position).where(Position.snapshot_id == snapshot.id)).all()
+    ensure_enrichment_for_positions(db, user.workspace_id, positions)
+    db.flush()
     tickers = db.scalars(
         select(Position.ticker).where(Position.snapshot_id == snapshot.id).distinct()
     ).all()
+    price_cache = _load_price_cache_map(db, set(tickers))
 
     rows = []
     for ticker in tickers:
-        cache = db.get(PriceCache, ticker)
+        cache = price_cache.get(ticker)
         if cache:
             rows.append(
                 {
@@ -90,10 +95,13 @@ def get_movers(
     positions = db.scalars(
         select(Position).where(Position.snapshot_id == snapshot.id)
     ).all()
+    ensure_enrichment_for_positions(db, user.workspace_id, positions)
+    db.flush()
+    price_cache = _load_price_cache_map(db, {pos.ticker for pos in positions})
 
     movers = []
     for pos in positions:
-        cache = db.get(PriceCache, pos.ticker)
+        cache = price_cache.get(pos.ticker)
         daily_return = cache.daily_return_usd if cache else 0.0
         market_value = float(pos.market_value_usd or 0)
         daily_pnl = market_value * (daily_return or 0.0)

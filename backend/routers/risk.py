@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from backend.deps import get_db
 from backend.models.analytics import RiskFlag, RiskScore
 from backend.models.portfolio import PortfolioSnapshot
-from backend.routers.auth import require_session
+from backend.routers.auth import require_cookie_csrf, require_session
 from backend.schemas.analytics import RiskFlagResponse, RiskRunResponse, RiskScoreResponse
 from backend.services.risk import run_risk_analysis
 
@@ -44,7 +44,7 @@ def _serialize_flag(flag: RiskFlag) -> RiskFlagResponse:
     )
 
 
-@router.post("/run", response_model=RiskRunResponse)
+@router.post("/run", response_model=RiskRunResponse, dependencies=[Depends(require_cookie_csrf)])
 def run_risk(
     auth=Depends(require_session),
     db: Session = Depends(get_db),

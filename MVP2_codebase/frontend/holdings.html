@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Holdings — ChiefRiskBot MVP2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="_mvp.css"/>
+  <script src="_app.js" defer></script>
+</head>
+<body data-page="holdings">
+  <div class="app-shell" id="app-shell">
+    <main class="content">
+      <div class="hero">
+        <div>
+          <h2>Holdings look-through</h2>
+          <p>Inspect the current holdings set by asset type, geography, and sector, then review raw rows for missing classifications.</p>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="refresh-holdings" type="button">Refresh</button>
+        </div>
+      </div>
+      <div id="holdings-status" class="notice" hidden></div>
+      <section class="card">
+        <div class="card-header"><h3>Add holding</h3><p>Manual look-through or direct holding entry.</p></div>
+        <div class="card-body">
+          <form id="holding-form" class="form">
+            <div class="form-grid">
+              <div class="field"><label for="holding-name">Asset name</label><input id="holding-name" required/></div>
+              <div class="field"><label for="holding-type">Asset type</label><input id="holding-type" placeholder="equity" required/></div>
+              <div class="field"><label for="holding-geo">Geography</label><input id="holding-geo" placeholder="North America"/></div>
+              <div class="field"><label for="holding-sector">Sector</label><input id="holding-sector" placeholder="Technology"/></div>
+              <div class="field"><label for="holding-value">Current value</label><input id="holding-value" type="number" min="0" step="0.01"/></div>
+              <div class="field"><label for="holding-date">Value date</label><input id="holding-date" type="date"/></div>
+            </div>
+            <button class="btn primary" type="submit">Add Holding</button>
+          </form>
+        </div>
+      </section>
+      <div id="holdings-kpis" class="kpi-row"></div>
+      <div class="grid three">
+        <section class="card">
+          <div class="card-header"><h3>By asset type</h3><p>Top current value buckets.</p></div>
+          <div class="card-body" id="holdings-asset-class"></div>
+        </section>
+        <section class="card">
+          <div class="card-header"><h3>By geography</h3><p>Region-level distribution.</p></div>
+          <div class="card-body" id="holdings-geo"></div>
+        </section>
+        <section class="card">
+          <div class="card-header"><h3>By sector</h3><p>Useful for concentration cleanup.</p></div>
+          <div class="card-body" id="holdings-sector"></div>
+        </section>
+      </div>
+      <section class="card">
+        <div class="card-header"><h3>Holdings table</h3><p>Detailed rows behind the aggregated views.</p></div>
+        <div class="card-body" id="holdings-table"></div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

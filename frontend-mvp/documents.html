@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
-  <link rel="stylesheet" href="../_shell.css"/>
+  <link rel="stylesheet" href="../frontend-design-ideal/_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
@@ -48,6 +48,8 @@
                     <label for="upload-document-folder">Folder</label>
                     <select id="upload-document-folder">
                       <option value="custodian_statements">custodian_statements</option>
+                      <option value="capital_calls">capital_calls</option>
+                      <option value="distribution_notices">distribution_notices</option>
                       <option value="private_equity">private_equity</option>
                       <option value="real_estate">real_estate</option>
                     </select>
@@ -60,6 +62,7 @@
                 <div class="mvp-form-actions" style="justify-content:flex-start">
                   <button class="btn primary" type="submit"><span class="ms">upload</span>Upload</button>
                   <button id="parse-document" class="btn" type="button"><span class="ms">analytics</span>Parse</button>
+                  <button id="save-document-review" class="btn" type="button"><span class="ms">fact_check</span>Save review</button>
                   <button id="approve-document" class="btn" type="button"><span class="ms">task_alt</span>Approve into portfolio</button>
                 </div>
               </form>

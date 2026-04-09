@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
-  <link rel="stylesheet" href="../_shell.css"/>
+  <link rel="stylesheet" href="../frontend-design-ideal/_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
@@ -38,15 +38,19 @@
             </div>
             <div class="mvp-card-body" style="padding:0">
               <div class="mvp-table-wrap">
-                <table class="mvp-table">
+                <table class="mvp-table is-clickable">
                   <thead>
                     <tr>
                       <th>Ticker</th>
                       <th>Name</th>
-                      <th class="num">Quantity</th>
-                      <th class="num">Market value</th>
-                      <th>Asset class</th>
-                      <th>Custodian</th>
+                      <th>Factor Asset</th>
+                      <th>Factor Sector</th>
+                      <th>Subsector</th>
+                      <th>Market Segment</th>
+                      <th>Country</th>
+                      <th>Region</th>
+                      <th>Tag Source</th>
+                      <th>Confidence</th>
                     </tr>
                   </thead>
                   <tbody id="positions-body"></tbody>
@@ -107,6 +111,43 @@
                   <div class="mvp-field">
                     <label for="form-custodian">Custodian</label>
                     <input id="form-custodian"/>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="form-factor-asset-class">Factor asset class</label>
+                    <input id="form-factor-asset-class"/>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="form-factor-sector">Factor sector</label>
+                    <input id="form-factor-sector"/>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="form-factor-subsector">Factor subsector</label>
+                    <input id="form-factor-subsector"/>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="form-factor-market-segment">Factor market segment</label>
+                    <input id="form-factor-market-segment"/>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="form-factor-country">Factor country</label>
+                    <input id="form-factor-country"/>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="form-factor-region">Factor region</label>
+                    <input id="form-factor-region"/>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="form-factor-tag-source">Tag source</label>
+                    <select id="form-factor-tag-source">
+                      <option value="">Unset</option>
+                      <option value="manual">manual</option>
+                      <option value="extracted">extracted</option>
+                      <option value="inferred">inferred</option>
+                    </select>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="form-factor-tag-confidence">Tag confidence</label>
+                    <input id="form-factor-tag-confidence" type="number" min="0" max="1" step="0.01"/>
                   </div>
                 </div>
                 <div class="mvp-field">

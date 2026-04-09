@@ -26,8 +26,8 @@ from backend.services.auth.password import hash_password, verify_password
 from backend.services.auth.session import (
     CSRF_COOKIE_NAME,
     SESSION_COOKIE_NAME,
-    create_session,
     ensure_utc,
+    create_session,
     get_session_by_token,
     make_opaque_token,
     sha256_hex,
@@ -100,12 +100,11 @@ def _resolve_api_key_user(db: Session, raw_token: str) -> Optional[User]:
         return None
 
     user = db.scalar(
-        select(User)
-        .where(
+        select(User).where(
+            User.id == key.user_id,
             User.workspace_id == key.workspace_id,
             User.disabled_at.is_(None),
         )
-        .order_by(User.created_at.asc())
     )
     if user is None:
         return None
@@ -169,20 +168,6 @@ def login(
     if user.disabled_at is not None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    if user.totp_enabled:
-        challenge_token = make_opaque_token()
-        challenge = AuthChallenge(
-            user_id=user.id,
-            challenge_type="totp",
-            token_hash=sha256_hex(challenge_token),
-            attempt_count=0,
-            max_attempts=5,
-            expires_at=utc_now() + timedelta(minutes=5),
-        )
-        db.add(challenge)
-        db.commit()
-        return LoginResponse(requires_totp=True, session_challenge=challenge_token)
-
     session, raw_token = create_session(db, user, request.headers.get("user-agent", "unknown"))
     db.commit()
     _set_auth_cookies(response, raw_token, session.csrf_secret)
@@ -196,35 +181,10 @@ def totp_verify(
     response: Response,
     db: Session = Depends(get_db),
 ) -> LoginResponse:
-    challenge = db.scalar(
-        select(AuthChallenge).where(AuthChallenge.token_hash == sha256_hex(payload.session_challenge))
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="TOTP verification is disabled",
     )
-    if (
-        challenge is None
-        or challenge.challenge_type != "totp"
-        or challenge.consumed_at is not None
-        or ensure_utc(challenge.expires_at) <= utc_now()
-        or challenge.attempt_count >= challenge.max_attempts
-    ):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid challenge")
-
-    user = db.get(User, challenge.user_id)
-    if user is None or not user.totp_enabled or user.disabled_at is not None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid challenge")
-
-    # Placeholder verification for Milestone 1 skeleton until real TOTP validation is added.
-    if payload.code != "000000":
-        challenge.attempt_count += 1
-        if challenge.attempt_count >= challenge.max_attempts:
-            challenge.consumed_at = utc_now()
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid TOTP code")
-
-    challenge.consumed_at = utc_now()
-    session, raw_token = create_session(db, user, request.headers.get("user-agent", "unknown"))
-    db.commit()
-    _set_auth_cookies(response, raw_token, session.csrf_secret)
-    return LoginResponse(user=_serialize_user(db, user))
 
 
 @router.get("/session", response_model=SessionResponse)
@@ -288,7 +248,11 @@ def logout_all(
     return MessageResponse(detail="All sessions revoked")
 
 
-@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+@router.post(
+    "/forgot-password",
+    response_model=ForgotPasswordResponse,
+    dependencies=[Depends(require_cookie_csrf)],
+)
 def forgot_password(
     payload: ForgotPasswordRequest,
     db: Session = Depends(get_db),
@@ -319,7 +283,11 @@ def forgot_password(
     return ForgotPasswordResponse(accepted=True)
 
 
-@router.post("/reset-password", response_model=MessageResponse)
+@router.post(
+    "/reset-password",
+    response_model=MessageResponse,
+    dependencies=[Depends(require_cookie_csrf)],
+)
 def reset_password(
     payload: ResetPasswordRequest,
     db: Session = Depends(get_db),

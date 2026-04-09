@@ -6,6 +6,7 @@ from backend.routers.health import router as health_router
 from backend.routers.ingest import router as ingest_router
 from backend.routers.market import router as market_router
 from backend.routers.onboarding import router as onboarding_router
+from backend.routers.overlay import router as overlay_router
 from backend.routers.portfolio import router as portfolio_router
 from backend.routers.risk import router as risk_router
 from backend.routers.settings import router as settings_router
@@ -20,6 +21,7 @@ __all__ = [
     "ingest_router",
     "market_router",
     "onboarding_router",
+    "overlay_router",
     "portfolio_router",
     "risk_router",
     "settings_router",

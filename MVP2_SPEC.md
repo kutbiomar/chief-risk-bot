@@ -57,7 +57,75 @@ source_document_id, notes
 id, fund_id (nullable), asset_name, asset_type (equity | bond | private_co | real_estate | crypto | cash | other),
 geo_region, sector, currency, quantity, unit_cost, current_value,
 current_value_date, current_value_source (market | manager_stated | estimated),
+
+-- Macro overlay factor tags (populated at extraction time; editable via table editor)
+factor_asset_class   TEXT,   -- e.g. "private_equity", "infrastructure"
+factor_sector        TEXT,   -- e.g. "energy"
+factor_subsector     TEXT,   -- e.g. "renewables:solar"
+factor_market_segment TEXT,  -- e.g. "mid_cap", "emerging_markets"
+factor_country       TEXT,   -- ISO-3166 alpha-2
+factor_region        TEXT,   -- "western_europe", "us", "apac_developed"
+factor_tag_source    TEXT,   -- "extracted" | "inferred" | "manual"
+factor_tag_confidence FLOAT, -- 0.0–1.0
+
 created_at, updated_at
+```
+
+### FactorScore
+
+Daily macro risk scores for each factor node in the taxonomy.
+
+```
+id, factor_key TEXT,     -- e.g. "sector:energy:renewables:solar"
+date DATE,
+score FLOAT,             -- 0–100 (higher = more risk)
+z_score FLOAT,           -- deviation from 90-day rolling mean
+direction TEXT,          -- "improving" | "stable" | "deteriorating"
+primary_driver TEXT,     -- which signal moved the score most
+proxy_tickers JSONB,     -- ["TAN", "ICLN"] — the public proxies used
+raw_signals JSONB,       -- snapshot of input values (price levels, spreads, etc.)
+sentiment_modifier FLOAT,-- ±10% sentiment adjustment applied
+confidence FLOAT,        -- 0.0–1.0 (lower when proxy coverage is thin)
+created_at TIMESTAMP
+```
+
+### AssetFactorExposure
+
+Many-to-many: each holding may be exposed to multiple factors with different weights.
+
+```
+id, holding_id FK → holdings,
+factor_key TEXT,         -- matches FactorScore.factor_key
+weight FLOAT,            -- 0.0–1.0, portion of holding's value exposed to this factor
+source TEXT,             -- "extracted" | "inferred" | "manual"
+confidence FLOAT,
+created_at TIMESTAMP
+```
+
+### ProxyBasket
+
+Defines which public instruments proxy each private asset class / sector combination.
+
+```
+id, basket_key TEXT UNIQUE,  -- e.g. "private_equity:energy:midstream"
+display_name TEXT,
+tickers JSONB,               -- [{"ticker": "AMJ", "weight": 0.60}, ...]
+illiquidity_scalar FLOAT,    -- 1.1–1.5×, applied to proxy volatility
+notes TEXT,
+updated_at TIMESTAMP
+```
+
+### StressScenario
+
+Named historical and hypothetical shock scenarios used for stress VaR.
+
+```
+id, name TEXT,               -- "GFC 2008", "COVID Crash", "2022 Rate Shock"
+description TEXT,
+factor_shocks JSONB,         -- {"sector:energy:upstream": -0.45, "macro:rates:10y": +0.03}
+estimated_portfolio_impact FLOAT,  -- recomputed daily against current holdings
+last_run_at TIMESTAMP,
+created_at TIMESTAMP
 ```
 
 ### Document
@@ -198,25 +266,120 @@ The core "aha" feature.
 
 ### 6. Risk Analysis
 
-**VaR — Public Holdings:**
-- Standard historical VaR (1-day, 95% and 99%) for public equity/bond positions
-- Data source: yfinance (existing), expandable to paid data later
+Risk analysis now operates in two layers: the **Macro Overlay** (daily, forward-looking,
+factor-driven) and the **VaR Engine** (daily, statistical, calibrated by the overlay).
 
-**VaR Proxy — Private Holdings:**
-- Assign each private fund a benchmark proxy (e.g. Cambridge Associates PE index, MSCI World for GE-style funds)
-- Use proxy volatility to estimate private market VaR
-- Clearly label: "Estimated — based on [benchmark] proxy"
-- This is a known limitation; surface it in the UI
+---
 
-**Risk Decomposition:**
-- Top 5 contributors to portfolio VaR
-- Concentration score (Herfindahl index on sector and geo)
-- Manager concentration (% of NAV with single manager)
+#### 6a. Macro Risk Overlay (New)
 
-**Private Market Risk Flags (qualitative):**
-- Fund age vs. typical lifecycle (is a 2019 fund overdue for distributions?)
-- GP concentration (more than 3 funds with same manager)
-- Vintage year clustering (all funds from 2021–2022 = J-curve risk at same time)
+The overlay runs every trading day at market close. It converts public market signals
+into risk scores for every factor node in the taxonomy, then propagates those scores
+across the portfolio using each holding's factor exposure weights.
+
+**Factor Taxonomy (four dimensions, hierarchical):**
+- Asset Class: PE, VC, Private Credit, Real Estate, Infrastructure, Public Equity, Fixed Income, Commodities, Cash
+- Sector + Subsector: Energy (Upstream / Midstream / Downstream / Renewables:Solar / Renewables:Wind) · Technology · Healthcare · Industrials · Consumer · Financials · Real Assets
+- Market Segment: Large Cap · Mid Cap · Small Cap / Early Stage · Emerging Markets · Frontier
+- Country / Region: US · Western Europe · GCC · China · India · SEA · LatAm
+
+**Signal sources (all already in stack):**
+- Equity indices via yfinance: XLE (energy), TAN (solar), FAN (wind), AMJ (midstream), VNQ (real estate), MSCI EM, SOX (semis), S&P 500, Russell 2000
+- Macro via FRED: 10Y Treasury yield, Fed Funds rate, IG/HY credit spreads, DXY
+- Commodities via yfinance: WTI (CL=F), Brent (BZ=F), Natural Gas, Copper (HG=F), Gold (GC=F)
+- Sentiment: LLM agent (claude-sonnet-4-6) processes daily financial headlines per sector, produces directional modifier ±10%
+
+**Factor score:** 0–100 (higher = more risk). Derived from rolling 90-day z-score of
+proxy index. Sentiment score is a modifier layered on top, not a primary signal.
+
+**AUM Triangulation View:**
+A pivot table updated daily. Shows for each factor: AUM exposed ($), % of portfolio,
+current risk score, direction (improving / stable / deteriorating). This is the primary
+risk dashboard for the CIO — one view that answers "where is my capital and how risky
+is it *right now*?"
+
+| Factor | AUM Exposed | % Portfolio | Risk Score | Direction |
+|---|---|---|---|---|
+| Energy — Renewables | $82M | 16.4% | 71 | ↓ deteriorating |
+| US Large Cap Equity | $145M | 29% | 42 | → stable |
+| Real Estate — Commercial | $61M | 12.2% | 68 | ↓ deteriorating |
+| Private Credit — US | $47M | 9.4% | 61 | → stable |
+| ... | | | | |
+
+**Overlay alerts:**
+- Factor score > 75 with > 10% AUM exposure → Amber alert on dashboard
+- Factor score > 85 with > 5% AUM exposure → Red alert + push notification
+- Portfolio composite score moves > 10 points intraday → "Market conditions changed materially"
+- Risk regime switches (see §6b) → Immediate notification + VaR recompute
+
+---
+
+#### 6b. VaR Engine (Enhanced)
+
+**Risk Regime Detection:**
+VIX and credit spreads determine the VaR methodology in use:
+
+| VIX | Credit Spread | Regime | VaR Window |
+|---|---|---|---|
+| < 18 | IG < 150bps | Normal | Historical 90-day |
+| 18–28 | IG 150–250bps | Stress | Historical 30-day, recent data 2× weighted |
+| > 28 | IG > 250bps | Crisis | GFC scenario floor — statistical VaR overridden |
+
+Regime is displayed on the dashboard at all times. Regime changes are logged and
+surfaced in the brief ("Risk model operating in Stress regime since Tuesday").
+
+**Public Holdings VaR:**
+- Historical simulation VaR: 1-day at 95% and 99% confidence
+- Data: daily price returns from yfinance
+- Portfolio VaR accounts for cross-asset correlations (covariance matrix, 90-day rolling)
+- Factor attribution: each holding's VaR contribution decomposed by factor exposure
+
+**Private Holdings VaR — Proxy Basket Method:**
+Each private fund/holding is mapped to a proxy basket of public instruments. The basket's
+realized volatility, adjusted for illiquidity, becomes the VaR estimate for that position.
+
+```
+Private VaR = VaR(proxy basket) × illiquidity_scalar
+
+Illiquidity scalars:
+  PE Buyout:       1.3×  (leverage amplifies; smoothed NAVs understate)
+  VC:              1.5×  (binary outcomes, extreme skew)
+  Private Credit:  1.2×  (lower vol but credit default tail)
+  Infrastructure:  1.1×  (regulated cash flows, lower correlation)
+  Real Estate:     1.3×  (illiquid; cap rate moves lag market)
+```
+
+Example proxy baskets:
+- US Midstream PE → 60% AMJ + 25% XLE + 15% 10Y yield sensitivity
+- US Solar Infrastructure → 70% TAN + 20% ICLN + 10% 10Y yield sensitivity
+- US Buyout (generalist) → 60% S&P 500 + 25% Russell 2000 + 15% HY credit spread
+
+When a factor score spikes, proxy basket volatility for all holdings tagged to that
+factor is widened dynamically before VaR computation.
+
+All private VaR numbers are labelled: *"Estimated — proxy basket method. Actual losses
+may differ."* Label is non-removable.
+
+**Stress Scenarios (run alongside VaR daily):**
+
+| Scenario | Key Shocks | Typical Portfolio Impact |
+|---|---|---|
+| GFC 2008 | Credit +500bps, Equity −50%, RE −40% | PE −35%, RE −30% |
+| COVID Crash 2020 | Equity −35%, VIX → 80 | VC −40%, Healthcare +10% |
+| 2022 Rate Shock | 10Y +300bps, Tech −50% | VC −50%, RE cap rate expansion |
+| Renewables Policy Reversal | Solar ETF −40% | Renewables Infra −25% |
+| Energy Price Collapse | WTI −60%, Gas −70% | Energy PE −45% |
+| EM Contagion | MSCI EM −40%, EM FX −25% | EM funds −35% |
+
+Each scenario's estimated dollar impact is recomputed daily against current holdings.
+Output: "Under 2022 Rate Shock, estimated portfolio decline: −$47M (−9.4%)."
+
+**Risk Decomposition (carried over, enhanced):**
+- Top 5 contributors to total portfolio VaR (by factor)
+- Concentration score: Herfindahl index on sector, geo, and manager
+- Manager concentration: % of NAV with any single GP
+- Vintage year clustering alert: if > 30% of PE/VC commitments share a 2-year vintage window
+- Fund lifecycle flags: PE fund > 7 years old with < 1× DPI flagged for review
 
 ### 7. Automated Weekly Briefing
 
@@ -257,12 +420,32 @@ Generated every Monday at configurable time (default 7am local).
 **Output:** Structured JSON matched to data model, reconciliation flags, human review queue items
 **Failure mode:** Mark document as "needs_review", notify uploader, never silently drop data
 
+### Macro Overlay Agent
+
+**Trigger:** Daily at market close (5pm ET) via Celery beat; also on-demand
+**Runtime:** ~90 seconds
+**Model:** claude-sonnet-4-6 (factor scoring + sentiment); claude-opus-4-6 (regime narrative)
+**Sub-agents (parallel):**
+- Signal Collector: fetches yfinance + FRED data for all tracked tickers
+- Sentiment Agent: processes past 24h financial headlines per portfolio sector
+- Factor Scorer: computes z-scores + weighted factor scores
+- Regime Detector: evaluates VIX + credit spreads → sets risk regime
+- Propagation Engine: maps factor scores → portfolio positions → AUM triangulation table
+- Alert Generator: checks thresholds, queues notifications
+
+**Output:** Daily `FactorScore` rows, updated `AUM Triangulation` view, regime flag,
+alert notifications if thresholds breached
+**Failure mode:** If market data fetch fails, carry forward previous day's scores with
+a staleness flag. Never silently drop — surface "Risk data as of [date]" on dashboard.
+
 ### Risk Analyst Agent
 
-**Trigger:** New holdings data, weekly schedule, manual refresh
-**Tools:** yfinance (public), benchmark proxy lookup, Herfindahl calculator, VaR engine
-**Output:** Risk decomposition object, concentration alerts, liquidity gap alerts
-**Runs:** On demand + nightly recalculation
+**Trigger:** After Macro Overlay Agent completes; also on new holdings data or manual refresh
+**Tools:** Factor scores (from overlay), proxy basket definitions, yfinance price history,
+Herfindahl calculator, VaR engine, stress scenario definitions
+**Output:** VaR result object (public + private + total), stress scenario impacts,
+concentration flags, risk decomposition by factor
+**Runs:** Daily (post-overlay) + on demand
 
 ### Briefing Generator Agent
 
@@ -316,15 +499,34 @@ This is non-negotiable for compliance and for "why did this number change?"
 
 ## Build Order
 
-1. **Data model + migrations** — get the schema right before writing a single UI component
-2. **Table editor** — manual entry, proves the outputs are useful without ingestion
+1. **Data model + migrations** — schema first: include FactorScore, AssetFactorExposure,
+   ProxyBasket, StressScenario tables, and factor tag columns on holdings from day one
+2. **Table editor** — manual entry, proves the outputs are useful without ingestion;
+   factor tags editable inline (fallback when extraction isn't running yet)
 3. **Cash flow ladder** — the "aha" feature, buildable on manually-entered data
-4. **Holdings aggregation view** — asset class / geo / sector pivots
-5. **Document upload + basic ingestion** — classification + extraction, human review queue
-6. **Reconciliation layer** — diff view, accept/override flow
-7. **Risk analysis** — VaR (public), proxied VaR (private), concentration flags
-8. **Briefing generator** — last, because it depends on everything above being reliable
-9. **Onboarding flow** — polish once core is working
+4. **Holdings aggregation view** — asset class / geo / sector pivots;
+   factor tag columns are already in schema so this view is overlay-ready from the start
+5. **Proxy basket definitions** — seed the DB with 8–10 baskets covering common fund types;
+   no code needed yet, just the config
+6. **Signal collection + factor scoring** — yfinance + FRED daily fetch, z-score computation,
+   factor score storage; no UI yet — verify scores in DB directly
+7. **Public VaR** — historical simulation using existing price data; prove the VaR engine
+   works on public positions before touching private
+8. **Private proxy VaR** — wire factor scores → proxy basket volatility → illiquidity scalar;
+   label everything "Estimated"
+9. **AUM Triangulation view** — the daily factor risk dashboard; this is the overlay's UI;
+   show AUM, %, score, direction per factor row
+10. **Regime detection** — VIX + credit spread classifier; switch VaR window automatically;
+    surface regime label on dashboard
+11. **Stress scenarios** — 5 core scenarios as config; daily recomputation against holdings;
+    show estimated portfolio impact in $
+12. **Document upload + ingestion pipeline** — classification + extraction; Risk Officer Agent
+    populates factor tags automatically at ingestion time
+13. **Reconciliation layer** — diff view, accept/override flow
+14. **Sentiment agent** — LLM news processing per sector; ±10% modifier on factor scores;
+    lowest priority because it's additive not foundational
+15. **Briefing generator** — last; by now the data layer is clean and the overlay is live
+16. **Onboarding flow** — polish once core is working
 
 ---
 
@@ -341,7 +543,12 @@ This is non-negotiable for compliance and for "why did this number change?"
 ## Open Questions
 
 1. **PDF ingestion accuracy bar** — what % extraction accuracy is acceptable before a document goes to human review? (Suggested: flag if confidence < 85% on any key field)
-2. **Proxied VaR disclosure** — how prominently to surface the "this is estimated" caveat? Needs user testing.
+2. **Proxied VaR disclosure** — how prominently to surface the "this is estimated" caveat? Needs user testing. Current plan: non-removable label on every private VaR number.
 3. **Multi-currency** — handle at data model level from day one or simplify to single base currency for MVP?
 4. **Supabase vs. custom auth** — Supabase row-level security handles org isolation well, but adds vendor dependency. Decision needed before auth implementation.
 5. **Briefing tone/format** — needs a real family office user to validate before building the generator.
+6. **Factor tag coverage** — for private funds with no disclosed look-through holdings, factor tags are inferred from manager mandate + fund type. Confidence will be lower. How prominently to surface "inferred" vs. "extracted" tags in the UI?
+7. **Proxy basket maintenance** — who owns updating proxy baskets when new instruments become better proxies (e.g., new clean energy ETFs)? Suggest: admin-editable in settings, reviewed quarterly.
+8. **Sentiment agent news sources** — financial news APIs (NewsAPI, Refinitiv) have cost and rate-limit implications. For MVP, RSS scraping of FT/Reuters/WSJ is sufficient. Upgrade path needed.
+9. **Illiquidity scalar calibration** — the 1.1–1.5× scalars are judgement-based defaults. A real family office may want to override these per fund. Should they be editable per holding or per asset class globally?
+10. **Stress scenario customisation** — the 5 built-in scenarios cover common risks. CIOs will want custom scenarios ("What if GCC real estate drops 30%?"). Custom scenario builder is P1.

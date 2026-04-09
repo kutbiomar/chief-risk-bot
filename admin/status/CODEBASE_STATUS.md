@@ -1,5 +1,5 @@
 # ChiefRiskBot — Codebase Status Snapshot
-_Last updated: 2026-04-08_
+_Last updated: 2026-04-09_
 
 ---
 
@@ -467,8 +467,17 @@ Remaining issues found after seed:
 ## /codex-bitch task queue
 
 ### Pending
-No pending items.
 
+Phase E is executed from the queue below. Canonical task scope, build order, new files,
+API routes, and constraints live in `admin/status/MVP2_STATUS.md`.
+
+Phase E queue is clear as of 2026-04-09. No pending `/codex-bitch` items remain.
+
+Execution rule: work top-down unless `MVP2_STATUS.md` explicitly allows parallelism.
+Append each run to `admin/status/codex_log` and move rows to `Completed` only when the
+exit criteria are fully met.
+
+---
 ### Completed
 
 | # | Task | Outcome | Date |
@@ -512,6 +521,15 @@ No pending items.
 | 36 | Richer deterministic briefing fallback content | `backend/services/briefings.py` now builds deterministic market context from macro values and renders prose findings/implications for fallback risk narratives. | 2026-04-08 |
 | 37 | Fix onboarding step labels and section title | Updated onboarding step copy in `frontend-mvp/_app.js` and changed the right-column uplabel/title copy plus `<title>` in `frontend-mvp/onboarding.html`. | 2026-04-08 |
 | 38 | Right-panel login KPI copy | `frontend-mvp/login.html` now uses value-prop KPI tiles (`5 min`, `15+`, `1-click`, `FO-first`) on the sign-in screen. | 2026-04-08 |
+| E1 | Factor taxonomy schema + migration | Added overlay schema, nullable factor tags, seeded proxy baskets and stress scenarios, and shipped migration `20260409_000004_mvp2_overlay_slice1.py`. | 2026-04-09 |
+| E2 | Signal collection + factor scoring | Added deterministic overlay signal collection and factor scoring with persisted daily factor rows. | 2026-04-09 |
+| E3 | Regime detector + proxy basket VaR | Added regime detection, proxy basket support, and private VaR labelling `Estimated — proxy basket method`. | 2026-04-09 |
+| E4 | Risk propagator + overlay APIs | Added `/api/overlay/factors`, `/api/overlay/regime`, `/api/overlay/aum-triangulation`, and cockpit `overlay_summary`. | 2026-04-09 |
+| E5 | Stress scenario engine + alert engine | Added stress scenario computation, overlay alerts, `/api/overlay/stress`, and cockpit alert merging. | 2026-04-09 |
+| E6 | Overlay pipeline + scheduler | Added full overlay refresh pipeline, on-demand `/api/overlay/run`, and scheduler-driven refresh using FastAPI + APScheduler + `async_jobs` instead of Celery. | 2026-04-09 |
+| E7 | Sentiment agent | Added bounded `±10%` sentiment modifier in `backend/services/overlay/sentiment_agent.py` and exposed sentiment metadata via `/api/overlay/factors`. | 2026-04-09 |
+| E8 | Multi-agent extraction pipeline | Added layout-aware parse, librarian/accountant/risk_officer/treasury/reconciliation flow, HITL review APIs, optional Azure/Opus provider hooks, and persisted extraction artifacts with source references. | 2026-04-09 |
+| E9 | AUM triangulation frontend view | Added cockpit overlay UI with factor table, regime state, stress scenarios, and refresh action wired to live overlay APIs. | 2026-04-09 |
 
 ---
 

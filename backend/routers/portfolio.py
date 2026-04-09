@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.deps import get_db
 from backend.models.portfolio import PortfolioSnapshot, Position
-from backend.routers.auth import require_session
+from backend.routers.auth import require_cookie_csrf, require_session
 from backend.schemas.portfolio import (
     PortfolioSummaryResponse,
     PositionCreateRequest,
@@ -101,6 +101,14 @@ def list_positions(
             geo_region=position.geo_region,
             sector=position.sector,
             market_segment=position.market_segment,
+            factor_asset_class=position.factor_asset_class,
+            factor_sector=position.factor_sector,
+            factor_subsector=position.factor_subsector,
+            factor_country=position.factor_country,
+            factor_region=position.factor_region,
+            factor_market_segment=position.factor_market_segment,
+            factor_tag_source=position.factor_tag_source,
+            factor_tag_confidence=position.factor_tag_confidence,
             custodian=position.custodian,
             notes=position.notes,
         )
@@ -125,12 +133,20 @@ def _materialize_successor_snapshot(
         select(Position).where(Position.snapshot_id == current_snapshot.id)
     ).all()
 
-    # Demote current snapshot
-    db.execute(
+    demoted = db.execute(
         update(PortfolioSnapshot)
-        .where(PortfolioSnapshot.id == current_snapshot.id)
+        .where(
+            PortfolioSnapshot.id == current_snapshot.id,
+            PortfolioSnapshot.workspace_id == current_snapshot.workspace_id,
+            PortfolioSnapshot.is_current.is_(True),
+        )
         .values(is_current=False)
     )
+    if demoted.rowcount != 1:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Current snapshot changed during update. Retry the request.",
+        )
 
     new_snapshot = PortfolioSnapshot(
         id=str(uuid4()),
@@ -168,6 +184,14 @@ def _materialize_successor_snapshot(
                 geo_region=pos.geo_region,
                 sector=pos.sector,
                 market_segment=pos.market_segment,
+                factor_asset_class=pos.factor_asset_class,
+                factor_sector=pos.factor_sector,
+                factor_subsector=pos.factor_subsector,
+                factor_country=pos.factor_country,
+                factor_region=pos.factor_region,
+                factor_market_segment=pos.factor_market_segment,
+                factor_tag_source=pos.factor_tag_source,
+                factor_tag_confidence=pos.factor_tag_confidence,
                 custodian=pos.custodian,
                 price_source=pos.price_source,
                 beta_vs_spy=pos.beta_vs_spy,
@@ -192,7 +216,12 @@ def _recalculate_snapshot_totals(db: Session, snapshot: PortfolioSnapshot) -> No
 # POST /portfolio/positions — add a position
 # ---------------------------------------------------------------------------
 
-@router.post("/positions", response_model=PositionMutationResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/positions",
+    response_model=PositionMutationResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_cookie_csrf)],
+)
 def create_position(
     body: PositionCreateRequest,
     auth=Depends(require_session),
@@ -221,6 +250,14 @@ def create_position(
         geo_region=body.geo_region,
         sector=body.sector,
         market_segment=body.market_segment,
+        factor_asset_class=body.factor_asset_class,
+        factor_sector=body.factor_sector,
+        factor_subsector=body.factor_subsector,
+        factor_country=body.factor_country,
+        factor_region=body.factor_region,
+        factor_market_segment=body.factor_market_segment,
+        factor_tag_source=body.factor_tag_source,
+        factor_tag_confidence=body.factor_tag_confidence,
         custodian=body.custodian,
         notes=body.notes,
         price_source="manual",
@@ -251,7 +288,11 @@ def create_position(
 # PATCH /portfolio/positions/{id} — edit a position
 # ---------------------------------------------------------------------------
 
-@router.patch("/positions/{position_id}", response_model=PositionMutationResponse)
+@router.patch(
+    "/positions/{position_id}",
+    response_model=PositionMutationResponse,
+    dependencies=[Depends(require_cookie_csrf)],
+)
 def update_position(
     position_id: str,
     body: PositionUpdateRequest,
@@ -297,6 +338,22 @@ def update_position(
         copied_target.sector = body.sector
     if body.market_segment is not None:
         copied_target.market_segment = body.market_segment
+    if body.factor_asset_class is not None:
+        copied_target.factor_asset_class = body.factor_asset_class
+    if body.factor_sector is not None:
+        copied_target.factor_sector = body.factor_sector
+    if body.factor_subsector is not None:
+        copied_target.factor_subsector = body.factor_subsector
+    if body.factor_country is not None:
+        copied_target.factor_country = body.factor_country
+    if body.factor_region is not None:
+        copied_target.factor_region = body.factor_region
+    if body.factor_market_segment is not None:
+        copied_target.factor_market_segment = body.factor_market_segment
+    if body.factor_tag_source is not None:
+        copied_target.factor_tag_source = body.factor_tag_source
+    if body.factor_tag_confidence is not None:
+        copied_target.factor_tag_confidence = body.factor_tag_confidence
     if body.custodian is not None:
         copied_target.custodian = body.custodian
     if body.notes is not None:
@@ -331,7 +388,11 @@ def update_position(
 # DELETE /portfolio/positions/{id} — remove a position
 # ---------------------------------------------------------------------------
 
-@router.delete("/positions/{position_id}", response_model=PositionMutationResponse)
+@router.delete(
+    "/positions/{position_id}",
+    response_model=PositionMutationResponse,
+    dependencies=[Depends(require_cookie_csrf)],
+)
 def delete_position(
     position_id: str,
     auth=Depends(require_session),

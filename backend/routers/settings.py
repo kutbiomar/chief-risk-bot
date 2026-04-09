@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.deps import get_db
 from backend.models.auth import ApiKey, WorkspaceSetting
-from backend.routers.auth import require_session
+from backend.routers.auth import require_cookie_csrf, require_session
 from backend.schemas.content import (
     ApiKeyCreateRequest,
     ApiKeyCreateResponse,
@@ -59,7 +59,7 @@ def get_settings_endpoint(
     return _serialize_settings(settings)
 
 
-@router.patch("", response_model=SettingsResponse)
+@router.patch("", response_model=SettingsResponse, dependencies=[Depends(require_cookie_csrf)])
 def patch_settings(
     payload: SettingsPatchRequest,
     auth=Depends(require_session),
@@ -67,8 +67,14 @@ def patch_settings(
 ) -> SettingsResponse:
     _, user = auth
     settings = _get_or_create_settings(db, user.workspace_id)
+    _PATCHABLE = {
+        "briefing_day", "briefing_time", "briefing_recipients", "briefing_auto_publish",
+        "briefing_send_pdf", "briefing_include_audit_footer",
+        "ai_model", "ai_risk_tone", "ai_custom_instructions", "ai_allow_trade_actions",
+    }
     for field, value in payload.model_dump(exclude_none=True).items():
-        setattr(settings, field, value)
+        if field in _PATCHABLE:
+            setattr(settings, field, value)
     settings.updated_at = utc_now()
     db.commit()
     db.refresh(settings)
@@ -95,7 +101,7 @@ def list_api_keys(
     ]
 
 
-@router.post("/api-keys", response_model=ApiKeyCreateResponse)
+@router.post("/api-keys", response_model=ApiKeyCreateResponse, dependencies=[Depends(require_cookie_csrf)])
 def create_api_key(
     payload: ApiKeyCreateRequest,
     auth=Depends(require_session),
@@ -106,6 +112,7 @@ def create_api_key(
     lookup_hash = hashlib.sha256(plain.encode("utf-8")).hexdigest()
     key = ApiKey(
         workspace_id=user.workspace_id,
+        user_id=user.id,
         label=payload.label,
         key_type=payload.key_type,
         key_prefix=plain[:10],
@@ -125,7 +132,7 @@ def create_api_key(
     )
 
 
-@router.delete("/api-keys/{key_id}", response_model=dict)
+@router.delete("/api-keys/{key_id}", response_model=dict, dependencies=[Depends(require_cookie_csrf)])
 def delete_api_key(
     key_id: str,
     auth=Depends(require_session),

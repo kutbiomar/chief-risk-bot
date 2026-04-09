@@ -73,10 +73,22 @@ chiefrisktbot/
 │   │   ├── enrichment/
 │   │   │   ├── market_data.py         # yfinance: prices, returns, 1Y history
 │   │   │   ├── macro_data.py          # FRED: rates, VIX, spreads, DXY
+│   │   │   ├── commodity_data.py      # yfinance futures: WTI, Brent, Gas, Copper, Gold
 │   │   │   └── classifier.py          # Ticker → geo/sector/market_segment
+│   │   ├── overlay/                   # Macro Risk Overlay — daily factor scoring
+│   │   │   ├── pipeline.py            # Orchestrates full overlay run (entry point)
+│   │   │   ├── signal_collector.py    # Fetches all raw signals (equity, macro, commodity)
+│   │   │   ├── factor_scorer.py       # z-score computation + weighted factor scores
+│   │   │   ├── sentiment_agent.py     # LLM news headline → sector sentiment modifier
+│   │   │   ├── regime_detector.py     # VIX + credit spread → normal/stress/crisis
+│   │   │   ├── propagator.py          # Factor scores × AUM weights → portfolio risk signal
+│   │   │   ├── proxy_baskets.py       # ProxyBasket registry + volatility computation
+│   │   │   ├── stress_scenarios.py    # Named shock scenarios → estimated $ portfolio impact
+│   │   │   └── alert_engine.py        # Threshold checks → notification queue
 │   │   ├── analytics/
 │   │   │   ├── aggregator.py          # AUM by asset class, geo, sector, segment
-│   │   │   ├── var_engine.py          # Historical simulation VaR/CVaR
+│   │   │   ├── var_engine.py          # Historical simulation VaR/CVaR; proxy basket VaR
+│   │   │   ├── factor_var.py          # Factor attribution of VaR; regime-aware windowing
 │   │   │   └── concentration.py       # HHI, single-name flags, rules engine
 │   │   ├── agents/
 │   │   │   ├── base_analyst.py        # Shared scaffolding: prompt, schema, call
@@ -84,7 +96,8 @@ chiefrisktbot/
 │   │   │   ├── geo_analyst.py
 │   │   │   ├── credit_analyst.py
 │   │   │   ├── liquidity_analyst.py
-│   │   │   └── macro_analyst.py
+│   │   │   ├── macro_analyst.py
+│   │   │   └── risk_overlay_agent.py  # Orchestrates overlay pipeline as a Claude agent
 │   │   ├── briefing/
 │   │   │   ├── generator.py           # Orchestrates agents → briefing narrative
 │   │   │   └── pdf_export.py          # WeasyPrint server-side PDF
@@ -99,9 +112,10 @@ chiefrisktbot/
 │   │       └── logger.py              # Append AuditEvent + SHA-256 hash chain
 │   │
 │   ├── workers/                       # Background tasks
-│   │   ├── scheduler.py               # APScheduler: weekly briefing cron
+│   │   ├── scheduler.py               # APScheduler: weekly briefing cron + daily overlay
 │   │   ├── sync_worker.py             # Source sync job
-│   │   └── enrichment_worker.py       # Async price/macro refresh
+│   │   ├── enrichment_worker.py       # Async price/macro refresh
+│   │   └── overlay_worker.py          # Daily macro overlay run (triggers at 5pm ET)
 │   │
 │   ├── migrations/                    # Alembic migrations
 │   │   └── versions/

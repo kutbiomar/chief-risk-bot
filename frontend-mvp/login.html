@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
-  <link rel="stylesheet" href="../_shell.css"/>
+  <link rel="stylesheet" href="../frontend-design-ideal/_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_app.js" defer></script>
 </head>
@@ -31,10 +31,6 @@
           <div class="mvp-field">
             <label for="password">Password</label>
             <input id="password" type="password" placeholder="DemoPass2026!" autocomplete="current-password" required/>
-          </div>
-          <div id="totp-wrap" class="mvp-field" hidden>
-            <label for="totp-code">TOTP code</label>
-            <input id="totp-code" type="text" placeholder="000000" inputmode="numeric"/>
           </div>
           <button id="login-submit" class="btn primary" type="submit">Sign in <span class="ms">arrow_forward</span></button>
         </form>

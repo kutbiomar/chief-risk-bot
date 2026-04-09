@@ -64,3 +64,12 @@ class ExtractionResult(Base, TimestampMixin):
     model: Mapped[str] = mapped_column(Text, nullable=False, default="deterministic-demo-parser")
     input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class ExtractionArtifact(Base, TimestampMixin):
+    __tablename__ = "extraction_artifacts"
+
+    id: Mapped[str] = uuid_pk()
+    extraction_result_id: Mapped[str] = mapped_column(ForeignKey("extraction_results.id"), nullable=False, index=True)
+    artifact_type: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    payload_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")

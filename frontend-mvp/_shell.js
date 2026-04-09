@@ -5,6 +5,7 @@
       items: [
         { href: 'onboarding.html', icon: 'rocket_launch', label: 'Onboarding' },
         { href: 'cockpit.html', icon: 'dashboard', label: 'Risk Cockpit' },
+        { href: 'overlay.html', icon: 'monitoring', label: 'Overlay' },
         { href: 'briefings.html', icon: 'description', label: 'Briefings' },
       ],
     },

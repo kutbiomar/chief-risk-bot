@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.database import Base
@@ -12,6 +12,9 @@ from backend.models.common import TimestampMixin, uuid_pk
 
 class AuditEvent(Base, TimestampMixin):
     __tablename__ = "audit_events"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "sequence_no", name="uq_audit_events_workspace_sequence"),
+    )
 
     id: Mapped[str] = uuid_pk()
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False, index=True)

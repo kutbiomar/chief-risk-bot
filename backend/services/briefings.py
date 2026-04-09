@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -12,10 +13,15 @@ from backend.config import get_settings
 from backend.models.analytics import MacroCache, RiskFlag, RiskScore, VarResult
 from backend.models.content import BriefingRun
 from backend.models.portfolio import PortfolioSnapshot, Position
+from backend.paths import STORAGE_ROOT
 from backend.services.auth.session import utc_now
 from backend.services.portfolio import summarize_positions
 
 logger = logging.getLogger(__name__)
+
+
+def _is_test_runtime() -> bool:
+    return bool(os.environ.get("PYTEST_CURRENT_TEST"))
 
 BRIEFING_MODEL = "claude-sonnet-4-6"
 PROMPT_VERSION = "briefing-v1"
@@ -238,7 +244,7 @@ def generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id: str | N
     input_tokens = 0
     output_tokens = 0
 
-    if settings.anthropic_api_key:
+    if settings.anthropic_api_key and not _is_test_runtime():
         try:
             import anthropic
 
@@ -545,7 +551,7 @@ class PdfExportUnavailableError(RuntimeError):
 
 
 def export_briefing_pdf(db: Session, briefing: BriefingRun, workspace_id: str) -> str:
-    export_dir = Path("backend/runtime/storage/briefings") / workspace_id
+    export_dir = STORAGE_ROOT / "briefings" / workspace_id
     export_dir.mkdir(parents=True, exist_ok=True)
     export_path = export_dir / f"{briefing.id}_v{briefing.version}.pdf"
 

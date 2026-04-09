@@ -304,6 +304,39 @@ body[data-page="login"] {
   background: #eef0f7;
 }
 
+.mvp-inline-input {
+  width: 100%;
+  min-width: 120px;
+  border: 1px solid var(--rule);
+  background: #fffdfb;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font: inherit;
+  color: var(--ink);
+}
+
+.mvp-inline-badge {
+  display: inline-flex;
+  min-width: 44px;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+.mvp-table.is-clickable tbody tr {
+  cursor: pointer;
+  transition: background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.mvp-table.is-clickable tbody tr:hover {
+  background: #f4eeea;
+}
+
 .mvp-split-list {
   display: flex;
   flex-direction: column;
@@ -333,6 +366,103 @@ body[data-page="login"] {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.mvp-review-header,
+.mvp-review-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mvp-review-header h3,
+.mvp-review-section-head h4 {
+  margin: 4px 0 0;
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+}
+
+.mvp-review-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 14px;
+}
+
+.mvp-review-section {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--paper);
+  padding: 14px;
+}
+
+.mvp-review-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mvp-review-field {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: #fffdfb;
+  padding: 12px;
+}
+
+.mvp-review-field-head,
+.mvp-review-position-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mvp-review-field-value {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.mvp-review-field-meta {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--ink-mute);
+  font-size: 10px;
+}
+
+.mvp-review-check {
+  align-items: center;
+}
+
+.mvp-review-check.is-resolved {
+  opacity: 0.72;
+}
+
+.mvp-review-position {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.mvp-review-issues {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mvp-review-issues span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  padding: 4px 8px;
+  font-size: 10px;
+  color: var(--ink-soft);
 }
 
 .mvp-empty {
@@ -476,6 +606,346 @@ body[data-page="login"] {
   font-size: 11px;
 }
 
+.mvp-cockpit-card .mvp-card-header {
+  align-items: center;
+}
+
+.mvp-seg,
+.mvp-risk-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 4px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+}
+
+.mvp-seg button,
+.mvp-risk-controls button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 7px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter Tight', sans-serif;
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.mvp-seg button:hover,
+.mvp-risk-controls button:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.mvp-seg button.is-active,
+.mvp-risk-controls button.is-active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(27, 43, 94, 0.18);
+}
+
+.mvp-kpi-featured {
+  background:
+    radial-gradient(circle at top right, rgba(27, 43, 94, 0.08), transparent 45%),
+    linear-gradient(180deg, #fffdfb 0%, #f9f2f0 100%);
+}
+
+.mvp-kpi-featured .value {
+  font-size: 28px;
+}
+
+.mvp-cockpit-composition {
+  min-height: 240px;
+}
+
+.mvp-cockpit-composition,
+.mvp-var-summary,
+.mvp-var-stats,
+#cockpit-overlay-summary,
+#cockpit-overlay-factors,
+#cockpit-overlay-stress,
+#cockpit-contribs,
+#cockpit-register {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.mvp-cockpit-composition.is-updating,
+.mvp-var-summary.is-updating,
+.mvp-var-stats.is-updating,
+#cockpit-overlay-summary.is-updating,
+#cockpit-overlay-factors.is-updating,
+#cockpit-overlay-stress.is-updating,
+#cockpit-contribs.is-updating,
+#cockpit-register.is-updating {
+  opacity: 0.68;
+  transform: translateY(2px);
+}
+
+.mvp-chart-container {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.1fr);
+  gap: 22px;
+  align-items: center;
+}
+
+.mvp-donut-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+}
+
+.mvp-donut-svg {
+  width: 220px;
+  height: 220px;
+  transform: rotate(-90deg);
+}
+
+.mvp-donut-center {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+}
+
+.mvp-donut-center .value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.mvp-donut-center .label {
+  font-size: 11px;
+  color: var(--ink-mute);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.mvp-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mvp-legend-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mvp-legend-item-head,
+.mvp-legend-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mvp-legend-item-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mvp-legend-item-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.mvp-legend-item-pct,
+.mvp-legend-item-footer {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+.mvp-legend-item-bar {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--paper-3);
+  overflow: hidden;
+}
+
+.mvp-legend-item-bar > div {
+  height: 100%;
+}
+
+.mvp-legend-item-footer {
+  color: var(--ink-mute);
+}
+
+.mvp-var-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.mvp-var-headline {
+  margin-top: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.mvp-var-meta {
+  text-align: right;
+  font-size: 11px;
+  color: var(--ink-mute);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mvp-var-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.mvp-stat-item {
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.mvp-stat-item .value {
+  margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.mvp-stat-item .meta {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--ink-mute);
+}
+
+.mvp-risk-table .mvp-risk-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mvp-risk-table .mvp-risk-desc {
+  font-size: 10px;
+  color: var(--ink-mute);
+}
+
+.mvp-risk-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.mvp-risk-dot.priority {
+  background: var(--pri-fg);
+}
+
+.mvp-risk-dot.elevated {
+  background: var(--ele-fg);
+}
+
+.mvp-risk-dot.watch {
+  background: var(--wat-fg);
+}
+
+.mvp-risk-dot.good {
+  background: var(--good-fg);
+}
+
+.mvp-cockpit-card .mvp-card-body {
+  padding: 20px;
+}
+
+.mvp-overlay-regime {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mvp-overlay-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mvp-overlay-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mvp-overlay-panel {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--paper);
+  padding: 14px;
+}
+
+.mvp-overlay-scroll {
+  max-height: 420px;
+  overflow: auto;
+}
+
+.mvp-overlay-regime-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mvp-overlay-regime-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mvp-overlay-alerts {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mvp-overlay-alerts-top {
+  margin-top: -4px;
+}
+
+.mvp-overlay-banner-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.mvp-overlay-factor-table th.num,
+.mvp-overlay-factor-table td.num {
+  text-align: right;
+}
+
 @media (max-width: 1180px) {
   .mvp-grid.sidebar {
     grid-template-columns: 1fr;
@@ -485,7 +955,31 @@ body[data-page="login"] {
 @media (max-width: 980px) {
   .mvp-grid.two,
   .mvp-grid.cards-4,
-  .mvp-form-grid {
+  .mvp-form-grid,
+  .mvp-review-grid,
+  .mvp-review-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .mvp-chart-container,
+  .mvp-var-summary,
+  .mvp-var-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .mvp-var-summary {
+    flex-direction: column;
+  }
+
+  .mvp-var-meta {
+    text-align: left;
+  }
+
+  .mvp-overlay-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .mvp-overlay-regime-grid {
     grid-template-columns: 1fr;
   }
 
@@ -495,5 +989,26 @@ body[data-page="login"] {
 
   .mvp-login-right {
     display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .mvp-page {
+    padding: 18px 16px 16px;
+  }
+
+  .mvp-hero,
+  .mvp-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mvp-donut-svg {
+    width: 180px;
+    height: 180px;
+  }
+
+  .mvp-var-headline {
+    font-size: 24px;
   }
 }

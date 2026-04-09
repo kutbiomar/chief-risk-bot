@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from backend.deps import get_db
 from backend.models.onboarding import OnboardingProgress
-from backend.routers.auth import require_session
+from backend.routers.auth import require_cookie_csrf, require_session
 
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
 
@@ -74,7 +74,7 @@ def get_onboarding_state(
     )
 
 
-@router.post("/step", response_model=OnboardingStepResponse)
+@router.post("/step", response_model=OnboardingStepResponse, dependencies=[Depends(require_cookie_csrf)])
 def complete_onboarding_step(
     body: OnboardingStepRequest,
     auth=Depends(require_session),

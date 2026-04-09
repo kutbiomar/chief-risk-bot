@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple
 
+from backend.constants import ASSET_CLASS_ALIASES
+
 
 MAX_CSV_BYTES = 25 * 1024 * 1024
 ALLOWED_EXTENSIONS = {".csv", ".tsv"}
@@ -18,24 +20,6 @@ ALLOWED_CONTENT_TYPES = {
     "",
 }
 FORMULA_PREFIXES = ("=", "+", "-", "@")
-ASSET_CLASS_ALIASES = {
-    "equity": "public_equity",
-    "public equity": "public_equity",
-    "public_equity": "public_equity",
-    "stock": "public_equity",
-    "fixed income": "fixed_income",
-    "fixed_income": "fixed_income",
-    "bond": "fixed_income",
-    "private equity": "private_equity",
-    "private_equity": "private_equity",
-    "real assets": "real_assets",
-    "real_assets": "real_assets",
-    "real estate": "real_estate",
-    "real_estate": "real_estate",
-    "commodity": "commodity",
-    "cash": "cash",
-    "alternative": "alternative",
-}
 
 
 @dataclass
@@ -63,7 +47,7 @@ def _safe_string(value: Optional[str]) -> Optional[str]:
     if not stripped:
         return None
     if stripped.startswith(FORMULA_PREFIXES):
-        return "'" + stripped
+        raise ValueError(f"Cell value looks like a spreadsheet formula: {stripped!r}. Remove leading '=', '+', '-', or '@' characters before uploading.")
     return stripped
 
 

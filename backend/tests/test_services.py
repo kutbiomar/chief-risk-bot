@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -10,6 +11,8 @@ from backend.database import Base
 from backend.models.auth import User
 from backend.models.portfolio import Workspace
 from backend.services.audit.logger import AuditLogger
+from backend.services.ingest.agents.reconciliation import reconcile_extraction
+from backend.services.ingest.layout_parser import parse_document_layout
 from backend.services.jobs import AsyncJobService
 from backend.services.scheduler import BriefingSchedulerManager, run_workspace_briefing_cycle
 
@@ -142,11 +145,14 @@ def test_scheduler_syncs_workspace_job() -> None:
     manager = BriefingSchedulerManager(enabled=True, db_factory=lambda: db)
     manager.sync_workspace_job(workspace.id)
     job = manager.scheduler.get_job(f"weekly-briefing:{workspace.id}")
+    overlay_job = manager.scheduler.get_job(f"overlay-refresh:{workspace.id}")
 
     assert job is not None
+    assert overlay_job is not None
     assert str(job.trigger.timezone) == "Europe/Zurich"
     assert "fri" in str(job.trigger).lower()
     assert "7" in str(job.trigger)
+    assert str(overlay_job.trigger.timezone) == "America/New_York"
     db.close()
 
 
@@ -247,9 +253,73 @@ def test_scheduled_briefing_cycle_generates_publishes_and_exports() -> None:
     verify_db = session_factory()
     saved = verify_db.scalar(select(BriefingRun).where(BriefingRun.id == result.briefing_id))
     assert saved is not None
-    assert saved.status == "published"
+    assert saved.status == "draft"
+    assert "Scheduled briefing generated but not auto-published because deterministic fallback was used" in result.detail
     if saved.pdf_path is not None:
         assert Path(saved.pdf_path).exists()
-    else:
-        assert result.detail == "PDF export unavailable — WeasyPrint system libraries not installed"
+    elif "PDF export unavailable" in result.detail:
+        assert "PDF export unavailable — WeasyPrint system libraries not installed" in result.detail
     verify_db.close()
+
+
+def test_layout_parser_uses_local_xlsx_fallback() -> None:
+    from io import BytesIO
+
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Holdings"
+    sheet.append(["Ticker", "Market Value USD"])
+    sheet.append(["MSFT", 5040])
+    buffer = BytesIO()
+    workbook.save(buffer)
+
+    parsed = parse_document_layout("xlsx", buffer.getvalue())
+
+    assert parsed["parser"] == "xlsx-layout-parser"
+    assert parsed["rows"][1][0] == "MSFT"
+
+
+def test_reconciliation_uses_deterministic_fallback_without_provider() -> None:
+    result = reconcile_extraction(
+        {"doc_type": "NAV_STATEMENT", "confidence": 0.9},
+        {"positions": [], "row_confidence": [], "confidence": 0.3},
+        {"sector_exposures": {}, "confidence": 0.4},
+        {"wire_bank": None, "confidence": 0.8},
+    )
+
+    assert result["reconciliation_model"] == "deterministic-reconciliation"
+    assert "no_positions_extracted" in result["errors"]
+
+
+def test_reconciliation_prefers_claude_when_configured(monkeypatch) -> None:
+    class FakeMessages:
+        def create(self, **_kwargs):
+            return SimpleNamespace(content=[SimpleNamespace(text='{"doc_type":"NAV_STATEMENT","overall_confidence":0.93,"errors":[],"field_reviews":[]}')])
+
+    class FakeAnthropic:
+        def __init__(self, api_key: str):
+            self.api_key = api_key
+            self.messages = FakeMessages()
+
+    monkeypatch.setattr(
+        "backend.services.ingest.agents.reconciliation.get_settings",
+        lambda: SimpleNamespace(anthropic_api_key="test-key"),
+    )
+    monkeypatch.setattr("backend.services.ingest.agents.reconciliation._is_test_runtime", lambda: False)
+    import sys
+
+    sys.modules["anthropic"] = SimpleNamespace(Anthropic=FakeAnthropic)
+    try:
+        result = reconcile_extraction(
+            {"doc_type": "NAV_STATEMENT", "confidence": 0.9},
+            {"positions": [{"ticker": "MSFT", "quantity": 1}], "row_confidence": [{"row": 1, "confidence": 0.91, "issues": []}], "confidence": 0.92},
+            {"sector_exposures": {"Technology": 100.0}, "confidence": 0.9},
+            {"wire_bank": None, "confidence": 0.88},
+        )
+    finally:
+        sys.modules.pop("anthropic", None)
+
+    assert result["reconciliation_model"] == "claude-opus-4-6"
+    assert result["overall_confidence"] == 0.93

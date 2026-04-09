@@ -93,3 +93,31 @@ class ExtractionResponse(BaseModel):
     confidence: list[dict[str, Any]]
     needs_review_count: int
     raw_text_truncated: bool
+
+
+class ReviewFieldResponse(BaseModel):
+    field: str
+    reason: str
+    confidence: float
+    resolved: bool = False
+    resolution_note: Optional[str] = None
+
+
+class ReviewUpdateRequest(BaseModel):
+    positions: Optional[list[dict[str, Any]]] = None
+    treasury: Optional[dict[str, Any]] = None
+    resolved_fields: list[str] = []
+
+
+class ExtractionReviewResponse(BaseModel):
+    id: str
+    positions: list[dict[str, Any]]
+    confidence: list[dict[str, Any]]
+    needs_review_count: int
+    raw_text_truncated: bool
+    layout: dict[str, Any]
+    classification: dict[str, Any]
+    risk: dict[str, Any]
+    treasury: dict[str, Any]
+    reconciliation: dict[str, Any]
+    field_reviews: list[ReviewFieldResponse]

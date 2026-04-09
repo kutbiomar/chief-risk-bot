@@ -73,23 +73,22 @@ def test_logout_requires_matching_csrf(client: TestClient, db_session: Session) 
     assert ok.status_code == 200
 
 
-def test_totp_login_requires_verify_step(client: TestClient, db_session: Session) -> None:
+def test_totp_login_falls_back_to_password_only_when_totp_is_disabled(client: TestClient, db_session: Session) -> None:
     user = seed_user(db_session, email="totp@example.com", totp=True)
 
     login = client.post("/api/auth/login", json={"email": user.email, "password": "secret123"})
 
     assert login.status_code == 200
     body = login.json()
-    assert body["requires_totp"] is True
-    challenge = body["session_challenge"]
-    assert challenge
+    assert body["requires_totp"] is False
+    assert body["user"]["email"] == user.email
+    assert login.cookies.get("__crb_session")
 
     verify = client.post(
         "/api/auth/totp/verify",
-        json={"session_challenge": challenge, "code": "000000"},
+        json={"session_challenge": "disabled", "code": "000000"},
     )
-    assert verify.status_code == 200
-    assert verify.cookies.get("__crb_session")
+    assert verify.status_code == 404
 
 
 def test_forgot_password_invalidates_previous_tokens(client: TestClient, db_session: Session) -> None:
@@ -112,8 +111,13 @@ def test_reset_password_marks_token_used_and_revokes_sessions(client: TestClient
     user = seed_user(db_session, email="reset@example.com")
     login = client.post("/api/auth/login", json={"email": user.email, "password": "secret123"})
     assert login.status_code == 200
+    csrf = login.cookies.get("__crb_csrf", "")
 
-    client.post("/api/auth/forgot-password", json={"email": user.email})
+    client.post(
+        "/api/auth/forgot-password",
+        json={"email": user.email},
+        headers={"X-CSRF-Token": csrf},
+    )
     token_row = db_session.scalar(
         select(PasswordResetToken).where(
             PasswordResetToken.user_id == user.id,
@@ -132,6 +136,7 @@ def test_reset_password_marks_token_used_and_revokes_sessions(client: TestClient
     response = client.post(
         "/api/auth/reset-password",
         json={"token": raw_reset_token, "new_password": "new-secret456"},
+        headers={"X-CSRF-Token": csrf},
     )
 
     assert response.status_code == 200
@@ -152,6 +157,7 @@ def test_api_key_can_authenticate_request(client: TestClient, db_session: Sessio
     db_session.add(
         ApiKey(
             workspace_id=user.workspace_id,
+            user_id=user.id,
             label="Integration",
             key_type="anthropic",
             key_prefix=raw_key[:10],
@@ -173,6 +179,7 @@ def test_api_key_updates_last_used_and_cannot_logout(client: TestClient, db_sess
     raw_key = "crb_test_logout_key"
     api_key = ApiKey(
         workspace_id=user.workspace_id,
+        user_id=user.id,
         label="Integration",
         key_type="anthropic",
         key_prefix=raw_key[:10],
@@ -190,3 +197,40 @@ def test_api_key_updates_last_used_and_cannot_logout(client: TestClient, db_sess
 
     logout = client.post("/api/auth/logout", headers={"Authorization": f"Bearer {raw_key}"})
     assert logout.status_code == 400
+
+
+def test_api_key_auth_resolves_the_key_owner_not_the_oldest_workspace_user(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    owner = seed_user(db_session, email="owner-key@example.com")
+    analyst = User(
+        workspace_id=owner.workspace_id,
+        email="analyst-key@example.com",
+        display_name="Analyst",
+        password_hash=hash_password("secret123"),
+        role="analyst",
+        scope="EMEA book",
+        totp_enabled=False,
+    )
+    db_session.add(analyst)
+    db_session.flush()
+
+    raw_key = "crb_test_owner_binding"
+    db_session.add(
+        ApiKey(
+            workspace_id=owner.workspace_id,
+            user_id=analyst.id,
+            label="Analyst Integration",
+            key_type="anthropic",
+            key_prefix=raw_key[:10],
+            lookup_hash=sha256_hex(raw_key),
+            key_hash=hash_password(raw_key),
+        )
+    )
+    db_session.commit()
+
+    response = client.get("/api/auth/me", headers={"Authorization": f"Bearer {raw_key}"})
+
+    assert response.status_code == 200
+    assert response.json()["user"]["email"] == analyst.email

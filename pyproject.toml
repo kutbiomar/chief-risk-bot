@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "ChiefRiskBot backend scaffold"
 requires-python = ">=3.9"
 dependencies = [
+  "argon2-cffi>=23.1.0",
   "alembic>=1.14.0",
   "anthropic>=0.91.0",
   "apscheduler>=3.10.4",

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Login — ChiefRiskBot MVP2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="_mvp.css"/>
+  <script src="_app.js" defer></script>
+</head>
+<body data-page="login">
+  <div class="login-shell">
+    <section class="login-left">
+      <div class="brand">
+        <div class="brand-mark">C</div>
+        <div>
+          <h1>ChiefRiskBot</h1>
+          <p>Private market intelligence for family offices and small funds.</p>
+        </div>
+      </div>
+      <div class="login-quote">
+        “You think you’re diversified and liquid. We show you whether you actually are.”
+      </div>
+      <div class="muted">MVP2 frontend connected to the new private-markets backend.</div>
+    </section>
+    <section class="login-right">
+      <div class="login-card">
+        <h2>Sign in</h2>
+        <p>Use your workspace credentials to access documents, liquidity, and weekly briefings.</p>
+        <div class="notice success" style="margin-bottom:14px">Demo login: <strong>auth@example.com</strong> / <strong>secret123</strong></div>
+        <div id="login-status" class="notice" hidden></div>
+        <form id="login-form" class="form">
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="auth@example.com" required/>
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" type="password" required/>
+          </div>
+          <div class="field" id="totp-wrap" hidden>
+            <label for="totp-code">TOTP Code</label>
+            <input id="totp-code" type="text" placeholder="000000"/>
+          </div>
+          <button class="btn primary" type="submit">Continue</button>
+        </form>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

@@ -2,17 +2,36 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import timedelta
+import os
+from datetime import datetime, timedelta
 
 import pandas as pd
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.config import get_settings
 from backend.models.analytics import FxCache, MacroCache, PriceCache
 from backend.models.portfolio import Position
-from backend.services.auth.session import utc_now
+from backend.services.auth.session import ensure_utc, utc_now
 
 logger = logging.getLogger(__name__)
+
+
+def _is_test_runtime() -> bool:
+    return bool(os.environ.get("PYTEST_CURRENT_TEST"))
+
+
+def _load_price_cache_map(db: Session, tickers: set[str]) -> dict[str, PriceCache]:
+    if not tickers:
+        return {}
+    rows = db.scalars(select(PriceCache).where(PriceCache.ticker.in_(sorted(tickers)))).all()
+    return {row.ticker: row for row in rows}
+
+
+def _is_cache_stale(fetched_at: datetime | None, ttl_hours: int | None) -> bool:
+    if fetched_at is None:
+        return True
+    return ensure_utc(fetched_at) <= utc_now() - timedelta(hours=max(ttl_hours or CACHE_TTL_HOURS, 1))
 
 # Macro series: {key_in_payload: FRED series id}
 FRED_SERIES = {
@@ -21,6 +40,8 @@ FRED_SERIES = {
     "cpi_yoy": "CPIAUCSL",
     "dxy": "DTWEXBGS",
 }
+
+CACHE_TTL_HOURS: int = 4  # shared TTL for price, FX, and macro caches
 
 # FX pairs to fetch: base_currency -> yfinance symbol
 FX_PAIRS: dict[str, str] = {
@@ -82,7 +103,7 @@ def _build_price_cache_deterministic(position: Position, lookback_days: int = 25
         weekly_return_usd=round(sum(series[-5:]), 6),
         history_json=json.dumps(list(reversed(history)), sort_keys=True),
         fetched_at=now,
-        ttl_hours=4,
+        ttl_hours=CACHE_TTL_HOURS,
     )
 
 
@@ -91,11 +112,13 @@ def _build_price_cache_deterministic(position: Position, lookback_days: int = 25
 # ---------------------------------------------------------------------------
 
 def _fetch_price_cache_yfinance(position: Position, lookback_days: int = 252) -> PriceCache | None:
+    if _is_test_runtime():
+        return None
     try:
         import yfinance as yf
 
         ticker_obj = yf.Ticker(position.ticker)
-        hist = ticker_obj.history(period=f"{lookback_days + 10}d")
+        hist = ticker_obj.history(period=f"{lookback_days + 10}d", timeout=5)
         if hist.empty or len(hist) < 5:
             return None
 
@@ -130,7 +153,7 @@ def _fetch_price_cache_yfinance(position: Position, lookback_days: int = 252) ->
             weekly_return_usd=round(weekly_return, 6),
             history_json=json.dumps(history, sort_keys=True),
             fetched_at=now,
-            ttl_hours=4,
+            ttl_hours=CACHE_TTL_HOURS,
         )
     except Exception as exc:
         logger.warning("yfinance fetch failed for %s: %s", position.ticker, exc)
@@ -142,11 +165,13 @@ def _fetch_price_cache_yfinance(position: Position, lookback_days: int = 252) ->
 # ---------------------------------------------------------------------------
 
 def _fetch_fx_cache_yfinance(base_currency: str, yf_symbol: str) -> FxCache | None:
+    if _is_test_runtime():
+        return None
     try:
         import yfinance as yf
 
         ticker_obj = yf.Ticker(yf_symbol)
-        hist = ticker_obj.history(period="252d")
+        hist = ticker_obj.history(period="252d", timeout=5)
         if hist.empty or len(hist) < 5:
             return None
 
@@ -170,7 +195,7 @@ def _fetch_fx_cache_yfinance(base_currency: str, yf_symbol: str) -> FxCache | No
             spot_rate=round(spot_rate, 6),
             history_json=json.dumps(history, sort_keys=True),
             fetched_at=now,
-            ttl_hours=4,
+            ttl_hours=CACHE_TTL_HOURS,
         )
     except Exception as exc:
         logger.warning("yfinance FX fetch failed for %s: %s", yf_symbol, exc)
@@ -182,6 +207,8 @@ def _fetch_fx_cache_yfinance(base_currency: str, yf_symbol: str) -> FxCache | No
 # ---------------------------------------------------------------------------
 
 def _fetch_macro_payload_fred(workspace_id: str) -> dict[str, object] | None:
+    if _is_test_runtime():
+        return None
     settings = get_settings()
     if not settings.fred_api_key:
         logger.warning("FRED_API_KEY not set — skipping FRED macro fetch")
@@ -204,7 +231,7 @@ def _fetch_macro_payload_fred(workspace_id: str) -> dict[str, object] | None:
         try:
             import yfinance as yf
 
-            spx = yf.Ticker("^GSPC").history(period="5d")
+            spx = yf.Ticker("^GSPC").history(period="5d", timeout=5)
             if not spx.empty:
                 payload["spx"] = round(float(spx["Close"].dropna().iloc[-1]), 2)
         except Exception as exc:
@@ -236,20 +263,23 @@ def ensure_enrichment_for_positions(
     now = utc_now()
     cached_tickers: set[str] = set()
     modeled_value = 0.0
+    existing_prices = _load_price_cache_map(db, {position.ticker for position in positions})
 
     for position in positions:
-        existing = db.get(PriceCache, position.ticker)
-        if existing is None:
+        existing = existing_prices.get(position.ticker)
+        if existing is None or _is_cache_stale(existing.fetched_at, existing.ttl_hours):
             cache_entry = _fetch_price_cache_yfinance(position)
             if cache_entry is None:
                 logger.info("No yfinance data for %s — using deterministic fallback", position.ticker)
                 cache_entry = _build_price_cache_deterministic(position)
             db.merge(cache_entry)
+            existing_prices[position.ticker] = cache_entry
         cached_tickers.add(position.ticker)
         modeled_value += float(position.market_value_usd or 0.0)
 
     # FX: always ensure USD identity pair
-    if db.get(FxCache, "USDUSD") is None:
+    usd_pair = db.get(FxCache, "USDUSD")
+    if usd_pair is None or _is_cache_stale(usd_pair.fetched_at, usd_pair.ttl_hours):
         db.merge(
             FxCache(
                 pair="USDUSD",
@@ -261,7 +291,7 @@ def ensure_enrichment_for_positions(
                     sort_keys=True,
                 ),
                 fetched_at=now,
-                ttl_hours=4,
+                ttl_hours=CACHE_TTL_HOURS,
             )
         )
 
@@ -271,7 +301,8 @@ def ensure_enrichment_for_positions(
     }
     for currency in currencies_in_portfolio:
         pair = f"{currency}USD"
-        if db.get(FxCache, pair) is None:
+        existing_fx = db.get(FxCache, pair)
+        if existing_fx is None or _is_cache_stale(existing_fx.fetched_at, existing_fx.ttl_hours):
             yf_symbol = FX_PAIRS.get(currency)
             fx_entry = _fetch_fx_cache_yfinance(currency, yf_symbol) if yf_symbol else None
             if fx_entry is None:
@@ -286,26 +317,30 @@ def ensure_enrichment_for_positions(
                         sort_keys=True,
                     ),
                     fetched_at=now,
-                    ttl_hours=4,
+                    ttl_hours=CACHE_TTL_HOURS,
                 )
             db.merge(fx_entry)
 
-    # Macro: refresh if no entry exists for this workspace
+    # Macro: refresh if no entry exists or the latest one is stale
     macro = (
         db.query(MacroCache)
         .filter(MacroCache.workspace_id == workspace_id)
         .order_by(MacroCache.fetched_at.desc())
         .first()
     )
-    if macro is None:
+    if macro is None or _is_cache_stale(macro.fetched_at, CACHE_TTL_HOURS):
         payload = _fetch_macro_payload_fred(workspace_id) or _fallback_macro_payload()
-        db.add(
-            MacroCache(
-                workspace_id=workspace_id,
-                payload_json=json.dumps(payload, sort_keys=True),
-                fetched_at=now,
+        if macro is None:
+            db.add(
+                MacroCache(
+                    workspace_id=workspace_id,
+                    payload_json=json.dumps(payload, sort_keys=True),
+                    fetched_at=now,
+                )
             )
-        )
+        else:
+            macro.payload_json = json.dumps(payload, sort_keys=True)
+            macro.fetched_at = now
 
     db.flush()
     return {"tickers": sorted(cached_tickers), "modeled_value_usd": round(modeled_value, 2)}

@@ -1,947 +1,214 @@
 # Codex Execution Log
 
-## 2026-04-08
-
-### Queue Item 1
-
-- Source queue entry: `/codex-bitch plan ARCHITECTURE.md`
-- Scope executed: fix schema/API gaps called out in `CODEBASE_STATUS.md`
-
-### Work Performed
-
-- Reviewed `ARCHITECTURE.md` against the queue item and confirmed all listed gaps were still present.
-- Clarified the portfolio data model so `portfolio_snapshots` are immutable and manual create/edit/delete actions materialize a successor snapshot instead of mutating historical rows in place.
-- Added `parent_snapshot_id` to `portfolio_snapshots` to preserve snapshot lineage.
-- Added `security_id` to `positions` for canonical instrument identity beyond ticker.
-- Added a new `async_jobs` table to support async risk runs, ingest/enrichment progress polling, source syncs, briefing generation, and workspace exports.
-- Added SSO-related fields to `workspace_settings`: `sso_mode`, `sso_google_hosted_domain`, `saml_entity_id`, `saml_sso_url`, `saml_x509_cert`, and `saml_sp_entity_id`.
-- Changed the VaR compute route from `GET /api/var/compute` to `POST /api/var/compute`.
-- Added `sequence_no` to `audit_events` and documented audit ordering/commit semantics so the hash chain has a deterministic per-workspace sequence.
-- Updated ingest status docs to poll by `job_id` rather than `snapshot_id`, aligning status polling with the new async job model.
-- Updated `CODEBASE_STATUS.md` to mark queue item 1 complete.
-- Created the reusable skill `codex-queue-executor` under `~/.codex/skills` so future `/codex-bitch` queue work can be executed and logged consistently.
-
-### Notes
-
-- No implementation code exists yet; this pass updated planning/docs only.
-- Queue item 2 remains open and should be run before database migrations or backend scaffolding begins.
-
-## 2026-04-08
-
-### Queue Item 2
-
-- Source queue entry: `/codex-bitch schema ARCHITECTURE.md`
-- Scope executed: cross-validate schema references, route backing state, and nullable response semantics
-
-### Work Performed
-
-- Reviewed all table definitions in `ARCHITECTURE.md` and fixed every shorthand FK so each one now resolves to an explicit target table.
-- Added `password_reset_tokens` because auth routes for forgot/reset password required persistent single-use token state that was previously undocumented.
-- Added `onboarding_progress` because `/api/onboarding/state` and related step mutation routes implied workspace-level onboarding state with no table behind them.
-- Added `access_requests` because `POST /api/contact/request-access` implied persistence that was previously undocumented.
-- Added `audit_exports` because audit export cleanup and download flows required export metadata, storage path, and expiry tracking.
-- Expanded `async_jobs.job_type` so async routes and job-backed operations now align with documented job categories, including `document_parse` and `audit_export`.
-- Clarified that async endpoints return `job_id` alongside the primary resource id when the operation continues in the background.
-- Changed audit export into a two-step flow: `POST /api/audit/export` creates the export job and `GET /api/audit/export/{id}` downloads the completed artifact.
-- Documented that response schemas must keep nullable storage-backed fields optional for positions, document metadata, and extraction payloads.
-- Added an explicit note that `GET /api/markets/movers` derives daily P&L from `market_value_usd * daily_return`, so no separate `daily_pnl` column is required.
-- Documented that demo billing routes remain `501` stubs and therefore do not require billing tables yet.
-- Re-ran FK scans after patching and confirmed there are no remaining unresolved `UUID FK` declarations in the architecture doc.
-
-### Notes
-
-- No implementation code exists yet; this pass updated planning/docs only.
-- Queue item 2 was completed in this pass.
-
-## 2026-04-08
-
-### Queue Item 3
-
-- Source queue entry: `/codex-bitch plan BACKEND_PLAN.md`
-- Scope executed: review and correct Phase 3 VaR design for methodology, contributions, illiquid assets, and non-USD positions
-
-### Work Performed
-
-- Reviewed Phase 3 in `BACKEND_PLAN.md` and identified three design issues: unstable leave-one-out contribution math, no defensible treatment for private/illiquid assets without daily history, and no FX-aware modeling for non-USD positions.
-- Updated the plan so VaR runs in workspace reporting currency using historical simulation over the common overlapping history window rather than assuming every position has a clean 252-day aligned return series.
-- Added explicit coverage rules: persist `effective_lookback_days`, require minimum modeled coverage, and surface excluded/unmodeled capital instead of presenting a falsely complete VaR number.
-- Added a three-level private/illiquid asset policy: direct modeling when history exists, proxy mapping when defensible, and explicit exclusion with disclosure when neither is available.
-- Replaced the primary "with and without position" contribution concept with additive scenario-day contribution math so the cockpit risk-driver breakdown is stable, cheap, and sums to the modeled loss.
-- Added explicit FX handling for non-USD holdings and foreign-currency cash so asset returns are translated into the workspace reporting currency before scenario aggregation.
-- Updated the plan route reference from `GET /var/compute` to `POST /var/compute`.
-- Extended `ARCHITECTURE.md` to support the reviewed design by adding `position_currency`, `price_local`, `market_value_local`, `fx_cache`, and additional `var_results` metadata fields for coverage and assumptions.
-
-### Notes
-
-- No implementation code exists yet; this pass updated planning/docs only.
-- Queue item 4 is now the next pending review item.
-
-## 2026-04-08
-
-### Queue Item 4
-
-- Source queue entry: `/codex-bitch plan BACKEND_PLAN.md`
-- Scope executed: review and correct Phase 4 agent orchestration for concurrency, failure handling, token budgets, and prompt injection risk
-
-### Work Performed
-
-- Reviewed Phase 4 in `BACKEND_PLAN.md` and found the orchestration model was underspecified: it assumed raw parallelism via `asyncio.gather` without defining parent-job state, partial failures, retry behavior, or payload bounding.
-- Updated the plan so risk analysis runs behind a parent `risk_run` async job with one recorded result row per agent and explicit parent success/failure criteria.
-- Added failure-handling rules for timeouts, transient retries, schema-validation failures, and degraded UI rendering when one or more agents fail.
-- Added explicit token budget guidance per agent so large portfolios are summarized deterministically instead of blindly dumped into prompts.
-- Added prompt injection defenses that treat uploaded CSV/document content as untrusted data, require schema-first payloads, and forbid direct concatenation of raw uploaded text into trusted prompts.
-- Added context-shaping rules so each agent only receives the minimum relevant structured payload for its domain.
-- Extended `ARCHITECTURE.md` so `risk_scores` now records per-agent status, job linkage, prompt version, latency, and failure metadata, and `async_jobs` now records orchestration attempt and child-task counts.
-
-### Notes
-
-- No implementation code exists yet; this pass updated planning/docs only.
-- Queue item 5 is now the next pending review item.
-
-## 2026-04-08
-
-### Queue Item 5
-
-- Source queue entry: `/codex-bitch plan ARCHITECTURE.md`
-- Scope executed: review and correct authentication design for session tokens, CSRF, API key lookup, TOTP challenge lifecycle, and password reset guarantees
-
-### Work Performed
-
-- Reviewed the authentication section in `ARCHITECTURE.md` and found four main gaps: cookie sessions lacked an explicit CSRF defense, API key lookup relied on bcrypt-only semantics that do not scale to request-time lookup, TOTP challenge state was too underspecified, and password reset tokens needed clearer invalidation semantics.
-- Extended `user_sessions` with `session_family_id`, `csrf_secret`, and `last_seen_at` to support logout-all behavior, double-submit CSRF, and rolling session activity.
-- Added `lookup_hash` to `api_keys` so requests can do indexed SHA-256 candidate lookup first and only then perform slow-hash verification against `key_hash`.
-- Added `auth_challenges` as a dedicated table for short-lived TOTP and related auth challenges with TTL, attempt counters, and single-use consumption semantics.
-- Expanded `password_reset_tokens` with `invalidated_at` and `requested_ip`, and documented issuance/reset rules so only one valid reset flow exists at a time and all open tokens are invalidated on password/security changes.
-- Updated the session flow to set both session and CSRF cookies, documented the `X-CSRF-Token` requirement for cookie-authenticated mutating requests, and added `POST /api/auth/logout-all` to the API surface.
-- Fixed two doc regressions introduced during the patching process: a temporary table splice around `auth_challenges` and a duplicated schema block later in the file.
-
-### Notes
-
-- No implementation code exists yet; this pass updated planning/docs only.
-- Queue item 6 is now the next pending review item.
-
-## 2026-04-08
-
-### Queue Item 6
-
-- Source queue entry: `/codex-bitch review`
-- Scope executed: pre-implementation ingest security specification for CSV/document upload risks
-
-### Work Performed
-
-- Reviewed the planned ingest/document flows in `ARCHITECTURE.md` and `BACKEND_PLAN.md` against the listed security concerns even though implementation code does not exist yet.
-- Added document metadata fields for `sha256`, `malware_scan_status`, `raw_text_truncated`, and `extracted_row_count` so the schema can represent quarantine, dedupe, and extraction-bound outcomes.
-- Documented that uploaded files remain quarantined until MIME validation, magic-bytes validation, size checks, and malware scanning complete.
-- Tightened `storage_path` semantics so file paths are always server-generated from trusted ids rather than user-controlled filenames, closing the planned path traversal gap.
-- Added explicit CSV formula-neutralization requirements for values beginning with `=`, `+`, `-`, or `@` before any spreadsheet-compatible export or rendering path.
-- Added per-type ingest security gates in `BACKEND_PLAN.md`, including lower CSV size caps, allow-lists, encrypted-file rejection in demo mode, and pre-model extraction bounds.
-- Added hard limits on raw extracted text and extracted row/page counts before any Claude extraction call, with truncation forcing manual review.
-- Clarified that only approved extraction results may be promoted into the portfolio import flow when confidence or safety checks flagged the file.
-
-### Notes
-
-- No implementation code exists yet; this pass updated planning/docs only.
-- Queue item 7 is now the next pending review item.
-
-## 2026-04-08
-
-### Queue Item 7
-
-- Source queue entry: `/codex-bitch plan FRONTEND_AUDIT.md`
-- Scope executed: verify frontend screen endpoint coverage and API-shape expectations against `ARCHITECTURE.md`
-
-### Work Performed
-
-- Reviewed `FRONTEND_AUDIT.md` against the current `ARCHITECTURE.md` API surface and found both omissions and drift.
-- Expanded Tier 1 screen endpoint lists so the frontend audit now includes endpoints the screens actually rely on, including TOTP verification, request-access, onboarding step mutations, ingest-document, source provider listing, risk job status polling, briefing edit/PDF export, full position CRUD, and the full markets data set.
-- Removed or downgraded several stale backend additions that conflicted with the architecture direction, including the mitigation-tree endpoint, per-risk Monte Carlo probability field, dedicated position-risk/history aliases, audit `icon_type`, and other backend work that is better handled in the UI or deferred post-MVP.
-- Kept a smaller set of legitimate response-shape additions in scope: `portfolio_snapshot` and `agents_used` on briefing detail, plus `folder_counts` on the document list response.
-- Updated `ARCHITECTURE.md` so those lightweight briefing/document response-shape requirements are now documented alongside the route definitions.
-- Cleaned up the summary section in `FRONTEND_AUDIT.md` so MVP backend gaps are separated from items that should explicitly stay out of MVP scope.
-
-### Notes
-
-- No implementation code exists yet; this pass updated planning/docs only.
-- Queue item 8 is now the next pending review item.
-
-## 2026-04-08
-
-### Queue Item 8
-
-- Source queue entry: `/codex-bitch plan ARCHITECTURE.md`
-- Scope executed: validate build order against documented schema/service dependencies and remove dead sequencing
-
-### Work Performed
-
-- Reviewed the build sequence in `ARCHITECTURE.md` against the current architecture after the earlier queue-item fixes.
-- Identified two concrete sequencing problems: audit logging arrived after several earlier mutating flows already depended on audited behavior, and the weekly briefing scheduler was scheduled before PDF export even though scheduled delivery can depend on PDF generation.
-- Reworked the phase list so early weeks now distinguish auth foundations, core ingest, async job scaffolding, enrichment caches, analytics, and audit foundations before higher-level agent/briefing flows.
-- Moved audit logging ahead of agents, briefings, and document approval so event writes do not depend on a logger that does not yet exist.
-- Kept enrichment ahead of VaR/agent/cockpit layers so `price_cache` and `macro_cache` exist before analytics need them.
-- Moved settings ahead of the scheduler because `workspace_settings` controls cadence, recipients, audit footer, and PDF-send behavior.
-- Moved PDF export ahead of the weekly scheduler so scheduled briefing delivery cannot depend on an export path that has not been built yet.
-- Added an explicit dependency-corrections note under the build sequence so future edits can be checked against the intended dependency graph.
-
-### Notes
-
-- No implementation code exists yet; this pass updated planning/docs only.
-- The `/codex-bitch` queue in `CODEBASE_STATUS.md` is now cleared.
-
-### Queue Item 9
-
-- Source queue entry: `/GScodex-bitch review frontend-mvp/_app.js`
-- Scope executed: reconcile every `api()` and `download()` call in `frontend-mvp/_app.js` against implemented backend routes, HTTP methods, and response field usage
-
-### Work Performed
-
-- Reviewed `frontend-mvp/_app.js` end to end and enumerated the frontend call surface for auth, onboarding, ingest, VaR, risk, cockpit, briefings, positions, documents, and PDF export.
-- Cross-checked each call against the implemented routers in `backend/routers/auth.py`, `backend/routers/onboarding.py`, `backend/routers/ingest.py`, `backend/routers/var.py`, `backend/routers/risk.py`, `backend/routers/cockpit.py`, `backend/routers/briefings.py`, `backend/routers/portfolio.py`, and `backend/routers/documents.py`.
-- Verified that route prefixes, HTTP methods, and primary payload fields line up for all audited calls, including cookie-auth session refresh, CSRF-protected mutating requests, multipart uploads, briefing PDF download, and immutable position mutation flows.
-- Confirmed the briefing and document response shapes consumed by the MVP frontend match the current backend schema definitions.
-- Found one concrete response-shape mismatch in the cockpit register render path: frontend rows read `title` and `ticker`, while backend agent-register entries expose `headline` and `agent`, which causes agent rows to render as generic "Risk flag" / "Portfolio" labels instead of their actual agent name and headline.
-- Updated `CODEBASE_STATUS.md` to mark queue item 9 complete and preserve the discovered follow-up in the completion note.
-
-### Notes
-
-- Diff-style mismatch list:
-  - `frontend-mvp/_app.js` around the cockpit register render should change column mapping from `item.title || item.rule` and `item.ticker || 'Portfolio'` to a shape that matches backend register entries, for example `item.headline || item.rule || 'Risk flag'` and `item.agent || item.ticker || 'Portfolio'`.
-- No source-code patch was applied in this queue run because the queue item was a review task, not a fix request.
-- Remaining queue items 10 through 12 are still pending.
-
-## 2026-04-08
-
-### Queue Item 10
-
-- Source queue entry: `/GScodex-bitch review frontend-mvp/`
-- Scope executed: audit every file in `frontend-mvp/` against `frontend-design-ideal/DESIGN.md` for palette, typography, and token compliance
-
-### Work Performed
-
-- Read `frontend-design-ideal/DESIGN.md` in full and used it as the audit baseline for paper/background tokens, accent usage, Fraunces headings, Inter Tight UI text, and JetBrains Mono numeric rendering.
-- Reviewed every file in `frontend-mvp/`, including `_mvp.css`, `_shell.js`, `_app.js`, and all HTML screens.
-- Verified that the MVP HTML screens all load the correct Google Fonts definitions, but also found that every visible screen points to `../_shell.css`, which does not exist in the repository, so the shared token layer and base typography do not load at runtime.
-- Cross-checked the real shared shell stylesheet in `frontend-design-ideal/_shell.css` to confirm the missing file is where the paper tokens, accent tokens, base `Inter Tight` body font, `uplabel`, `btn`, and shell layout classes are actually defined.
-- Found repeated hardcoded colours in `frontend-mvp/_mvp.css`, including card/table surfaces, severity pill border tints, and a selected-row blue tint that is not represented as a design token.
-- Found repeated JetBrains Mono violations in runtime-generated markup from `frontend-mvp/_app.js`, where currency, percentages, counts, snapshot ids, file sizes, and extraction counts are rendered through generic UI-text classes instead of a numeric/mono class.
-- Updated `CODEBASE_STATUS.md` to mark queue item 10 complete.
-
-### Notes
-
-- Screen-by-screen findings summary:
-  - `login.html`, `onboarding.html`, `cockpit.html`, `briefings.html`, `briefing.html`, `table.html`, and `documents.html` all reference missing `../_shell.css`, so their shared paper palette, Inter Tight body text, accent/button styling, and token definitions are not actually loaded.
-  - `cockpit.html` + `_app.js` render dynamic portfolio counts, currency values, percentages, and register data mostly through generic body styles instead of JetBrains Mono.
-  - `documents.html` + `_app.js` render file sizes, folder counts, extracted quantities, review counts, and market values through generic body styles instead of JetBrains Mono.
-  - `_mvp.css` hardcodes several colours (`#fffdfb`, severity border tints, `#eef0f7`, `#fff`) instead of relying on named tokens, which breaks the explicit design-system audit rule.
-- No source-code patch was applied in this queue run because item 10 was a review task, not a fix request.
-- Queue items 11 and 12 remain pending.
-
-## 2026-04-08
-
-### Implementation Proposal
-
-- Scope executed: proposal only; no backend scaffold or code implementation performed
-
-### Proposed Next Step
-
-- Start with a thin but executable backend scaffold that matches the reviewed architecture exactly enough to keep future work honest, but avoid premature completeness.
-
-### Recommended Sequence
-
-- Phase A: bootstrap the backend shell
-- Create `backend/` with `main.py`, `config.py`, `database.py`, `deps.py`, router registration, settings loading, and a health endpoint.
-- Add SQLAlchemy models and Alembic migrations for the now-stable foundational tables first:
-  `workspaces`, `users`, `user_sessions`, `api_keys`, `password_reset_tokens`, `auth_challenges`, `workspace_settings`, `async_jobs`, `audit_events`, `portfolio_snapshots`, `positions`.
-- Wire a minimal test harness with `pytest` and one app-startup smoke test.
-
-- Phase B: implement the real foundations before analytics
-- Auth first: login/session/logout/logout-all, CSRF handling, password reset flow skeleton, API key dependency, current-session endpoint.
-- Audit logger early: build the append-only audit writer and make auth + position mutations write through it from day one.
-- Async job abstraction early: create the parent job model/service used later by risk runs, document parsing, and exports.
-
-- Phase C: implement the demo data path
-- CSV ingest with validation, snapshot creation, position persistence, and enrichment kickoff.
-- Market/macro enrichment with `price_cache`, `fx_cache`, and `macro_cache`.
-- Portfolio summary endpoints and current snapshot endpoints.
-- Only after those are stable: VaR engine, then risk agents, then cockpit composite endpoint.
-
-- Phase D: content generation and secondary workflows
-- Briefing generation and storage after VaR + agents are working.
-- Document ingest after the core CSV path is reliable, with quarantine/validation hooks and bounded extraction.
-- Settings/API keys before scheduler.
-- PDF export before weekly scheduler.
-
-### Why this sequence
-
-- It follows the reviewed dependency graph instead of the original narrative order.
-- It creates a working vertical slice early: auth → CSV ingest → enrichment → portfolio summary.
-- It avoids building agent/briefing layers on top of unstable portfolio and audit foundations.
-- It keeps high-risk security and audit concerns in the first implementation tranche rather than postponing them.
-
-### Suggested Deliverables
-
-- Milestone 1: app boots, migrations run, auth/session works, health endpoint passes.
-- Milestone 2: CSV upload creates a snapshot and positions; summary endpoint returns real aggregates.
-- Milestone 3: enrichment caches populate; VaR returns a real result with coverage metadata.
-- Milestone 4: risk run async job executes agents with partial-failure handling.
-- Milestone 5: cockpit and briefing flows become end-to-end usable.
-
-### Guardrails
-
-- Do not implement speculative endpoints the frontend audit explicitly downgraded to UI-only or post-MVP.
-- Keep response shapes aligned with the documented contracts as they now stand.
-- Add migrations incrementally and keep tests at the feature-boundary level, not only unit level.
-- Treat the first scaffold as a dependency-enforcing skeleton, not a full feature dump.
-
-### Notes
-
-- This proposal was logged only. No backend scaffold, migration, or source code was created in this step.
-
-## 2026-04-08
-
-### Phase A Start
-
-- Scope executed: begin Milestone 1 implementation and log concrete scaffold actions
-
-### Work Performed
-
-- Created the initial backend project structure under `backend/`, including `models`, `schemas`, `routers`, `services`, `migrations`, and `tests`.
-- Added `pyproject.toml` with the initial FastAPI/SQLAlchemy/Alembic dependency set and pytest configuration.
-- Added `alembic.ini`, `.env.example`, and Alembic environment bootstrap files so migrations have a defined home.
-- Implemented the first backend shell files: `backend/main.py`, `backend/config.py`, `backend/database.py`, and `backend/deps.py`.
-- Added a minimal health router and schema so `GET /api/health` exists as the first runnable API endpoint.
-- Added foundational SQLAlchemy models for the Phase A tables:
-  `workspaces`, `users`, `user_sessions`, `api_keys`, `password_reset_tokens`,
-  `auth_challenges`, `workspace_settings`, `async_jobs`, `audit_events`,
-  `portfolio_snapshots`, and `positions`.
-- Added an initial Alembic revision `20260408_000001_phase_a_foundations.py` to create those foundational tables.
-- Added a stub `AuditLogger` interface to pin the audit service entrypoint early without pretending the feature is implemented.
-- Added a minimal pytest smoke test for the health endpoint.
-
-### Notes
-
-- This is scaffold/foundation work only. Auth flows, audit event writing, and CSV ingest are not implemented yet.
-- A verification pass should still run before claiming Milestone 1 complete, because the repo did not previously contain a Python environment or installed dependencies.
-
-### Verification
-
-- `python3 -m pytest backend/tests/test_health.py` could not run because `pytest` is not installed in the local environment.
-- A syntax-level verification pass succeeded after redirecting Python bytecode cache into `/tmp`:
-  `PYTHONPYCACHEPREFIX=/tmp/pycache python3 -m py_compile ...`
-- Milestone 1 should still be treated as in progress until dependencies are installed and the health test plus migration flow run end-to-end.
-- Dependencies were then installed into `.venv`, the foundational migration was applied successfully, and the health smoke test ran successfully end-to-end.
-- After adding auth/audit/job foundations, the current backend test set passed:
-  `.venv/bin/python -m pytest backend/tests/test_health.py backend/tests/test_services.py`
-
-### Running List
-
-- [done] Created `.venv` in the repo
-- [done] Installed backend dependencies into `.venv`
-- [done] Applied Alembic foundational migration
-- [done] Ran health smoke test successfully
-- [done] Implemented Phase B auth/session and CSRF primitives
-- [done] Implemented audit logger foundation
-- [done] Implemented async job service/polling scaffold
-- [next] Add focused auth endpoint tests and tighten Phase B behavior
-
-### Phase B Progress
-
-- Implemented an auth router with login, session/me retrieval, logout, logout-all, forgot-password, and reset-password endpoints.
-- Added cookie/bearer session lookup helpers and double-submit CSRF enforcement for cookie-authenticated mutating auth routes.
-- Added password hashing/verification and opaque session token helpers.
-- Replaced the original audit logger stub with a real append-only logger that assigns workspace-local sequence numbers and hash-chains each event.
-- Added an `AsyncJobService` with create/run/finish/get lifecycle helpers for future risk/document/export orchestration.
-- Added service tests covering audit sequencing/hash chaining and async job status transitions.
-
-### Notes
-
-- Phase B now exists as working foundation code, but auth routes still need focused endpoint-level tests before they should be treated as stable.
-
-### Phase B Verification Update
-
-- Added focused auth endpoint tests in `backend/tests/test_auth.py` covering login cookie issuance, session lookup, CSRF-protected logout, TOTP challenge completion, forgot-password invalidation, and reset-password session revocation.
-- Fixed the shared test database fixture in `backend/tests/conftest.py` to use a thread-safe shared in-memory SQLite engine for `TestClient`.
-- Normalized auth expiry timestamp comparisons in `backend/services/auth/session.py` and `backend/routers/auth.py` so SQLite-returned naive datetimes are treated as UTC during session, TOTP challenge, and reset-token validation.
-- Re-ran the full backend test suite successfully:
-  `.venv/bin/python -m pytest backend/tests`
-
-### Running List
-
-- [done] Created `.venv` in the repo
-- [done] Installed backend dependencies into `.venv`
-- [done] Applied Alembic foundational migration
-- [done] Ran health smoke test successfully
-- [done] Implemented Phase B auth/session and CSRF primitives
-- [done] Implemented audit logger foundation
-- [done] Implemented async job service/polling scaffold
-- [done] Added focused auth endpoint tests and tightened Phase B behavior
-- [next] Start Phase C with CSV ingest and portfolio summary
-
-### Phase C Progress
-
-- Added multipart CSV ingest support with the required `python-multipart` dependency.
-- Implemented `POST /api/ingest/csv` in `backend/routers/ingest.py` with the documented CSV security gate:
-  allow-listed `.csv`/`.tsv`, content-type checks, 25MB cap, binary-content rejection, display-name normalization, and formula-string neutralization for downstream-safe fields.
-- Added a CSV parser in `backend/services/ingest/csv_parser.py` that handles comma, semicolon, and tab-delimited uploads, normalizes asset classes, and derives `market_value_usd` when the file omits it.
-- Persisted CSV uploads into immutable `portfolio_snapshots` and `positions`, with the previous current snapshot demoted and `parent_snapshot_id` set on the replacement snapshot.
-- Added job-backed ingest status plumbing so CSV uploads create an `async_jobs` row and return `job_id` alongside `snapshot_id`.
-- Implemented `GET /api/portfolio/snapshot`, `GET /api/portfolio/summary`, and `GET /api/portfolio/positions` in `backend/routers/portfolio.py`.
-- Added portfolio aggregation logic in `backend/services/portfolio.py` for:
-  total AUM, asset-class/geo/sector/segment rollups, custodian distribution, liquidity score, HHI concentration, and top-five concentration.
-
-### Verification
-
-- Added end-to-end coverage in `backend/tests/test_ingest.py` for:
-  CSV upload, snapshot/job creation, successor snapshot behavior, summary retrieval, positions list retrieval, and invalid extension rejection.
-- Installed the missing multipart dependency into `.venv`.
-- Re-ran the full backend test suite successfully:
-  `.venv/bin/python -m pytest backend/tests`
-
-### Running List
-
-- [done] Created `.venv` in the repo
-- [done] Installed backend dependencies into `.venv`
-- [done] Applied Alembic foundational migration
-- [done] Ran health smoke test successfully
-- [done] Implemented Phase B auth/session and CSRF primitives
-- [done] Implemented audit logger foundation
-- [done] Implemented async job service/polling scaffold
-- [done] Added focused auth endpoint tests and tightened Phase B behavior
-- [done] Started Phase C with CSV ingest, current snapshot, summary, and positions list
-- [next] Add enrichment cache/model scaffolding for positions, then implement VaR on top of persisted snapshot data
-
-### Phase C Analytics Progress
-
-- Added analytics/cache models in `backend/models/analytics.py` for:
-  `price_cache`, `fx_cache`, `macro_cache`, `risk_scores`, `risk_flags`, and `var_results`.
-- Added deterministic enrichment scaffolding in `backend/services/enrichment.py` so uploaded positions now populate repeatable demo `price_cache`, `fx_cache`, and `macro_cache` rows without depending on live upstream services.
-- Implemented historical-simulation VaR computation in `backend/services/var.py` and exposed it at `POST /api/var/compute` via `backend/routers/var.py`.
-- Persisted `var_results` with coverage metadata, contributions, assumptions, and lookback fields aligned to the reviewed architecture contract.
-- Implemented deterministic risk-run orchestration in `backend/services/risk.py` and `backend/routers/risk.py`:
-  parent `async_jobs` row, five agent `risk_scores`, deterministic `risk_flags`, and merged risk-register reads.
-- Added `GET /api/cockpit` in `backend/routers/cockpit.py` so the frontend now has a single composite portfolio/risk/VaR call.
-
-### Phase D Progress
-
-- Added content/workflow models in `backend/models/content.py` for:
-  `briefing_runs`, `documents`, and `extraction_results`.
-- Implemented briefing generation/storage/export in `backend/services/briefings.py` and `backend/routers/briefings.py`:
-  `POST /api/briefings/generate`, `GET /api/briefings`, `GET /api/briefings/{id}`,
-  `POST /api/briefings/{id}/publish`, and `GET /api/briefings/{id}/export/pdf`.
-- Implemented settings and API key management in `backend/routers/settings.py`:
-  `GET/PATCH /api/settings`, `GET /api/settings/api-keys`, `POST /api/settings/api-keys`,
-  and `DELETE /api/settings/api-keys/{id}`.
-- Implemented a minimal document workflow in `backend/services/documents.py` and `backend/routers/documents.py`:
-  `POST /api/documents/upload`, `GET /api/documents`, `GET /api/documents/{id}`,
-  `POST /api/documents/{id}/parse`, `GET /api/documents/{id}/extraction`,
-  `POST /api/documents/{id}/tag`, `POST /api/documents/{id}/approve`, and `DELETE /api/documents/{id}`.
-- Added Alembic revision `20260408_000002_phase_cd_analytics_content.py` and applied it successfully to the local SQLite database.
-
-### Verification
-
-- Added integration coverage in `backend/tests/test_phase_cd.py` for:
-  VaR, risk run, cockpit, settings patching, API key lifecycle, briefing generation/publish/export, and document upload/parse/list/delete.
-- Re-ran the full backend test suite successfully:
-  `.venv/bin/python -m pytest backend/tests`
-- Applied the new migration successfully:
-  `.venv/bin/alembic upgrade head`
-
-### Running List
-
-- [done] Created `.venv` in the repo
-- [done] Installed backend dependencies into `.venv`
-- [done] Applied Alembic foundational migration
-- [done] Ran health smoke test successfully
-- [done] Implemented Phase B auth/session and CSRF primitives
-- [done] Implemented audit logger foundation
-- [done] Implemented async job service/polling scaffold
-- [done] Added focused auth endpoint tests and tightened Phase B behavior
-- [done] Started Phase C with CSV ingest, current snapshot, summary, and positions list
-- [done] Added enrichment cache/model scaffolding and persisted VaR computation
-- [done] Implemented risk run, risk register, and cockpit composite response
-- [done] Implemented Phase D briefing, settings/API keys, document workflow, and PDF export path
-- [next] Review remaining MVP gaps and decide whether to close them now or freeze the scaffold
-
-### MVP Status Snapshot
-
-- Done:
-  auth/session basics, CSV ingest, snapshot persistence, portfolio summary/positions list,
-  deterministic enrichment caches, historical-simulation VaR, risk run storage, cockpit endpoint,
-  briefing generation/list/detail/publish/export, settings/API keys, document upload/parse/review flow,
-  audit logger foundation, async job foundation, migrations, end-to-end backend tests.
-- Partial / scaffolded:
-  risk agents are deterministic stand-ins rather than live model-backed analysts;
-  document parsing is deterministic placeholder extraction rather than real PDF/DOCX parsing;
-  PDF export writes a server-side artifact path but does not yet render a true formatted PDF document;
-  enrichment uses repeatable synthetic cache data rather than yfinance/FRED.
-- Still missing for a strict MVP-complete backend:
-  positions CRUD with successor snapshots, full briefing edit/regenerate/archive routes,
-  document approval promotion into portfolio import, markets endpoints, scheduler execution,
-  real external enrichment integrations, and real LLM-backed analyst/briefing generation.
+## Archive
+
+Entries 0–38 (2026-04-07 to 2026-04-08) covered Phases A–D architecture review,
+schema validation, VaR design, agent orchestration, auth hardening, frontend audit,
+and demo polish. All completed. See `CODEBASE_STATUS.md` Completed table for outcomes.
 
 ---
 
-## 2026-04-08
+## Active — Phase E (MVP2)
 
-### MVP Integration Pass — Real Data + LLM Implementations
-
-- Orchestrator: Claude Code (claude-sonnet-4-6)
-
-### Work Performed
-
-- Added `anthropic`, `yfinance`, `fredapi`, `weasyprint` dependencies to `pyproject.toml`
-  and installed into `.venv`.
-- Added `ANTHROPIC_API_KEY` and `FRED_API_KEY` optional fields to `backend/config.py`
-  (read from env/.env, empty default, graceful fallback when absent).
-
-**Enrichment (`backend/services/enrichment.py`) — replaced synthetic stubs:**
-- Real yfinance price fetch for all position tickers (1y history) → `price_cache` rows.
-  Deterministic fallback if yfinance returns no data (illiquid/private assets).
-- Real FX rates via yfinance (EUR, GBP, JPY, CHF, CAD, AUD → USD pairs) → `fx_cache`.
-- Real FRED macro fetch for VIX(VIXCLS), 10Y(DGS10), CPI(CPIAUCSL), DXY(DTWEXBGS) + SPX
-  via yfinance → `macro_cache`. Falls back to hardcoded defaults if `FRED_API_KEY` absent.
-- All yfinance/FRED failures are caught and logged; deterministic fallback path preserved.
-
-**Risk agents (`backend/services/risk.py`) — replaced deterministic engine:**
-- Five real Claude agents: Concentration, Liquidity, Macro/Geopolitical, FX & Currency, Tail Risk.
-- Each agent gets a structured, injection-safe payload (no raw CSV text).
-- `asyncio.gather(..., return_exceptions=True)` — partial failure safe (≥4/5 to succeed).
-- 30s timeout per agent, 1500 max_tokens, one retry on transient errors; no retry on schema errors.
-- Persists into `risk_scores` with `status`, `latency_ms`, `prompt_version=risk-v2`.
-- `risk_flags` derived from structured agent JSON output + hard-coded structural rules.
-- Graceful deterministic fallback when `ANTHROPIC_API_KEY` is absent.
-
-**Briefing generation (`backend/services/briefings.py`) — replaced deterministic text:**
-- Real Claude call (claude-sonnet-4-6) assembling cockpit summary, risk scores/flags, macro snapshot.
-- System prompt: Chief Risk Officer writing for family office CIO.
-- Structured output: `executive_summary`, `market_context`, `portfolio_risks`, `recommendations`, `data_caveats`.
-- Graceful deterministic fallback when `ANTHROPIC_API_KEY` is absent.
-
-**PDF export (`backend/services/briefings.py`) — replaced path stub:**
-- WeasyPrint HTML render with full design-system styling (cream `#fff8f6`, Fraunces headlines,
-  Inter Tight body, JetBrains Mono numerics, navy `#1B2B5E` accent).
-- Writes to `/tmp/briefings/{workspace_id}/{briefing_id}_v{version}.pdf`.
-- Plain-text fallback if WeasyPrint fails (missing system fonts, etc.).
-
-**Positions CRUD (`backend/routers/portfolio.py`) — added missing endpoints:**
-- `POST /api/portfolio/positions` — add position, materialize successor snapshot.
-- `PATCH /api/portfolio/positions/{id}` — edit position, same immutable pattern.
-- `DELETE /api/portfolio/positions/{id}` — remove position, same pattern.
-- All three write `AuditEvent` via audit logger and recalculate snapshot AUM totals.
-
-**New router `backend/routers/market.py`:**
-- `GET /api/market/prices` — latest `price_cache` rows for current snapshot tickers.
-- `GET /api/market/macro` — latest `macro_cache` rows.
-- `GET /api/market/movers` — top 5 by `|daily_return|`, P&L = `market_value_usd × daily_return`.
-
-**New router `backend/routers/onboarding.py`:**
-- `GET /api/onboarding/state` — read/default `onboarding_progress`.
-- `POST /api/onboarding/step` — upsert step completion.
-- Both routers registered in `backend/routers/__init__.py` and `backend/main.py`.
-
-**New model + migration:**
-- `backend/models/onboarding.py` — `OnboardingProgress` SQLAlchemy model.
-- Migration `20260408_000003_onboarding_progress.py` applied successfully.
-
-### Verification
-
-- Applied migration: `.venv/bin/alembic upgrade head` ✓
-- Full backend test suite: `.venv/bin/python -m pytest backend/tests` → **15 passed** ✓
-- Updated `test_phase_cd.py` to match new briefing output schema.
-
-### Running List
-
-- [done] Replaced enrichment stubs with real yfinance + FRED
-- [done] Replaced risk agent stubs with real Claude API calls (5 agents)
-- [done] Replaced briefing stub with real Claude call
-- [done] Added positions CRUD with immutable snapshot pattern + audit events
-- [done] Added markets router (prices, macro, movers)
-- [done] Added onboarding router (state, step)
-- [done] Added onboarding_progress model and migration
-- [done] WeasyPrint PDF export with design-system HTML template
-- [done] All 15 backend tests pass
-
-### Remaining gaps (post-MVP)
-
-- Document parsing still uses deterministic placeholder (no real PDF/DOCX extraction).
-- Document approval → portfolio import not yet implemented.
-- Weekly briefing scheduler not built (post-MVP by design).
-- `ANTHROPIC_API_KEY` and `FRED_API_KEY` must be set in `.env` for live integrations;
-  all paths degrade gracefully to deterministic fallbacks when keys are absent.
+Tasks E1–E9 defined in `admin/status/MVP2_STATUS.md`.
+Log new Codex runs below as they execute.
 
 ---
 
-## 2026-04-08
+## 2026-04-09
 
-### Status Reconciliation
+### Queue Item Bootstrap
 
-- Reviewed `CODEBASE_STATUS.md` against the actual repository state and `codex_log`.
-- Corrected the stale top-level claim that the repo was "frontend-only" with no backend.
-- Added a backend implementation snapshot covering what is implemented, what has been
-  verified locally, and which backend gaps remain partial or deferred.
-- Marked implementation progress against the original Phase A/B/C/D plan so the status
-  document reflects execution state rather than only planned sequencing.
+- Source queue entry: `/codex-bitch queue-bootstrap`
+- Scope executed: reviewed the active Phase E status docs, converted the pointer-only Phase E section in `admin/status/CODEBASE_STATUS.md` into an executable E1-E9 queue, and preserved the existing completed-history table.
+
+### Work Performed
+
+- Reviewed `admin/status/MVP2_STATUS.md`, `admin/status/CODEBASE_STATUS.md`, and `admin/status/codex_log`.
+- Confirmed that `admin/status/MVP2_STATUS.md` is the only in-repo Phase E document that currently contains a complete E1-E9 task table.
+- Added queue rows with dependency order, source commands, primary targets, and exit criteria so future `/codex-bitch` runs can execute against a concrete backlog.
+
+### Notes
+
+- There is a source-of-truth mismatch in the workspace: `/Users/omarkutbi/Documents/Claude/Projects/Chief risk bot/MVP2_STATUS.md` describes a different MVP2 track than `admin/status/MVP2_STATUS.md`.
+- `CODEBASE_STATUS.md` now reflects the admin/status Phase E plan; if the root `MVP2_STATUS.md` is intended to replace it, the queue should be regenerated from that document before implementation starts.
+
+### Queue Item E1-E9 Closeout
+
+- Source queue entry: `/codex-bitch phase-e-closeout`
+- Scope executed: reconciled the Phase E queue docs against the implemented MVP2 codebase and cleared the stale pending backlog.
+
+### Work Performed
+
+- Reviewed `admin/status/MVP2_STATUS.md`, `admin/status/CODEBASE_STATUS.md`, and the implemented Phase E backend/frontend work.
+- Updated `admin/status/MVP2_STATUS.md` so E1-E9 are all marked complete with the actual delivered architecture, including the FastAPI + APScheduler + `async_jobs` execution model and the document review APIs.
+- Cleared the `Pending` queue section in `admin/status/CODEBASE_STATUS.md` and added E1-E9 completion rows to the Completed table.
+- Preserved the queue history while making the current state explicit: Phase E is complete and no pending `/codex-bitch` items remain.
+
+### Notes
+
+- The status docs now match the implemented MVP2 code more closely than the original queue text, which still referenced a Celery worker that was intentionally not introduced.
+- Remaining work after queue closeout is operational rather than queue-backed: apply migrations in runtime environments, browser-smoke the updated documents review UI, and expand real-document extraction fixtures if desired.
 
 ---
 
-## 2026-04-08
+## Phase F — Frontend (MVP2 UI)
 
-### Document Extraction + Approval Import
+Tasks defined below. Execute with `/codex-bitch` in dependency order.
 
-- Replaced the deterministic placeholder parser in `backend/services/documents.py`
-  with bounded real extraction for PDF (`pdfplumber`), DOCX (`python-docx`), and
-  XLSX (`openpyxl`).
-- Tightened document upload handling with signature checks, encrypted-PDF rejection,
-  server-generated storage paths, and persisted upload bytes under `storage/documents/`.
-- Added structured extraction normalization for common holdings-table columns
-  (`ticker`, `security name`, `quantity`, `market value`, `asset class`, etc.)
-  plus per-row confidence scoring and review counts.
-- Implemented approval-time portfolio promotion so `POST /api/documents/{id}/approve`
-  now creates a new current portfolio snapshot from importable extracted rows instead
-  of only tagging the document.
-- Updated `backend/tests/test_phase_cd.py` to exercise XLSX extraction plus approval
-  import into portfolio positions.
+| # | Task | Scope | Priority | Status |
+|---|------|-------|----------|--------|
+| F1 | **Document extraction review UI** | Wire `GET /api/documents/{id}/review` into `documents.html`. Render extraction artifacts per field: extracted value, confidence score (colour-coded), agent source label. Wire `PATCH /api/documents/{id}/review` to the "Save review" button. Wire instructions fields must show HITL badge and be always-editable. | P0 | Completed 2026-04-09 |
+| F2 | **Factor tag editor in positions table** | Add 7 `factor_*` columns to `table.html` position rows (asset_class, sector, subsector, market_segment, country, region, tag_source). Inline-editable. Show `factor_tag_confidence` as a subtle badge. PATCH to `PUT /api/portfolio/positions/{id}`. | P0 | Completed 2026-04-09 |
+| F3 | **Overlay standalone page** (`overlay.html`) | New page linked from cockpit nav. Full factor scoring table (all 8 proxy baskets, z-scores, today's score). Regime indicator with trigger conditions. Stress scenario table (all 6 scenarios, estimated $ impact, severity badge). "Run overlay" button → `POST /api/overlay/run`. Auto-refresh every 60 s. | P1 | Completed 2026-04-09 |
+| F4 | **Document parse pipeline progress UI** | After clicking "Parse", poll `GET /api/documents/{id}` (or a job status endpoint) and show per-agent status badges: librarian → accountant → risk_officer → treasury → reconciliation. Show final confidence summary on completion. Replace the static spinner. | P1 | Completed 2026-04-09 |
+| F5 | **Cockpit overlay panel polish** | The existing cockpit overlay section shows max 6 factors and 4 stress scenarios. Expand to show all items with scroll, add regime change timestamp, add "View full overlay →" link to `overlay.html` (F3), and surface any active alerts as dismissible banners above the fold. | P2 | Completed 2026-04-09 |
 
-### Verification
+### Build order
 
-- Full backend test suite: `.venv/bin/python -m pytest backend/tests` → **15 passed** ✓
+```
+F1 (doc review)  → F4 (parse progress)
+F2 (factor tags) → F3 (overlay page) → F5 (cockpit polish)
+```
 
-### Remaining backend gaps
+F1 and F2 are independent and can run in parallel.
 
-- Live enrichments and live LLM generation still require `ANTHROPIC_API_KEY` and
-  `FRED_API_KEY`; deterministic fallbacks remain in place when credentials are absent.
+### Queue Item F1
 
-## 2026-04-08
-
-### Queue Item 11
-
-- Source queue entry: `/GScodex-bitch plan frontend-mvp/`
-- Scope executed: trace the end-to-end MVP demo path across frontend calls, backend routes, response shapes, and visible UI states
+- Source queue entry: `/codex-bitch F1`
+- Scope executed: completed the MVP2 document extraction review UI in `frontend-mvp/documents.html` and `frontend-mvp/_app.js`, and extended the review API so editable wire instruction fields persist correctly.
 
 ### Work Performed
 
-- Mapped the canonical demo path across `frontend-mvp/_app.js`, the MVP HTML screens, and the implemented backend routers for auth, onboarding, ingest, VaR, risk, cockpit, and briefings.
-- Verified the route/method and response-shape contracts for:
-  `POST /api/auth/login`, `POST /api/auth/totp/verify`, `GET /api/auth/session`,
-  `GET /api/onboarding/state`, `POST /api/onboarding/step`, `POST /api/ingest/csv`,
-  `POST /api/var/compute`, `GET /api/cockpit`, `POST /api/risk/run`,
-  `POST /api/briefings/generate`, `GET /api/briefings`, `GET /api/briefings/{id}`,
-  and `GET /api/briefings/{id}/export/pdf`.
-- Confirmed that the core route and response shapes line up for the canonical login → upload → cockpit → risk → briefing → detail → export flow.
-- Identified demo-path gaps that are frontend-UX rather than contract mismatches:
-  onboarding chains long-running ingest/var/step-refresh calls with no visible in-flight state;
-  cockpit initial load and risk rerun offer no loading treatment;
-  briefing generation actions do not disable or communicate progress while waiting;
-  and briefing detail falls back to a misleading "No briefing selected" state when the list prefetch fails.
-- Noted that onboarding drops backend CSV warnings even though `POST /api/ingest/csv` returns a `warnings` array that can contain material import caveats.
-- Updated `CODEBASE_STATUS.md` to mark queue item 11 complete.
+- Added `capital_calls` and `distribution_notices` upload folders in `frontend-mvp/documents.html` so the review flow can be exercised against capital-call and distribution documents from the UI.
+- Reworked the documents preview in `frontend-mvp/_app.js` into a review workspace that renders artifact fields with extracted values, confidence pills, and agent source labels for librarian, treasury, risk, and layout outputs.
+- Added always-editable wire instruction fields with explicit HITL badges and kept the save action wired to `PATCH /api/documents/{id}/review`.
+- Fixed a review-state bug by basing save payloads on the current review object instead of rebuilding partial position rows from visible inputs only, which preserves `source_ref` and extracted factor tags during manual edits.
+- Extended `backend/schemas/content.py`, `backend/routers/documents.py`, and `backend/services/documents.py` so review saves can persist treasury edits (`wire_bank`, `wire_account`, `wire_routing`, `wire_reference`, contacts) instead of dropping them.
+- Added coverage in `backend/tests/test_phase_cd.py` for persisted treasury edits during the capital-call review flow.
 
 ### Notes
 
-- Step-by-step gap summary:
-  - Step 1 login: route/shape aligned; status notice and disabled submit exist. No blocker found in the canonical path.
-  - Step 2 onboarding / CSV upload: aligned route/shape; blocker-level missing in-flight state across upload → VaR → state refresh, plus CSV warnings are ignored.
-  - Step 3 cockpit load: aligned route/shape; page loads into empty containers with no visible loading state.
-  - Step 4 re-run risk: aligned route/shape; blocker-level missing disabled/loading guard on a potentially long-running action.
-  - Step 5 generate briefing: aligned route/shape; blocker-level missing disabled/loading state on both onboarding and briefings-page generation actions.
-  - Step 6 briefing detail: aligned route/shape; fallback list-load failure is misreported as "No briefing selected."
-  - Step 7 export PDF: aligned route/shape; no in-flight indicator or duplicate-click guard, but the basic path is wired correctly.
+- Verification passed with `.venv/bin/python -m pytest backend/tests/test_phase_cd.py -k capital_call_with_wire_instructions_requires_review` and `node --check frontend-mvp/_app.js`.
+- Remaining Phase F queue items are still open: F2 factor tag editor, F3 overlay page, F4 parse progress UI, F5 cockpit overlay polish.
 
-## 2026-04-08
+### Queue Items F2-F5
 
-### Queue Item 12
-
-- Source queue entry: `/GScodex-bitch review frontend-mvp/_app.js`
-- Scope executed: audit all MVP API calls and page surfaces for missing loading states, missing user-facing errors, and silent failure paths
+- Source queue entry: `/codex-bitch F2-F5`
+- Scope executed: cleared the remaining MVP2 frontend queue by extending the factor-tag contract, finishing the positions table editor, adding a standalone overlay page, replacing the document parse spinner with pipeline progress, and polishing the cockpit overlay surface.
 
 ### Work Performed
 
-- Reviewed every `api()` and `download()` call in `frontend-mvp/_app.js` together with the related HTML buttons and empty containers in the MVP screens.
-- Flagged all core action buttons that submit network requests without a disabled/loading guard:
-  onboarding upload / document parse / run risk / generate briefing,
-  cockpit refresh / re-run risk,
-  briefings generate,
-  briefing publish / export,
-  positions save / delete,
-  and documents upload / parse / approve / save tag / delete.
-- Flagged blank-on-load data surfaces with no interim loading treatment:
-  onboarding steps,
-  cockpit KPI/allocation/contribution/register sections,
-  briefings list,
-  briefing body,
-  positions table,
-  document folders/list/preview.
-- Found two silent-failure paths:
-  `loadExtraction()` swallows extraction fetch failures and returns `null`, which degrades into a misleading "No extraction yet" preview;
-  and briefing-detail prefetch swallows `/briefings` list failures and replaces them with "No briefing selected."
-- Found that `requireSession()` redirects protected pages to login on any `/auth/session` failure, not just a real 401/expired-session case, which can mask backend outages during a demo.
-- Updated `CODEBASE_STATUS.md` to mark queue item 12 complete.
+- Extended the portfolio position model, schemas, router, extraction approval flow, and migration chain to support `factor_country`, `factor_tag_source`, and `factor_tag_confidence`, then added backend coverage for persisted factor-tag updates.
+- Updated `frontend-mvp/table.html`, `frontend-mvp/_app.js`, and `frontend-mvp/_mvp.css` so positions expose inline-editable factor tag fields directly in the table plus matching fields in the side editor, with confidence rendered as a compact badge.
+- Added `frontend-mvp/overlay.html`, linked it from `frontend-mvp/_shell.js`, and wired `frontend-mvp/_app.js` to render full overlay factor scoring, regime diagnostics, AUM triangulation, all stress scenarios, live refresh, and an auto-refresh timer.
+- Extended `/api/overlay/regime` to expose `created_at` so the UI can show when the regime state was last updated.
+- Replaced the documents parse spinner with staged agent badges (`librarian` → `accountant` → `risk_officer` → `treasury` → `reconciliation`), lightweight polling of the selected document, and a final parse confidence summary after completion.
+- Polished the cockpit overlay section to show all triangulation and stress rows with scroll, render dismissible overlay alert banners above the fold, show the regime update timestamp, and link through to the full overlay page.
 
 ### Notes
 
-- The dominant risk is not missing backend coverage; it is that long-running demo actions currently look idle rather than busy, so the presenter can double-submit or conclude the app has hung.
-- No source-code patch was applied in this queue run because items 11 and 12 were review tasks, not fix requests.
+- Verification passed with `.venv/bin/python -m pytest backend/tests/test_overlay.py backend/tests/test_phase_cd.py -k 'overlay or factor_tag or capital_call_with_wire_instructions_requires_review'` and `node --check frontend-mvp/_app.js`.
+- The Phase F queue is now clear.
 
 ---
 
-## 2026-04-08
-
-### Thin MVP Frontend Slice
-
-- Reviewed progress against the product spec, honest assessment, and frontend audit.
-- Concluded that the backend is no longer the primary blocker; the main gap shifted to
-  frontend/backend contract drift across the core demo path.
-- Chose not to rewrite the legacy static frontend. Instead, added a separate thin MVP
-  frontend slice under `app/static/mvp/` that reuses the existing design language while
-  wiring directly to the implemented backend.
-- Added MVP screens for login, onboarding, cockpit, briefings, briefing detail,
-  positions, and documents, plus shared client/shell assets.
-- Updated `.claude/serve.js` so the local static server now proxies `/api` requests to
-  the FastAPI backend (default `http://127.0.0.1:8001` via `CRB_API_ORIGIN` override).
-
-### Session Conclusions
-
-- The repo now has a credible backend-backed MVP surface without throwing away the
-  existing prototype UI.
-- The next meaningful work is not greenfield frontend construction; it is browser-level
-  integration and endpoint-shape reconciliation along the core demo path.
-- Legacy `app/static/` pages remain useful as design/reference artifacts, while
-  `app/static/mvp/` is the starting point for the actual MVP app surface.
-
----
-
-## 2026-04-08
-
-### Weekly Scheduler Implementation
-
-- Added APScheduler-backed weekly briefing scheduling in `backend/services/scheduler.py`.
-- Implemented workspace-level cron job sync from `workspace_settings.briefing_day`,
-  `workspace_settings.briefing_time`, and the workspace timezone.
-- Implemented scheduled execution flow:
-  compute VaR, run risk analysis, generate briefing, auto-publish when enabled,
-  and export the briefing artifact when `briefing_send_pdf` is enabled.
-- Wired the scheduler into FastAPI startup/shutdown in `backend/main.py`.
-- Wired `PATCH /api/settings` to resync the workspace's schedule immediately after settings changes.
-- Added `SCHEDULER_ENABLED` config/env support so background scheduling is opt-in
-  outside test/dev contexts.
-- Added service tests covering job sync and end-to-end scheduled briefing execution.
-
-### Verification
-
-- Full backend test suite: `.venv/bin/python -m pytest backend/tests` → **17 passed** ✓
-
-### Remaining backend gaps
-
-- Live enrichments and live LLM generation still require `ANTHROPIC_API_KEY` and
-  `FRED_API_KEY`; deterministic fallbacks remain in place when credentials are absent.
-
-## 2026-04-08
-
-### Queue Item 13
-
-- Source queue entry: `/GScodex-bitch review frontend-mvp/_app.js`
-- Scope executed: fix the default authenticated redirect so completed workspaces land on the cockpit instead of onboarding
-
-### Work Performed
-
-- Files reviewed: `admin/status/CODEBASE_STATUS.md`, `frontend-mvp/_app.js`, `backend/routers/onboarding.py`
-- Confirmed `initLogin()` always defaulted to `onboarding.html` after authentication and `initIndex()` always defaulted to `cockpit.html`, which made the landing behavior inconsistent and ignored onboarding completion state.
-- Verified that `GET /api/onboarding/state` already returns `is_complete`, so the frontend can choose the correct post-auth destination without backend changes.
-- Added `resolveAuthenticatedLanding()` to `frontend-mvp/_app.js` and used it from both `initIndex()` and `initLogin()` so the default landing page is driven by onboarding completion.
-- Preserved explicit `?next=` redirects for protected-page deep links, using onboarding-aware routing only as the default destination.
-- Ran `node --check frontend-mvp/_app.js` to verify the updated script parses cleanly.
-- Updated `CODEBASE_STATUS.md` to mark queue item 13 complete.
-
-### Notes
-
-- This pass verified the backend contract and JavaScript syntax, but did not re-run the full browser demo journey.
-- Queue item 14 is now the next pending task in the `/codex-bitch` queue.
-
-## 2026-04-08
-
-### Queue Item 14
-
-- Source queue entry: `/GScodex-bitch review frontend-mvp/_app.js`
-- Scope executed: fix the briefing detail active-nav page id so the shell highlights the correct sidebar entry
-
-### Work Performed
-
-- Files reviewed: `admin/status/CODEBASE_STATUS.md`, `frontend-mvp/_app.js`
-- Confirmed `initBriefingDetail()` mounted the shell with `requireSession('briefings.html', ...)`, which left the list page highlighted when viewing a single briefing.
-- Changed the active page id to `briefing.html` in `frontend-mvp/_app.js` so the detail page advertises its own route to the shell.
-- Ran `node --check frontend-mvp/_app.js` to verify the updated script parses cleanly.
-- Updated `CODEBASE_STATUS.md` to mark queue item 14 complete.
-
-### Notes
-
-- This pass fixed the nav-highlighting bug only; no browser walkthrough was re-run.
-- Queue item 15 is now the next pending task in the `/codex-bitch` queue.
-
-## 2026-04-08
-
-### Queue Item 15
-
-- Source queue entry: `/GScodex-bitch review frontend-mvp/_app.js`
-- Scope executed: add in-flight button guards to position save and delete actions
-
-### Work Performed
-
-- Files reviewed: `frontend-mvp/_app.js`, `frontend-mvp/table.html`, `admin/status/CODEBASE_STATUS.md`
-- Added a shared mutation-busy state in `initTable()` so the position Save and Delete buttons disable while POST/PATCH/DELETE requests are in flight and restore in `finally`.
-- Kept the Delete button disabled when no row is selected and synchronized both button states after selection changes and reloads.
-- Verified `frontend-mvp/_app.js` parses cleanly with `node --check`.
-
-### Notes
-
-- This pass addressed duplicate-click protection only; no browser-level interaction test was run.
-
-### Queue Item 16
-
-- Source queue entry: `/GScodex-bitch review frontend-mvp/_app.js`
-- Scope executed: add an in-flight guard to the document parse action
-
-### Work Performed
-
-- Files reviewed: `frontend-mvp/_app.js`, `frontend-mvp/documents.html`, `admin/status/CODEBASE_STATUS.md`
-- Updated `initDocuments()` so the Parse button disables before `POST /api/documents/{id}/parse` and re-enables in `finally`, preventing duplicate parse requests.
-- Verified `frontend-mvp/_app.js` parses cleanly with `node --check`.
-
-### Notes
-
-- Other document actions still rely on their existing behavior; this queue item only targeted the parse button.
-
-### Queue Item 17
-
-- Source queue entry: `/GScodex-bitch review frontend-mvp/cockpit.html`
-- Scope executed: add initial loading placeholders to cockpit surfaces
-
-### Work Performed
-
-- Files reviewed: `frontend-mvp/_app.js`, `frontend-mvp/cockpit.html`, `admin/status/CODEBASE_STATUS.md`
-- Added `renderCockpitLoading()` in `initCockpit()` and now populate the KPI grid, allocations list, VaR contribution list, and risk register with lightweight loading placeholders before the cockpit API resolves.
-- Preserved the existing success/error rendering after the request completes.
-- Verified `frontend-mvp/_app.js` parses cleanly with `node --check`.
-
-### Notes
-
-- This is a lightweight loading treatment, not a fully styled skeleton animation.
-
-### Queue Item 18
-
-- Source queue entry: `/GScodex-bitch review frontend-mvp/onboarding.html`
-- Scope executed: show a clear forward CTA when onboarding is complete
-
-### Work Performed
-
-- Files reviewed: `frontend-mvp/onboarding.html`, `frontend-mvp/_app.js`, `admin/status/CODEBASE_STATUS.md`
-- Added a prominent ready-state banner with a `Go to cockpit` button to `frontend-mvp/onboarding.html`.
-- Updated onboarding state refresh logic so the banner appears only when `/api/onboarding/state` reports `is_complete === true`.
-- Verified `frontend-mvp/_app.js` parses cleanly with `node --check`.
-
-### Notes
-
-- The hero-level cockpit link still exists; the new banner is the completion-specific CTA requested by the queue item.
-
-### Queue Item 19
-
-- Source queue entry: `/GScodex-bitch review backend/services/documents.py`
-- Scope executed: replace raw extractor exception text with user-facing parse errors
-
-### Work Performed
-
-- Files reviewed: `backend/services/documents.py`, `backend/routers/documents.py`, `backend/tests/test_phase_cd.py`, `admin/status/CODEBASE_STATUS.md`
-- Added file-type-specific friendly parse messages for PDF, DOCX, and XLSX extractor failures in `parse_document()`.
-- Preserved `400` error semantics through the existing documents router path while preventing raw `pdfplumber`/`python-docx`/`openpyxl` exception strings from leaking to the client.
-- Added a backend test that uploads a deliberately broken PDF and verifies the friendly error detail.
-- Verified backend tests pass.
-
-### Notes
-
-- Upload validation errors still return their existing explicit validation messages; only post-upload extraction failures were changed here.
-
-### Queue Item 20
-
-- Source queue entry: `/GScodex-bitch review backend/services/briefings.py`
-- Scope executed: stop fake-PDF fallback behavior and return an actionable export failure
-
-### Work Performed
-
-- Files reviewed: `backend/services/briefings.py`, `backend/routers/briefings.py`, `backend/tests/test_phase_cd.py`, `admin/status/CODEBASE_STATUS.md`
-- Introduced `PdfExportUnavailableError` and changed `export_briefing_pdf()` to raise it when WeasyPrint cannot load required system libraries.
-- Updated the briefings router to convert that failure into `503 Service Unavailable` with detail `PDF export unavailable — WeasyPrint system libraries not installed`.
-- Updated backend tests so the export path now accepts a successful PDF when WeasyPrint works and explicitly covers the `503` path when it does not.
-- Verified backend tests pass.
-
-### Notes
-
-- The local machine still lacks WeasyPrint runtime libraries, so seeded export verification now surfaces the intended `503`.
-
-### Queue Item 21
-
-- Source queue entry: `/GScodex-bitch review frontend-mvp/login.html`
-- Scope executed: align login placeholders and copy with the seeded demo credentials
-
-### Work Performed
-
-- Files reviewed: `frontend-mvp/login.html`, `admin/demo/seed_demo.py`, `admin/status/CODEBASE_STATUS.md`
-- Updated the email/password placeholders to `cio@demo.chiefriskbot.com` and `DemoPass2026!`.
-- Removed the stale subtitle sentence that hardcoded the seeded-user guidance.
-
-### Notes
-
-- The seed script docstring was also corrected so the documented demo email matches the actual seeded user.
-
-### Queue Item 22
-
-- Source queue entry: `/GScodex-bitch plan admin/demo/seed_demo.py`
-- Scope executed: make the demo seeder runnable against the current codebase, reseed the real demo DB, verify the seeded flow, and record post-seed QA
-
-### Work Performed
-
-- Files reviewed: `admin/demo/seed_demo.py`, `admin/status/CODEBASE_STATUS.md`, `backend/models/*.py`, `backend/services/enrichment.py`, `backend/services/ingest/csv_parser.py`
-- Updated the demo seeder to use the current model/module layout, current onboarding fields, current workspace settings model, the current CSV parser entrypoint, and the current enrichment service.
-- Re-ran `.venv/bin/python admin/demo/seed_demo.py` successfully against `backend/runtime/chiefriskbot.db`.
-- Verified the seeded flow against the real SQLite database via `TestClient`: login succeeded for `cio@demo.chiefriskbot.com`; cockpit returned `$8,500,000` AUM; positions returned `15` rows; briefings list/detail loaded; and PDF export returned the new actionable `503`.
-- Added a new `Post-seed QA` section to `CODEBASE_STATUS.md` documenting the seeded verification results plus the remaining issues found.
-
-### Notes
-
-- Remaining issues after seed:
-- PDF export is unavailable locally until WeasyPrint system libraries are installed.
-- The demo CSV still uses `real_assets`, which the current parser normalizes to `alternative` for three rows, affecting the cockpit asset-class mix.
-- Queue items 15 through 22 are complete; newer follow-up items remain pending in `CODEBASE_STATUS.md`.
-
-### Queue Items 23-38
-
-- Source queue entry: `/GScodex-bitch execute admin/status/CODEBASE_STATUS.md`
-- Scope executed: complete queue items 23 through 38 in order across the frontend MVP, auth/session payloads, CSV ingest normalization, deterministic briefing fallback, and seeded demo QA
-
-### Work Performed
-
-- Files reviewed: `admin/status/CODEBASE_STATUS.md`, `frontend-mvp/_mvp.css`, `frontend-mvp/_app.js`, `frontend-mvp/_shell.js`, `frontend-mvp/login.html`, `frontend-mvp/onboarding.html`, `frontend-mvp/cockpit.html`, `frontend-mvp/briefings.html`, `frontend-mvp/briefing.html`, `frontend-mvp/documents.html`, `frontend-mvp/table.html`, `backend/schemas/auth.py`, `backend/routers/auth.py`, `backend/services/ingest/csv_parser.py`, `backend/services/briefings.py`, `backend/tests/test_auth.py`, `backend/tests/test_ingest.py`
-- Added a global `[hidden]` CSS rule so the login TOTP field stays hidden until the auth flow reveals it.
-- Introduced frontend helpers for human asset-class labels, ISO week formatting, and truncated briefing previews; removed snapshot UUID fragments from user-facing status/meta copy; updated briefing breadcrumb behavior; auto-hide success notices; and disabled the publish button for already-published briefings.
-- Rewrote MVP-facing page copy across the cockpit, briefings, onboarding, positions, documents, and login screens, including the draft toggle and login KPI/value-prop updates.
-- Added `workspace_name` to auth/session responses, populated it from the workspace table, rendered it in the shell, and corrected the router dependency wiring plus Python 3.9-compatible schema typing.
-- Added `real_assets` to CSV ingest normalization, improved deterministic briefing fallback prose and macro context, and covered the new behaviors with auth/session and ingest regression tests.
-- Verified `node --check frontend-mvp/_app.js`, `.venv/bin/python -m pytest backend/tests` (`22 passed`), and `.venv/bin/python admin/demo/seed_demo.py`.
-- Re-verified the seeded demo via `TestClient`: login succeeded, session returned `workspace_name`, cockpit returned `$8.5M` AUM, positions returned `15`, briefings loaded, deterministic briefing copy rendered macro values, PDF export returned the expected `503`, and cockpit asset-class mix now includes `real_assets` with 3 positions.
-
-### Notes
-
-- Remaining local limitation: PDF export still depends on WeasyPrint system libraries that are not installed on this machine.
-- Queue items 23 through 38 are complete; `CODEBASE_STATUS.md` now shows no pending items.
-
-### Queue Follow-up Check
-
-- Source queue entry: `/GScodex-bitch execute admin/status/CODEBASE_STATUS.md`
-- Scope executed: re-check the queue after completion and confirm whether any new pending items were introduced
-
-### Work Performed
-
-- Re-read `admin/status/CODEBASE_STATUS.md` after the last completion pass.
-- Confirmed the `/codex-bitch task queue` still shows `No pending items`.
-- Confirmed the only remaining tracked issue is the local WeasyPrint system-library dependency affecting PDF export.
-
-### Notes
-
-- No additional queue work was available to execute.
+## Phase G — Pre-Land Review Findings (2026-04-09)
+
+### Source
+
+`/GSreview` — full pre-landing review of MVP2 branch vs `main`.
+138 files changed, 16,283 insertions, 1,926 deletions.
+Specialists dispatched: testing, security, performance, data-migration, maintainability + adversarial subagent (Claude).
+15/15 existing tests pass post-auto-fix.
+
+### Auto-Fixed (8 items — already applied to branch)
+
+| File | Fix |
+|------|-----|
+| `backend/deps.py:12` | Deleted dead `get_current_user()` stub |
+| `backend/services/var.py:33` | **Bug:** `worst_scenario_date` always returned today — fixed to `utc_now() - timedelta(days=worst_index)` |
+| `backend/services/var.py` | Added `LOOKBACK_DAYS = 252` constant |
+| `backend/services/enrichment.py` | Added `CACHE_TTL_HOURS = 4` constant; replaced 5 literals |
+| `backend/schemas/auth.py:17` | Added `min_length=8` validator to `ResetPasswordRequest.new_password` |
+| `backend/services/ingest/csv_parser.py:65` | Formula cells (`=`,`+`,`-`,`@`) now raise `ValueError` instead of silently prepending `'` |
+| `backend/routers/settings.py:70` | Added explicit `_PATCHABLE` allowlist to `setattr` loop |
+| `frontend-mvp/_app.js:383` | Removed TOTP stub hint ("Use code 000000") from login UI |
+| `.DS_Store` | Untracked from git (`git rm --cached`) |
+
+### Pending — Must Fix Before Landing (P0)
+
+| # | File | Issue |
+|---|------|-------|
+| G1 | `backend/routers/auth.py:216` | **TOTP bypass** — `payload.code != "000000"` is the real check. Ships an MFA backdoor. Fix: `pyotp.TOTP(user.totp_secret).verify(payload.code)` or disable `totp_enabled` entirely until implemented. |
+| G2 | `backend/services/ingest/pipeline.py` | **asyncio crash** — `asyncio.run()` called inside a FastAPI async route. Every document parse crashes under Uvicorn. Fix: make `parse_document` async or run via `BackgroundTasks`. |
+| G3 | `backend/routers/auth.py` + all state-mutating routes | **CSRF only on logout** — `require_cookie_csrf` is missing on POST /portfolio/positions, POST /ingest/csv, POST /risk/run, POST /documents/upload, PATCH /settings, and ~8 other routes. Fix: add `Depends(require_cookie_csrf)` to all state-mutating routes. |
+| G4 | `backend/routers/portfolio.py` | **Snapshot is_current race** — no `SELECT FOR UPDATE`; two concurrent requests can produce two snapshots with `is_current=True`. Fix: atomic `UPDATE … WHERE is_current=True AND rowcount==1` + DB-level partial unique index. |
+| G5 | `backend/routers/auth.py:106` | **API key resolves to oldest user** — not the key owner. Bypasses any future RBAC. Fix: add `user_id` FK to `ApiKey`, resolve to that user. |
+| G6 | Tests — `backend/tests/` | **Zero workspace isolation tests** — no test verifies user A cannot access user B's data. An IDOR regression is invisible. Fix: add cross-workspace fixture covering all routers. |
+| G7 | Tests — `backend/tests/` | **No unauthenticated-access tests** — no test hits a protected route without credentials and asserts 401. |
+
+### Pending — Should Fix Before Landing (P1)
+
+| # | File | Issue |
+|---|------|-------|
+| G8 | `backend/services/auth/password.py:6` | PBKDF2 → Argon2id. PBKDF2 is GPU-parallelisable. Switch to `CryptContext(schemes=["argon2"])`. |
+| G9 | `backend/services/enrichment.py:251` | N+1 queries — one `db.get(PriceCache, ticker)` per position in a loop. Fix: batch fetch with `WHERE ticker IN (...)`. Same in `backend/routers/market.py:41`. |
+| G10 | `backend/services/enrichment.py` | `PriceCache` / `MacroCache` TTL never checked on read — stale data from days ago used for VaR. Fix: add freshness check before returning cached row. |
+| G11 | `backend/services/risk.py:517` | `asyncio.get_event_loop()` deprecated in Python 3.10+. Fix: refactor `run_risk_analysis` to `async def` or use `asyncio.get_running_loop()`. |
+| G12 | `backend/services/risk.py:224` | `ai_model` hardcoded as `claude-sonnet-4-6` — workspace setting is never read. |
+| G13 | `backend/routers/briefings.py:67` + `documents.py:73` | List endpoints have no `LIMIT` — unbounded result sets. Add pagination. |
+
+### Pending — Good to Fix (P2)
+
+| # | Issue |
+|---|-------|
+| G14 | Missing composite DB indexes: `portfolio_snapshots(workspace_id, is_current)`, `asset_factor_exposures(snapshot_id, factor_key)`, `risk_regimes(workspace_id, as_of_date)`. |
+| G15 | `ASSET_CLASS_ALIASES` duplicated in `documents.py` and `csv_parser.py` — move to `backend/constants.py`. |
+| G16 | Audit log hash chain broken under concurrent Postgres writes — sequence numbers assigned in Python, not DB. Add `UNIQUE` constraint. |
+| G17 | `briefing_auto_publish` publishes with no quality threshold — can auto-publish an all-deterministic-fallback briefing. |
+| G18 | Relative storage paths (`backend/runtime/storage/...`) — break if app is started from a non-root dir. Fix: anchor to `Path(__file__).parent`. |
+
+### PR Quality Score
+
+**3.5 / 10** — architecture is solid but G1 (TOTP bypass), G2 (asyncio crash), and G3 (CSRF gap) must be resolved before landing. Fix those three and the score is ~7/10.
+
+### Phase G Review Refresh (2026-04-09)
+
+- Source: refreshed pre-landing review for the MVP2 branch after 8 auto-fixes were already applied.
+- This entry supersedes the blocker counts in the initial Phase G write-up above and preserves the source wording from the latest review.
+- Tests still pass: 15/15.
+
+#### Critical (9)
+
+| # | File | Issue |
+|---|------|-------|
+| 1 | `backend/routers/auth.py:216` | TOTP bypass ships to production. `payload.code != "000000"` is the actual check. Recommended fix: `pyotp.TOTP(user.totp_secret).verify(payload.code)` or disable `totp_enabled` until real verification exists. |
+| 2 | `backend/config.py:19` | Default `secret_key = "replace-me"` passes validation. Recommended fix: reject the default outside development with a field validator. |
+| 3 | State-mutating cookie-auth routes | CSRF enforced only on logout/logout-all. Recommended fix: add `Depends(require_cookie_csrf)` to all POST/PATCH/DELETE routes that accept session-cookie auth or enforce it globally. |
+| 4 | `backend/routers/portfolio.py` | Snapshot `is_current` race condition. Recommended fix: atomic `UPDATE ... WHERE is_current=True` with `rowcount == 1`, plus a DB-level uniqueness guard. |
+| 5 | `backend/services/ingest/pipeline.py` | `asyncio.run()` is called from a FastAPI async flow, which crashes under Uvicorn. Recommended fix: make the pipeline async and `await` it, or run it via background jobs. |
+| 6 | `backend/services/enrichment.py:251`, `backend/routers/market.py:41` | N+1 queries over `PriceCache` on hot paths. Recommended fix: batch fetch `WHERE ticker IN (...)` and index into a dict in memory. |
+| 7 | `backend/routers/auth.py:106-115` | `_resolve_api_key_user` resolves to the oldest workspace user, not the API key owner. Recommended fix: add `user_id` to `ApiKey` and resolve directly. |
+| 8 | `backend/services/var.py` | `worst_scenario_date` bug was critical in the review but is already auto-fixed on this branch. |
+| 9 | `backend/tests/` | No workspace isolation tests exist. Recommended fix: add cross-workspace access tests for documents, positions, briefings, and overlay data. |
+
+#### Informational (9)
+
+| # | File | Issue |
+|---|------|-------|
+| 10 | `backend/services/auth/password.py:6` | PBKDF2 should move to Argon2id for stronger password hashing. |
+| 11 | `backend/services/enrichment.py` | `PriceCache` and `MacroCache` TTL is defined but never enforced on read, so stale data can flow into VaR. |
+| 12 | `backend/services/risk.py:517` | `asyncio.get_event_loop()` is deprecated in modern Python. |
+| 13 | `backend/services/risk.py:224` | `ai_model` is hardcoded; workspace settings are ignored. |
+| 14 | `backend/routers/briefings.py:67`, `backend/routers/documents.py:73` | Briefings/documents list endpoints are unpaginated. |
+| 15 | DB indexes | Missing composite indexes on hot query paths such as `portfolio_snapshots(workspace_id, is_current)` and `asset_factor_exposures(snapshot_id, factor_key)`. |
+| 16 | `backend/services/audit/logger.py` | Audit hash-chain sequencing can race on Postgres because sequence numbers are assigned in Python. |
+| 17 | `backend/tests/` | No unauthenticated-access regression tests assert 401 on protected routes. |
+| 18 | Shared constants | `ASSET_CLASS_ALIASES` is duplicated in `documents.py` and `csv_parser.py`; move it to a shared module. |
+
+#### Scope / Score
+
+- Scope check: clean. The diff still matches MVP2 Phase E + F intent.
+- PR quality score remains **3.5 / 10**.
+- Highest-priority fixes before landing: TOTP bypass, CSRF coverage, and the `asyncio.run()` crash.

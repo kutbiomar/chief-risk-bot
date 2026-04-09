@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from backend.deps import get_db
 from backend.models.jobs import AsyncJob
 from backend.models.portfolio import PortfolioSnapshot, Position
-from backend.routers.auth import require_session
+from backend.routers.auth import require_cookie_csrf, require_session
 from backend.schemas.ingest import CsvIngestResponse, IngestStatusResponse
 from backend.services.auth.session import utc_now
 from backend.services.jobs import AsyncJobService
@@ -15,7 +15,7 @@ from backend.services.ingest import parse_csv_upload
 router = APIRouter(prefix="/ingest", tags=["ingest"])
 
 
-@router.post("/csv", response_model=CsvIngestResponse)
+@router.post("/csv", response_model=CsvIngestResponse, dependencies=[Depends(require_cookie_csrf)])
 async def ingest_csv(
     request: Request,
     response: Response,
@@ -41,7 +41,20 @@ async def ingest_csv(
         .one_or_none()
     )
     if current_snapshot is not None:
-        current_snapshot.is_current = False
+        demoted = db.execute(
+            PortfolioSnapshot.__table__.update()
+            .where(
+                PortfolioSnapshot.id == current_snapshot.id,
+                PortfolioSnapshot.workspace_id == user.workspace_id,
+                PortfolioSnapshot.is_current.is_(True),
+            )
+            .values(is_current=False)
+        )
+        if demoted.rowcount != 1:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Current snapshot changed during upload. Retry the request.",
+            )
 
     snapshot = PortfolioSnapshot(
         workspace_id=user.workspace_id,

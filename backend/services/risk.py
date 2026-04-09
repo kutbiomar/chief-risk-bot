@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import time
 from typing import Any
 
@@ -11,12 +12,17 @@ from sqlalchemy.orm import Session
 
 from backend.config import get_settings
 from backend.models.analytics import MacroCache, RiskFlag, RiskScore, VarResult
+from backend.models.auth import WorkspaceSetting
 from backend.models.jobs import AsyncJob
 from backend.models.portfolio import PortfolioSnapshot, Position
 from backend.services.jobs import AsyncJobService
 from backend.services.portfolio import summarize_positions
 
 logger = logging.getLogger(__name__)
+
+
+def _is_test_runtime() -> bool:
+    return bool(os.environ.get("PYTEST_CURRENT_TEST"))
 
 PROMPT_VERSION = "risk-v2"
 
@@ -192,6 +198,7 @@ async def _run_single_agent(
     snapshot_id: str,
     workspace_id: str,
     job_id: str,
+    model_name: str,
 ) -> dict[str, Any]:
     """Run a single risk agent via Claude. Returns a result dict."""
     settings = get_settings()
@@ -210,7 +217,7 @@ async def _run_single_agent(
 
         response = await asyncio.wait_for(
             client.messages.create(
-                model="claude-sonnet-4-6",
+                model=model_name,
                 max_tokens=1500,
                 system=AGENT_SYSTEM_PROMPT.format(analyst_role=definition["label"]),
                 messages=[
@@ -242,7 +249,7 @@ async def _run_single_agent(
             "evidence": parsed.get("evidence", []),
             "conversation_prompt": parsed.get("conversation_prompt", ""),
             "risk_flags": parsed.get("risk_flags", []),
-            "model": "claude-sonnet-4-6",
+            "model": model_name,
             "input_tokens": response.usage.input_tokens,
             "output_tokens": response.usage.output_tokens,
             "latency_ms": latency_ms,
@@ -264,7 +271,7 @@ async def _run_single_agent(
             user_content = json.dumps(payload, indent=2, sort_keys=True)
             response = await asyncio.wait_for(
                 client.messages.create(
-                    model="claude-sonnet-4-6",
+                    model=model_name,
                     max_tokens=1500,
                     system=AGENT_SYSTEM_PROMPT.format(analyst_role=definition["label"]),
                     messages=[
@@ -292,7 +299,7 @@ async def _run_single_agent(
                 "evidence": parsed.get("evidence", []),
                 "conversation_prompt": parsed.get("conversation_prompt", ""),
                 "risk_flags": parsed.get("risk_flags", []),
-                "model": "claude-sonnet-4-6",
+                "model": model_name,
                 "input_tokens": response.usage.input_tokens,
                 "output_tokens": response.usage.output_tokens,
                 "latency_ms": latency_ms,
@@ -449,9 +456,10 @@ async def _run_agents_async(
     snapshot_id: str,
     workspace_id: str,
     job_id: str,
+    model_name: str,
 ) -> list[dict[str, Any]]:
     tasks = [
-        _run_single_agent(defn, payload, snapshot_id, workspace_id, job_id)
+        _run_single_agent(defn, payload, snapshot_id, workspace_id, job_id, model_name)
         for defn, payload in zip(definitions, payloads)
     ]
     raw_results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -468,6 +476,12 @@ async def _run_agents_async(
 def run_risk_analysis(
     db: Session, snapshot: PortfolioSnapshot, created_by: str | None
 ) -> tuple[AsyncJob, list[RiskScore], list[RiskFlag]]:
+    workspace_settings = db.get(WorkspaceSetting, snapshot.workspace_id)
+    model_name = (
+        workspace_settings.ai_model
+        if workspace_settings is not None and workspace_settings.ai_model
+        else "claude-sonnet-4-6"
+    )
     positions = db.scalars(select(Position).where(Position.snapshot_id == snapshot.id)).all()
     summary = summarize_positions(positions)
     macro = (
@@ -501,26 +515,41 @@ def run_risk_analysis(
         for defn in AGENT_DEFINITIONS
     ]
 
-    # Run agents — use existing event loop if available (FastAPI), else create one
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # FastAPI async context — cannot use run_until_complete; use thread executor
+    if _is_test_runtime() or not get_settings().anthropic_api_key:
+        agent_results = [
+            _deterministic_agent_result(defn, payload)
+            for defn, payload in zip(AGENT_DEFINITIONS, payloads)
+        ]
+    else:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            agent_results = asyncio.run(
+                _run_agents_async(
+                    AGENT_DEFINITIONS,
+                    payloads,
+                    snapshot.id,
+                    snapshot.workspace_id,
+                    job.id,
+                    model_name,
+                )
+            )
+        else:
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(
                     asyncio.run,
-                    _run_agents_async(AGENT_DEFINITIONS, payloads, snapshot.id, snapshot.workspace_id, job.id),
+                    _run_agents_async(
+                        AGENT_DEFINITIONS,
+                        payloads,
+                        snapshot.id,
+                        snapshot.workspace_id,
+                        job.id,
+                        model_name,
+                    ),
                 )
                 agent_results = future.result(timeout=120)
-        else:
-            agent_results = loop.run_until_complete(
-                _run_agents_async(AGENT_DEFINITIONS, payloads, snapshot.id, snapshot.workspace_id, job.id)
-            )
-    except RuntimeError:
-        agent_results = asyncio.run(
-            _run_agents_async(AGENT_DEFINITIONS, payloads, snapshot.id, snapshot.workspace_id, job.id)
-        )
 
     scores: list[RiskScore] = []
     for defn, result in zip(AGENT_DEFINITIONS, agent_results):
