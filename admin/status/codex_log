@@ -212,3 +212,51 @@ Specialists dispatched: testing, security, performance, data-migration, maintain
 - Scope check: clean. The diff still matches MVP2 Phase E + F intent.
 - PR quality score remains **3.5 / 10**.
 - Highest-priority fixes before landing: TOTP bypass, CSRF coverage, and the `asyncio.run()` crash.
+
+---
+
+## Phase H — Demo QA Findings (2026-04-10)
+
+### Source
+
+`/qa` — browser-based QA run against `http://localhost:8000` (frontend) + `http://localhost:8001` (backend).
+Demo credentials: `cio@demo.chiefriskbot.com` / `DemoPass2026!`
+
+### Auto-Fixed (1 item — already committed)
+
+| # | File | Fix |
+|---|------|-----|
+| H1 | `frontend-mvp/*.html` (all 8 pages) | **`_shell.css` 404 on every page** — all pages referenced `../frontend-design-ideal/_shell.css` but `serve.js` exposes `frontend-design-ideal/` as a root, so the correct path is `/_shell.css`. This silently killed the entire design system (warm cream palette, Fraunces headlines, Inter Tight, JetBrains Mono) on every page load. Fixed with a `sed` replace across all 8 files. Committed in `c3bd7d3`. |
+
+### Pending — Must Fix Before Demo (P0)
+
+| # | Area | Issue | Fix |
+|---|------|-------|-----|
+| H2 | **Server restart needed** | The running `uvicorn` process (pid 26193, started before overlay routes were added) does not serve `GET /api/overlay/*` — returns 404. Routes exist in code (`backend/routers/overlay.py`) and register correctly when the app is freshly imported. Backend must be restarted before the demo. | Restart uvicorn: `pkill -f 'uvicorn backend.main' && cd /path/to/repo && .venv/bin/uvicorn backend.main:app --port 8001 --log-level warning` |
+| H3 | **Cockpit empty** | Cockpit shows blank "AUM triangulation", "Top contributors", and "Active risks" sections because the overlay endpoints return 404 (see H2). Once backend is restarted the cockpit should populate from `GET /api/cockpit` + `GET /api/overlay/*`. Verify after H2 fix. | Fix H2 first, then re-run seed (`admin/demo/seed_demo.py`) to ensure overlay data exists. |
+| H4 | **Overlay page all-empty** | `overlay.html` shows "factors unavailable", "triangulation unavailable", "regime unavailable", "scenarios unavailable" for the same reason as H3. | Fix H2. If still empty after restart, run "Run overlay" button to trigger `POST /api/overlay/run`. |
+| H5 | **Briefings page white-blank on fresh browse session** | After a new headless browser session, navigating directly to `briefings.html` redirects to login correctly — but the subsequent screenshot captured the redirect in-flight (blank). Not a real user-facing bug. Verified working during logged-in session. Low risk. | No code change needed. Confirm manually after demo seed. |
+
+### Pending — Should Fix Before Demo (P1)
+
+| # | Area | Issue | Fix |
+|---|------|-------|-----|
+| H6 | **Demo seed must be re-run** | The existing `cio@demo.chiefriskbot.com` DB record was created by an older seed run and has no overlay data (factor scores, regime, stress scenarios). Run `admin/demo/seed_demo.py` to wipe and reseed a clean state with all data. | `.venv/bin/python admin/demo/seed_demo.py` |
+| H7 | **Cockpit AUM shows blank** | `GET /api/cockpit` returns `aum_usd: null` and `position_count: null` — the cockpit endpoint may not be reading from the current snapshot correctly, or the snapshot is not being returned for the demo workspace. Debug after H6. | Check `backend/routers/cockpit.py` — verify `is_current=True` query matches the workspace. |
+
+### Demo Readiness Checklist
+
+Before showing the demo:
+
+```
+[ ] Restart uvicorn (H2)
+[ ] Run admin/demo/seed_demo.py (H6)
+[ ] Open http://localhost:8000/login.html
+[ ] Log in: cio@demo.chiefriskbot.com / DemoPass2026!
+[ ] Verify cockpit shows AUM + risk chart + overlay panel
+[ ] Click "Overlay" nav → verify all 4 sections populated
+[ ] Click "Briefings" → verify published briefing appears
+[ ] Click briefing → verify full HTML renders
+[ ] Click "Positions" → verify table with factor tags
+[ ] Click "Documents" → verify custodian statement + extraction panel
+```
