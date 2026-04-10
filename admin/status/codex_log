@@ -308,3 +308,46 @@ I1 and I5 can be started in parallel (I5 only needs the table to exist).
 - Buffer breach: render buffer line in `var(--gold)`, shade months below buffer in `var(--ele-bg)`.
 - Stress toggle: pill button, active state uses `var(--accent)` fill.
 - Mobile: chart scrolls horizontally, KPI cards stack vertically.
+
+---
+
+## Phase J — Demo Mode Switch (2026-04-10)
+
+### Background
+
+The app currently requires a live backend and a seeded database to show anything
+useful in a demo. If the backend is down, the DB is empty, or network latency is
+high, every panel shows "no data available". A demo mode switch decouples the UI
+from the backend entirely: flick the toggle and every page renders from a static
+JSON fixture that always looks great.
+
+The implementation has one clean seam: the `api()` function in
+`frontend-mvp/_app.js` (line 171) is the single gateway for all data fetching.
+Intercepting it before the `fetch()` call is sufficient — no page code needs to
+change.
+
+### Tasks
+
+| # | Task | Scope | Priority | Status |
+|---|------|-------|----------|--------|
+| J1 | **Demo fixture file** | Create `frontend-mvp/_demo_fixtures.js`. Export a `DEMO_FIXTURES` map keyed by API path pattern (exact string or prefix). Cover every `api()` call made across all pages: `/auth/session`, `/cockpit`, `/portfolio/summary`, `/portfolio/positions`, `/risk/scores`, `/risk/flags`, `/overlay/factors`, `/overlay/regime`, `/overlay/aum-triangulation`, `/overlay/stress`, `/briefings`, `/briefings/{id}`, `/documents`, `/liquidity/summary`, `/liquidity/cashflow`. Data must be realistic: real-looking ticker names, plausible dollar amounts, AUM ~$8.5M (matching Whitmore Family Office), 1 priority + 1 elevated risk flag, 2 published briefings. | P0 | Pending |
+| J2 | **Demo mode interceptor in `_app.js`** | At the top of `_app.js`, after the `api()` function definition (line 216), add: (1) `window.__CRB_DEMO = localStorage.getItem('crb_demo_mode') === 'true'`; (2) wrap `api()` so that when `__CRB_DEMO` is true and the path matches a key in `DEMO_FIXTURES`, return the fixture immediately without fetching — adding a 120ms artificial delay to simulate network feel; (3) for write requests (`POST`, `PATCH`, `PUT`, `DELETE`) in demo mode, silently no-op and return `{ ok: true }` so buttons still respond. Also add a `window.__crbSetDemo(bool)` helper for the toggle to call. Load `_demo_fixtures.js` before `_app.js` in all HTML files. | P0 | Pending |
+| J3 | **Demo mode toggle UI in shell** | In `frontend-mvp/_shell.js`, add a persistent toggle pill in the top-right of the nav bar (right of the search box). Appearance: pill button labelled "Demo" with a small indicator dot — green when on, grey when off. Clicking it calls `window.__crbSetDemo(!window.__CRB_DEMO)`, writes to `localStorage`, then reloads the page so all panels re-render from fixtures. When demo mode is active: add a thin amber banner below the nav ("Demo mode — showing sample data") so it is clear to any observer. Style using `var(--ele-fg)` / `var(--ele-bg)`. | P0 | Pending |
+| J4 | **Login page bypass** | In demo mode, `login.html` should auto-fill the demo credentials and show a "Enter demo →" button that skips the real auth call and writes a fake session to `localStorage` instead. The `requireSession()` function in `_app.js` should check `__CRB_DEMO` and return the fixture user object without hitting `/auth/session`. This means the demo works even if the backend is completely offline. | P1 | Pending |
+| J5 | **Seed script: export fixture snapshot** | Add a `--export-fixtures` flag to `admin/demo/seed_demo.py`. When passed, after seeding the database, call each API endpoint with the demo session cookie and write the JSON responses to `frontend-mvp/_demo_fixtures_generated.js`. This keeps fixtures in sync with the real data model without hand-editing. The generated file is a drop-in replacement for the hand-authored `_demo_fixtures.js`. | P2 | Pending |
+
+### Build order
+
+```
+J1 (fixtures) → J2 (interceptor) → J3 (toggle UI)
+J2 → J4 (login bypass)
+J1 + J2 + J3 + J4 stable → J5 (export script, optional)
+```
+
+### Design notes
+
+- Toggle pill lives in the shell nav — appears on every authenticated page.
+- Amber demo banner: `background: var(--ele-bg); color: var(--ele-fg); border-bottom: 1px solid var(--ele-fg); padding: 4px 16px; font-size: 11px; text-align: center`.
+- The `_demo_fixtures.js` file is committed to the repo — it is not gitignored. It is static sample data, not secrets.
+- Fixtures must NOT include real customer data. All names, amounts, and tickers are illustrative (Whitmore Family Office is a fictional entity).
+- Demo mode state is `localStorage` only — never sent to the server.
