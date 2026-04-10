@@ -260,3 +260,51 @@ Before showing the demo:
 [ ] Click "Positions" → verify table with factor tags
 [ ] Click "Documents" → verify custodian statement + extraction panel
 ```
+
+---
+
+## Phase I — Liquidity & Cash Flow Visualization (2026-04-10)
+
+### Background
+
+The MVP2 spec (`MVP2_SPEC.md` lines 250–261) describes a full liquidity dashboard:
+bar chart of expected inflows (distributions) vs. outflows (calls, fees), net
+liquidity per month cumulative, a configurable "liquidity buffer" target, and a
+stress-case toggle (distributions delayed 6 months).
+
+The backend has everything needed:
+- `MVP2_codebase/backend/services/liquidity.py` — `generate_cash_flow_ladder()` returns
+  monthly buckets of inflows/outflows, net position, and buffer gap for a given workspace.
+- `MVP2_codebase/backend/models/capital.py` — `CapitalEvent` table (calls, distributions, fees).
+- `MVP2_codebase/backend/models/funds.py` — `Commitment` table (unfunded commitment balances).
+
+**Nothing is wired into the current frontend.** The cockpit shows only a single
+`Liquidity (T+1)` KPI number (`liquidity_score_pct`). No page exists for the chart.
+
+### Tasks
+
+| # | Task | Scope | Priority | Status |
+|---|------|-------|----------|--------|
+| I1 | **Backend: liquidity API endpoint** | Port `MVP2_codebase/backend/services/liquidity.py` into the main `backend/` tree. Add `GET /api/liquidity/cashflow?months=24&scenario=base\|stress` that calls `generate_cash_flow_ladder()` and returns monthly buckets. Add `GET /api/liquidity/summary` for the 90-day snapshot (next call due, total unfunded, expected distributions). Requires a migration to ensure `capital_events` and `commitments` tables exist in the main runtime DB. | P0 | Pending |
+| I2 | **Frontend: liquidity page** (`liquidity.html`) | New page at `frontend-mvp/liquidity.html`. Sections: (1) 90-day summary KPIs (next call due, total unfunded, expected distributions, net position); (2) grouped bar chart — inflows (green) vs outflows (red) per month, 24-month horizon, using Canvas or SVG (no external chart lib — keep vanilla JS); (3) cumulative net liquidity line overlaid; (4) configurable buffer target input (default $2M) rendered as a horizontal rule on the chart; (5) stress toggle button — calls `?scenario=stress` and re-renders. Link page from the nav in `frontend-mvp/_shell.js` and from the cockpit liquidity KPI. | P0 | Pending |
+| I3 | **Cockpit: liquidity panel** | Replace the single `Liquidity (T+1)` KPI on the cockpit with a compact 3-column summary: next capital call (date + $amount), 90-day net liquidity, any buffer breach (red badge). Clicking the panel navigates to `liquidity.html`. Wire to `GET /api/liquidity/summary`. | P1 | Pending |
+| I4 | **Briefing: liquidity section** | The briefing generator (`backend/services/briefings.py`) already has a placeholder for "Liquidity snapshot: next 90 days cash flow". Wire it to call `generate_cash_flow_ladder()` and include: next call due date + amount, expected distributions in the window, net 90-day position, any buffer gap. | P1 | Pending |
+| I5 | **Demo seed: capital events** | `admin/demo/seed_demo.py` currently creates no `CapitalEvent` rows for the demo workspace. Add ~6 seed events: 2 upcoming capital calls (one within 14 days → triggers high-priority alert), 2 expected distributions, 1 management fee. These populate the liquidity chart so the demo is not all-zeros. | P0 | Pending |
+
+### Build order
+
+```
+I1 (API) → I2 (page) → I3 (cockpit panel)
+I1 (API) → I4 (briefing section)
+I5 (seed) — run after I1 migration, before demo
+```
+
+I1 and I5 can be started in parallel (I5 only needs the table to exist).
+
+### Design notes
+
+- Follow `frontend-design-ideal/DESIGN.md` — warm cream palette, no external chart libraries.
+- Chart bars: inflows `var(--good-fg)` / `var(--good-bg)`, outflows `var(--pri-fg)` / `var(--pri-bg)`.
+- Buffer breach: render buffer line in `var(--gold)`, shade months below buffer in `var(--ele-bg)`.
+- Stress toggle: pill button, active state uses `var(--accent)` fill.
+- Mobile: chart scrolls horizontally, KPI cards stack vertically.
