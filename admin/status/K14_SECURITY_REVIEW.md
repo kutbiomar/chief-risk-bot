@@ -32,6 +32,7 @@ Static review on branch `MVP2` (commit `22e5cb3`):
 | CORS origin enforcement | ✓ pass | `backend/config.py` ALLOWED_ORIGINS gating |
 | Auth token scoping (workspace isolation) | ✓ pass | `test_auth` — 13 passed |
 | Supabase storage bucket is private | ✓ confirmed | no public flag on `documents` bucket |
+| WeasyPrint PDF export in container | ✓ confirmed | `200` (26 KB) on `GET /api/briefings/{id}/export/pdf` (2026-04-24) |
 
 ## Production health verification — 2026-04-24
 

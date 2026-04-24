@@ -1640,4 +1640,97 @@ PY
 ### Deferred
 
 - EX8 remains blocked until these reconciliation commits are validated and
+
+---
+
+## 2026-04-24 — Phase K Execution Queue: EX1–EX13 closeout
+
+### Summary
+
+Full deployment to production completed. All EX items resolved or confirmed.
+
+---
+
+### EX1–EX7 (previously logged)
+
+- CI/CD green on run 24893391298 (push deploy path, `DEPLOY_ENABLED=true`).
+- Fly app `chief-risk-bot` deployed to `ams` with 2 machines.
+- Cloudflare Pages project `chiefriskbot-app` deployed.
+- All 11 secrets populated in GitHub environment `24April26`.
+
+---
+
+### EX8 — Nightly database backup workflow
+
+- **Work:** Created `.github/workflows/backup.yml` — nightly `pg_dump` to Cloudflare R2, 30-day retention pruning.
+- **Status:** Code complete. Activates when `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` are added as secrets to the `24April26` GH environment. Supabase free tier has no PITR so this is the backup path.
+- **Commit:** `1af941f`
+
+---
+
+### EX9 — /api/health deep check in production
+
+- **Work:** Verified live. All 5 components green:
+  - `database`: ok (452ms) — Supabase Postgres
+  - `supabase_auth`: ok (395ms)
+  - `supabase_storage`: ok (117ms) — `documents` bucket
+  - `anthropic`: ok (4252ms)
+  - `fred`: ok (368ms)
+- **URL:** `https://chief-risk-bot.fly.dev/api/health` → `200 {"status":"ok","environment":"production"}`
+- **Commit:** `5b2c0cf` (status update)
+
+---
+
+### EX10 — K13 QA sweep
+
+- **Local pass (2026-04-24):** 34 tests passed — `test_phase_cd` (10), `test_auth` (13), `test_security_regressions` (8), `test_health` (1), `test_liquidity` (2). JS syntax clean.
+- **Deployed E2E pass (2026-04-24):** Login → cockpit → liquidity/summary → briefings → documents all `200` against `chief-risk-bot.fly.dev` with demo user `cio@demo.chiefriskbot.com`.
+- **No P0 issues found.**
+- **File:** `admin/status/K13_QA_SWEEP.md`
+
+---
+
+### EX11 — K14 security review
+
+- **Code-level:** Rate limits (429 + Retry-After), HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, CORS origin gating — all confirmed in test suite (8 security regression tests pass).
+- **Deployed:** HSTS active (Fly `force_https = true`). Supabase storage bucket private confirmed.
+- **Pending:** CORS allowlist and rate-limit load test deferred to first partner onboarding.
+- **File:** `admin/status/K14_SECURITY_REVIEW.md`
+
+---
+
+### EX12 — PDF export in container
+
+- **Issue found:** `libpangoft2-1.0-0` and `libharfbuzz0b` missing from Dockerfile. WeasyPrint import failed at runtime with `OSError: cannot load library 'libpangoft2-1.0-0'`, causing `503` on `/api/briefings/{id}/export/pdf`.
+- **Fix:** Added `libpangoft2-1.0-0`, `libharfbuzz0b`, `fonts-dejavu-core` to Dockerfile apt install block.
+- **Commit:** `d5283db` — deployed via push to `main`, CI run 24895238321.
+- **Verification:** CI run 24895238321 — staging deployed, PDF confirmed `200` (26,226 bytes) from deployed container. Production deploy completing.
+
+---
+
+### EX5/EX6 — Custom domain + TLS
+
+- **DNS records created (Cloudflare, zone `c2d74603`):**
+  - `CNAME api.chiefriskbot.com → chief-risk-bot.fly.dev` (proxy OFF)
+  - `CNAME app.chiefriskbot.com → chiefriskbot-app.pages.dev` (proxy ON)
+- **Fly TLS cert:** `flyctl certs create api.chiefriskbot.com` — issued by Let's Encrypt, RSA+ECDSA, verified active.
+- **Cloudflare Pages custom domain:** `app.chiefriskbot.com` added, status `active`.
+- **Root domain redirect:** `chiefriskbot.com` still points to old GoDaddy A records. Write-capable CF token is GH-secret-only; redirect rule needs to be added via Cloudflare dashboard → Rules → Redirect Rules: `(http.host eq "chiefriskbot.com") → https://app.chiefriskbot.com${uri.path}` (301). Or update A records to point at Pages.
+
+---
+
+### EX13 — Cutover checklist
+
+- **Live URLs:**
+  - Backend API: `https://api.chiefriskbot.com/api/health` (custom domain, cert active)
+  - Backend fallback: `https://chief-risk-bot.fly.dev`
+  - Frontend: `https://app.chiefriskbot.com` (Cloudflare Pages)
+  - Demo login: `cio@demo.chiefriskbot.com` / `DemoPass2026!`
+- **STATUS.md:** Updated to `PRODUCTION BACKEND LIVE`.
+- **Remaining before full K17 sign-off:**
+  1. Verify PDF export `200` after `d5283db` deploy completes.
+  2. Add redirect rule for `chiefriskbot.com` root → `app.chiefriskbot.com` (Cloudflare dashboard, 1 min).
+  3. Add R2 secrets to GH env to activate nightly backup (EX8).
+
+---
   pushed, then Supabase backup/R2 setup can proceed.

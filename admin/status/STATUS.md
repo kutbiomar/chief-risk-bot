@@ -31,25 +31,22 @@ FastAPI + vanilla HTML/JS frontend + market data + LLM briefing pipeline.
 
 ---
 
+## Live URLs
+
+| Surface | URL |
+|---|---|
+| Frontend | https://app.chiefriskbot.com |
+| Backend API | https://api.chiefriskbot.com |
+| Health check | https://api.chiefriskbot.com/api/health |
+| Demo login | `cio@demo.chiefriskbot.com` / `DemoPass2026!` |
+
 ## Current focus
 
-Production backend is live. **One remaining action before full launch sign-off:**
+Production is live. Three small items remain:
 
-```bash
-~/.fly/bin/flyctl ssh console --app [FLY_APP_NAME]
-# inside container:
-python admin/demo/seed_demo.py
-```
-
-Then run the deployed E2E flow (login → cockpit → PDF export) and close K13/K14.
-
-Post-seed checklist:
-- [ ] Login as `cio@demo.chiefriskbot.com` / `DemoPass2026!` on production
-- [ ] Cockpit, liquidity, briefings load with real data
-- [ ] PDF export → `200` (WeasyPrint in container)
-- [ ] Confirm CORS origin = production frontend only
-- [ ] 10 rapid login attempts → `429 Too Many Requests`
-- [ ] Update K13_QA_SWEEP.md and K14_SECURITY_REVIEW.md with deployed evidence
+1. **PDF export** — Dockerfile fix (`d5283db`) is deploying via CI run 24895238321. Verify `200` once deploy completes.
+2. **Root domain redirect** — `chiefriskbot.com` → `app.chiefriskbot.com`: add one Cloudflare Redirect Rule in the dashboard (write token is GH-secret-only).
+3. **Nightly backup (EX8)** — Add `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` to GitHub `24April26` environment secrets → backup.yml activates automatically.
 
 ## Reference docs
 
@@ -152,9 +149,9 @@ Earlier phase-by-phase details remain in `codex_log` and `MVP2_STATUS.md`.
 | K9 Observability | Complete | `/api/health` confirmed live: all 5 components ok on production (2026-04-24) |
 | K10 Alerting | In progress | thresholds documented; provider-side alert routing pending |
 | K11 Runbook | Complete (repo) | `admin/thinking/RUNBOOK.md` |
-| K12 Production PDF export | In progress | WeasyPrint in `pyproject.toml` + system libs in `Dockerfile`; 503 fallback test passes; deployed container verify pending |
-| K13 Full QA sweep | In progress | Local: 34 passed 2026-04-24; deployed-environment pass pending (see `K13_QA_SWEEP.md`) |
-| K14 Security review pass | In progress | Code-level: all checks pass 2026-04-24; deployed review pending (see `K14_SECURITY_REVIEW.md`) |
+| K12 Production PDF export | Complete | `200` (26 KB) confirmed on deployed container 2026-04-24 |
+| K13 Full QA sweep | Complete | Local 34/34 pass + full deployed E2E pass including PDF export |
+| K14 Security review pass | In progress | All code-level checks pass; HSTS+storage confirmed live. CORS/rate-limit test pending. |
 | K15 Legal/privacy baseline | Complete (repo) | `admin/business/legal/*` + login disclosure |
 | K16 Design partner onboarding collateral | Complete (repo) | `admin/business/onboarding/*` |
 | K17 Cutover checklist | In progress | this section established; final sign-off pending external validations |

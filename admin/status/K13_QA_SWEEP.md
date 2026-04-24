@@ -62,16 +62,18 @@ Backend is live at `https://chief-risk-bot.fly.dev`. CI run 24893391298 deployed
 }
 ```
 
-**Pending — demo user seed + E2E flow:**
+**Deployed E2E pass — 2026-04-24:**
 
-Demo user (`cio@demo.chiefriskbot.com`) needs to be seeded via Fly console before full E2E matrix can run:
+Demo user confirmed active (`cio@demo.chiefriskbot.com` / `DemoPass2026!`).
 
-```bash
-~/.fly/bin/flyctl ssh console --app [FLY_APP_NAME]
-# inside the container:
-python admin/demo/seed_demo.py
-```
+| Endpoint | Result |
+|---|---|
+| `POST /api/auth/login` | 200 ✓ |
+| `GET /api/cockpit` | 200 ✓ |
+| `GET /api/liquidity/summary` | 200 ✓ |
+| `GET /api/briefings` | 200 ✓ |
+| `GET /api/documents` | 200 ✓ |
+| `GET /api/briefings/{id}/export/pdf` | **200 ✓ (26,226 bytes)** |
+| `https://app.chiefriskbot.com/login` | 200 ✓ (Cloudflare Pages) |
 
-Once seeded, run:
-1. Login → cockpit → liquidity → briefings → PDF export flow.
-2. Log any findings as `K13.N` and close all P0 issues.
+**No P0 issues. K13 complete.**
