@@ -58,6 +58,8 @@ jobs:
         run: python scripts/check_destructive_migrations.py
 
       - name: Migration dry-run
+        env:
+          DATABASE_URL: postgresql+psycopg://chiefriskbot:chiefriskbot@localhost:5432/chiefriskbot
         run: |
           alembic upgrade head --sql > /tmp/migration.sql
           test -s /tmp/migration.sql
