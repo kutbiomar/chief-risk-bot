@@ -1,0 +1,109 @@
+name: Nightly Database Backup
+
+on:
+  schedule:
+    - cron: "0 2 * * *"   # 02:00 UTC daily
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    environment: 24April26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pg_dump client
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Dump database
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          # Extract connection components from pooled DATABASE_URL
+          # Format: postgresql+psycopg://user:pass@host:port/db?sslmode=require
+          CLEAN_URL="${DATABASE_URL#*://}"
+          CLEAN_URL="${CLEAN_URL%%\?*}"
+          DB_USER="${CLEAN_URL%%:*}"
+          AFTER_USER="${CLEAN_URL#*:}"
+          DB_PASS="${AFTER_USER%%@*}"
+          AFTER_PASS="${AFTER_USER#*@}"
+          DB_HOST="${AFTER_PASS%%:*}"
+          AFTER_HOST="${AFTER_PASS#*:}"
+          DB_PORT="${AFTER_HOST%%/*}"
+          DB_NAME="${AFTER_HOST#*/}"
+
+          BACKUP_FILE="chiefriskbot-$(date -u +%Y%m%d-%H%M%S).sql.gz"
+          PGPASSWORD="$DB_PASS" pg_dump \
+            --host="$DB_HOST" \
+            --port="$DB_PORT" \
+            --username="$DB_USER" \
+            --dbname="$DB_NAME" \
+            --no-owner \
+            --no-acl \
+            --format=plain \
+            --schema=public \
+            2>/dev/null | gzip > "$BACKUP_FILE"
+          echo "BACKUP_FILE=$BACKUP_FILE" >> "$GITHUB_ENV"
+          echo "Backup created: $BACKUP_FILE ($(du -sh "$BACKUP_FILE" | cut -f1))"
+
+      - name: Upload to Cloudflare R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: chiefriskbot-backups
+        run: |
+          pip install boto3 --quiet
+          python3 - <<'PY'
+          import os, boto3, datetime
+          r2 = boto3.client(
+              "s3",
+              endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
+              aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
+              aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+              region_name="auto",
+          )
+          backup_file = os.environ["BACKUP_FILE"]
+          key = f"daily/{backup_file}"
+          r2.upload_file(backup_file, os.environ["R2_BUCKET"], key)
+          print(f"Uploaded s3://{os.environ['R2_BUCKET']}/{key}")
+          PY
+
+      - name: Prune backups older than 30 days
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: chiefriskbot-backups
+        run: |
+          python3 - <<'PY'
+          import os, boto3, datetime
+          r2 = boto3.client(
+              "s3",
+              endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
+              aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
+              aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+              region_name="auto",
+          )
+          bucket = os.environ["R2_BUCKET"]
+          cutoff = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=30)
+          paginator = r2.get_paginator("list_objects_v2")
+          to_delete = []
+          for page in paginator.paginate(Bucket=bucket, Prefix="daily/"):
+              for obj in page.get("Contents", []):
+                  if obj["LastModified"] < cutoff:
+                      to_delete.append({"Key": obj["Key"]})
+          if to_delete:
+              r2.delete_objects(Bucket=bucket, Delete={"Objects": to_delete})
+              print(f"Pruned {len(to_delete)} old backup(s)")
+          else:
+              print("Nothing to prune")
+          PY

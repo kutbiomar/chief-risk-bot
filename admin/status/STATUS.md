@@ -1,7 +1,7 @@
 # ChiefRiskBot — Current Status
 
-_Last updated: 2026-04-21_  
-_Status: K1–K17 code landed. Moving into Phase K **execution** (EX1–EX13): external provisioning on Fly + Cloudflare Pages + Supabase, DNS cutover to chiefriskbot.com, deployed QA/security sign-off. Detailed execution queue in `codex_log` under "Phase K — Execution Queue (2026-04-21)"._
+_Last updated: 2026-04-24_  
+_Status: **EX1–EX12 code-complete. Pending DEPLOY\_ENABLED=true.** CI/CD pipeline green (run 24893391298). Deploy jobs gated on Fly + Cloudflare provisioning (USER\_CHECKLIST items 2–3). Once provisioned: flip `DEPLOY_ENABLED` repo var → staging + production deploy automatically. Final EX13 cutover sign-off after deployed smoke tests pass._
 
 ---
 
@@ -33,11 +33,15 @@ FastAPI + vanilla HTML/JS frontend + market data + LLM briefing pipeline.
 
 ## Current focus
 
-- Verify the revised Supabase-backed auth/onboarding flow end to end
-- Continue replacing MVP demo assumptions with real production-path behavior
-- Keep overlay/internal diagnostics out of the primary MVP flow
-- Document the agent-platform migration path for the current schema and services
-- Triage remaining Documents/Positions UX gaps in non-demo workspaces
+**One action unblocks everything:** complete USER_CHECKLIST items 2 (Fly token), 3 (Cloudflare token + account ID), then flip the `DEPLOY_ENABLED` repo variable to `true`. CI/CD will deploy to staging then production automatically on the next push.
+
+Post-deploy checklist:
+- [ ] Smoke-test `/api/health` on staging → all components `ok`
+- [ ] Smoke-test PDF export in deployed container (`GET /api/briefings/{id}/export/pdf`)
+- [ ] Confirm CORS origin = `chiefriskbot.com` only (not `*`)
+- [ ] Confirm Supabase storage bucket is private
+- [ ] Flip K13/K14 deployed verification to complete
+- [ ] Update this file: `_Status: PRODUCTION LIVE_`
 
 ## Reference docs
 
@@ -140,9 +144,9 @@ Earlier phase-by-phase details remain in `codex_log` and `MVP2_STATUS.md`.
 | K9 Observability | Complete (repo) | structured request logs + DB timing metrics + expanded `/api/health` |
 | K10 Alerting | In progress | thresholds documented; provider-side alert routing pending |
 | K11 Runbook | Complete (repo) | `admin/thinking/RUNBOOK.md` |
-| K12 Production PDF export | In progress | WeasyPrint libs containerized in `Dockerfile`; deployed verification pending |
-| K13 Full QA sweep | In progress | `scripts/qa_sweep.sh`; deployed-environment pass pending |
-| K14 Security review pass | In progress | auth rate limiting + headers/CSP wiring added; full deployed review pending |
+| K12 Production PDF export | In progress | WeasyPrint in `pyproject.toml` + system libs in `Dockerfile`; 503 fallback test passes; deployed container verify pending |
+| K13 Full QA sweep | In progress | Local: 34 passed 2026-04-24; deployed-environment pass pending (see `K13_QA_SWEEP.md`) |
+| K14 Security review pass | In progress | Code-level: all checks pass 2026-04-24; deployed review pending (see `K14_SECURITY_REVIEW.md`) |
 | K15 Legal/privacy baseline | Complete (repo) | `admin/business/legal/*` + login disclosure |
 | K16 Design partner onboarding collateral | Complete (repo) | `admin/business/onboarding/*` |
 | K17 Cutover checklist | In progress | this section established; final sign-off pending external validations |
