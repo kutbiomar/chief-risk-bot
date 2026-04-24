@@ -17,6 +17,8 @@ class User(Base, TimestampMixin):
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False, index=True)
     email: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     display_name: Mapped[str] = mapped_column(Text, nullable=False)
+    auth_provider: Mapped[Optional[str]] = mapped_column(Text)
+    auth_subject: Mapped[Optional[str]] = mapped_column(Text, unique=True)
     password_hash: Mapped[Optional[str]] = mapped_column(Text)
     role: Mapped[str] = mapped_column(Text, nullable=False, default="owner")
     scope: Mapped[str] = mapped_column(Text, nullable=False, default="All clients")
@@ -95,6 +97,7 @@ class WorkspaceSetting(Base):
     briefing_include_audit_footer: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False
     )
+    reporting_currency: Mapped[str] = mapped_column(Text, nullable=False, default="CHF")
     ai_model: Mapped[str] = mapped_column(Text, nullable=False, default="claude-opus-4-6")
     ai_risk_tone: Mapped[str] = mapped_column(Text, nullable=False, default="conservative")
     ai_custom_instructions: Mapped[Optional[str]] = mapped_column(Text)
