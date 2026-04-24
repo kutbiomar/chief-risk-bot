@@ -41,6 +41,7 @@ def _serialize_settings(settings: WorkspaceSetting) -> SettingsResponse:
         briefing_auto_publish=settings.briefing_auto_publish,
         briefing_send_pdf=settings.briefing_send_pdf,
         briefing_include_audit_footer=settings.briefing_include_audit_footer,
+        reporting_currency=settings.reporting_currency,
         ai_model=settings.ai_model,
         ai_risk_tone=settings.ai_risk_tone,
         ai_custom_instructions=settings.ai_custom_instructions,
@@ -70,6 +71,7 @@ def patch_settings(
     _PATCHABLE = {
         "briefing_day", "briefing_time", "briefing_recipients", "briefing_auto_publish",
         "briefing_send_pdf", "briefing_include_audit_footer",
+        "reporting_currency",
         "ai_model", "ai_risk_tone", "ai_custom_instructions", "ai_allow_trade_actions",
     }
     for field, value in payload.model_dump(exclude_none=True).items():
