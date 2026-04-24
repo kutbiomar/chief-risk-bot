@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Documents — ChiefRiskBot MVP2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="_mvp.css"/>
+  <script src="_app.js" defer></script>
+</head>
+<body data-page="documents">
+  <div class="app-shell" id="app-shell">
+    <main class="content">
+      <div class="hero">
+        <div>
+          <h2>Documents and reconciliation</h2>
+          <p>Upload fund documents, inspect extracted fields, and close reconciliation flags without leaving the page.</p>
+        </div>
+      </div>
+      <div id="documents-status" class="notice" hidden></div>
+      <div class="grid sidebar">
+        <section class="card">
+          <div class="card-header"><h3>Upload and queue</h3><p>Documents are parsed immediately in the current MVP2 scaffold.</p></div>
+          <div class="card-body">
+            <form id="upload-form" class="form">
+              <div class="form-grid">
+                <div class="field full"><label for="provider-name">Provider Name</label><input id="provider-name" placeholder="North Lake Capital"/></div>
+                <div class="field full"><label for="document-file">File</label><input id="document-file" type="file" required/></div>
+              </div>
+              <button class="btn primary" type="submit">Upload and Parse</button>
+            </form>
+            <div class="actions" style="margin-top:14px">
+              <button class="btn secondary" id="parse-selected" type="button">Parse Selected</button>
+              <button class="btn" id="reopen-reconcile" type="button">Re-open Flags</button>
+            </div>
+            <div style="margin-top:18px" id="documents-list"></div>
+          </div>
+        </section>
+        <section class="card">
+          <div class="card-header">
+            <h3>Document detail</h3>
+            <p>Extraction preview and reconciliation output.</p>
+          </div>
+          <div class="card-body">
+            <div class="actions" style="margin-bottom:14px">
+              <button class="btn secondary" id="resolve-reconcile" type="button">Resolve All Flags</button>
+            </div>
+            <div id="document-detail"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

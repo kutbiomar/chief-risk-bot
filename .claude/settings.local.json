@@ -89,7 +89,14 @@
       "Bash(.venv/bin/python -m pytest backend/tests -v)",
       "Bash(grep -rn \"def \" backend/routers/*.py)",
       "Bash(grep -n \"@router\\\\.\" backend/routers/*.py)",
-      "Bash(grep -n \"class.*Response\\\\|snapshot_id\\\\|week_label\\\\|display_name\\\\|portfolio_summary\\\\|var_result\\\\|risk_register\\\\|position_contributions\\\\|asset_class\" backend/schemas/*.py)"
+      "Bash(grep -n \"class.*Response\\\\|snapshot_id\\\\|week_label\\\\|display_name\\\\|portfolio_summary\\\\|var_result\\\\|risk_register\\\\|position_contributions\\\\|asset_class\" backend/schemas/*.py)",
+      "Skill(GSgstack)",
+      "Skill(GSgstack:*)",
+      "Skill(office-hours)",
+      "Skill(office-hours:*)",
+      "Skill(browse)",
+      "Skill(browse:*)",
+      "WebFetch(domain:themahjong.guide)"
     ]
   }
 }

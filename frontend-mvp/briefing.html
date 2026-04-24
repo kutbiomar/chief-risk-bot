@@ -3,33 +3,35 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Briefing detail — ChiefRiskBot MVP</title>
+  <title>Briefing Detail — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="_shell.css"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
-  <link rel="stylesheet" href="../_shell.css"/>
+  <link rel="stylesheet" href="/_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
 </head>
-<body data-page="briefing">
+<body data-page="briefing" class="mvp-app-loading">
   <div class="app" id="app-root">
     <main>
       <div class="mvp-page">
-        <div class="mvp-hero">
-          <div>
-            <div id="briefing-meta" class="mvp-metadata"></div>
-            <h1 id="briefing-title">Briefing detail</h1>
-          </div>
-          <div class="mvp-actions">
+        <header class="essay-hero">
+          <div id="briefing-meta" class="essay-meta"></div>
+          <h1 id="briefing-title">Briefing</h1>
+          <div class="essay-actions">
             <a class="btn" href="briefings.html"><span class="ms">arrow_back</span>Back</a>
             <button id="publish-briefing" class="btn"><span class="ms">publish</span>Publish</button>
             <button id="export-briefing" class="btn primary"><span class="ms">file_download</span>Export</button>
           </div>
-        </div>
+        </header>
         <div id="briefing-status" class="mvp-notice" hidden data-global-status></div>
-        <div id="briefing-body" class="mvp-grid"></div>
+        <div class="essay-layout">
+          <aside class="essay-toc" id="briefing-toc" aria-label="Sections"></aside>
+          <article class="essay-body" id="briefing-body"></article>
+        </div>
       </div>
     </main>
   </div>

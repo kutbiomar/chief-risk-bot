@@ -109,6 +109,28 @@ def test_portfolio_summary_and_positions_flow(client, db_session: Session) -> No
     assert [item["ticker"] for item in position_body["items"]] == ["AAPL", "BND", "CASH"]
 
 
+def test_csv_ingest_preserves_real_assets_class(client, db_session: Session) -> None:
+    headers = login_headers(client, db_session, email="real-assets@example.com")
+    payload = (
+        "ticker,quantity,asset_class,custodian,geo_region,sector,market_segment,market_value_usd\n"
+        "GLD,10,real_assets,Fidelity,Global,Precious Metals,ETF,2500\n"
+        "VNQ,5,real_assets,Goldman,US,Real Estate,REIT,500\n"
+    )
+
+    upload = client.post(
+        "/api/ingest/csv",
+        files={"file": ("real-assets.csv", payload, "text/csv")},
+        headers=headers,
+    )
+    assert upload.status_code == 200
+
+    summary = client.get("/api/portfolio/summary")
+    assert summary.status_code == 200
+    asset_classes = {item["label"]: item for item in summary.json()["asset_class"]}
+    assert "real_assets" in asset_classes
+    assert asset_classes["real_assets"]["position_count"] == 2
+
+
 def test_csv_ingest_rejects_invalid_extension(client, db_session: Session) -> None:
     headers = login_headers(client, db_session, email="badfile@example.com")
 

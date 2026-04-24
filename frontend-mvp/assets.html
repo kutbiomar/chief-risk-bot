@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Assets Overview — ChiefRiskBot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_shell.css"/>
+  <link rel="stylesheet" href="_mvp.css"/>
+  <script src="_shell.js" defer></script>
+  <script src="_app.js" defer></script>
+</head>
+<body data-page="assets" class="mvp-app-loading">
+  <div class="app" id="app-root">
+    <main>
+      <div class="essay-hero compact">
+        <div class="essay-meta">
+          <span>Assets</span>
+          <span id="assets-as-of" style="opacity:.6"></span>
+        </div>
+        <h1>Assets Overview</h1>
+        <p class="essay-deck-hero">Total AUM, composition by class, sector, and region — with forward cash flow projections.</p>
+        <div class="essay-actions">
+          <button id="assets-refresh" class="btn"><span class="ms">refresh</span>Refresh</button>
+        </div>
+      </div>
+
+      <div id="assets-status" class="mvp-notice" hidden data-global-status></div>
+
+      <div class="essay-layout">
+        <aside class="essay-toc" aria-label="Sections">
+          <div class="essay-toc-label">Sections</div>
+          <a href="#assets-section-agg">Aggregation</a>
+          <a href="#assets-section-slice">Composition</a>
+          <a href="#assets-section-proj">Projections</a>
+        </aside>
+        <article class="essay-body no-reveal">
+
+          <!-- Aggregation -->
+          <section class="essay-section is-visible" id="assets-section-agg">
+            <div class="essay-eyebrow">Aggregation</div>
+            <h2 class="essay-heading-sm">Total Assets Under Management</h2>
+            <div id="assets-kpis" class="mvp-grid cards-4" style="margin-bottom:24px"></div>
+            <div class="essay-figure">
+              <div id="assets-composition-chart" class="mvp-cockpit-composition"></div>
+            </div>
+          </section>
+
+          <!-- Slicing -->
+          <section class="essay-section is-visible" id="assets-section-slice" style="margin-top:48px">
+            <div class="essay-eyebrow">Composition</div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:20px">
+              <h2 class="essay-heading-sm" style="margin-bottom:0" id="assets-slice-title">By Asset Class</h2>
+              <div class="essay-pills" id="assets-slice-toggles" style="margin:0">
+                <button type="button" class="essay-pill active" data-dimension="asset_class">Asset Class</button>
+                <button type="button" class="essay-pill" data-dimension="sector">Sector</button>
+                <button type="button" class="essay-pill" data-dimension="geo_region">Region</button>
+                <button type="button" class="essay-pill" data-dimension="custodian">Custodian</button>
+              </div>
+            </div>
+            <div id="assets-slice-table"></div>
+          </section>
+
+          <!-- Projections -->
+          <section class="essay-section is-visible" id="assets-section-proj" style="margin-top:48px">
+            <div class="essay-eyebrow">Projections</div>
+            <h2 class="essay-heading-sm">Forward Cash Flows</h2>
+            <p class="essay-prose" style="font-size:14px;line-height:1.6" id="assets-proj-summary">Loading projection data…</p>
+            <div class="essay-figure" id="assets-proj-figure" hidden>
+              <div id="assets-proj-chart"></div>
+              <div class="essay-figure-caption">Next 12-month cash flow projection</div>
+            </div>
+          </section>
+
+        </article>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

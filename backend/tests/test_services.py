@@ -1,8 +1,13 @@
+import json
 from pathlib import Path
+from types import SimpleNamespace
 
+import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from backend.config import Settings
 from backend.models.auth import WorkspaceSetting
 from backend.models.content import BriefingRun
 from backend.models.portfolio import PortfolioSnapshot, Position
@@ -10,8 +15,33 @@ from backend.database import Base
 from backend.models.auth import User
 from backend.models.portfolio import Workspace
 from backend.services.audit.logger import AuditLogger
+from backend.services.ingest.agents.reconciliation import reconcile_extraction
+from backend.services.ingest.layout_parser import parse_document_layout
 from backend.services.jobs import AsyncJobService
 from backend.services.scheduler import BriefingSchedulerManager, run_workspace_briefing_cycle
+
+
+def test_settings_require_supabase_credentials_when_auth_mode_is_supabase() -> None:
+    settings = Settings(
+        auth_mode="supabase",
+        supabase_url="",
+        supabase_anon_key="",
+        supabase_service_role_key="",
+    )
+
+    with pytest.raises(ValueError, match="SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY"):
+        settings.validate_runtime()
+
+
+def test_settings_accept_complete_supabase_configuration() -> None:
+    settings = Settings(
+        auth_mode="supabase",
+        supabase_url="https://project.supabase.co",
+        supabase_anon_key="anon-key",
+        supabase_service_role_key="service-role-key",
+    )
+
+    settings.validate_runtime()
 
 
 def make_session() -> Session:
@@ -73,6 +103,73 @@ def test_audit_logger_assigns_sequence_and_hash_chain() -> None:
 
     assert first.sequence_no == 1
     assert first.prev_hash == "GENESIS"
+    assert second.sequence_no == 2
+    assert second.prev_hash == first.event_hash
+    db.close()
+
+
+def test_audit_logger_retries_sequence_collision(monkeypatch: pytest.MonkeyPatch) -> None:
+    db = make_session()
+    workspace = Workspace(
+        name="Retry Workspace",
+        slug="retry-workspace",
+        reporting_currency="USD",
+        timezone="UTC",
+        plan="starter",
+    )
+    db.add(workspace)
+    db.flush()
+    user = User(
+        workspace_id=workspace.id,
+        email="retry-owner@example.com",
+        display_name="Owner",
+        password_hash="not-needed-for-this-test",
+        role="owner",
+        scope="All clients",
+        totp_enabled=False,
+    )
+    db.add(user)
+    db.commit()
+
+    logger = AuditLogger(db)
+    first = logger.append_event(
+        workspace_id=workspace.id,
+        actor_user_id=user.id,
+        actor_type="user",
+        event_type="auth",
+        action="logged_in",
+        subject_type="session",
+        subject_id="s1",
+    )
+    db.commit()
+
+    real_flush = db.flush
+    state = {"calls": 0}
+
+    def flaky_flush(*args, **kwargs):
+        state["calls"] += 1
+        if state["calls"] == 1:
+            raise IntegrityError(
+                "insert into audit_events",
+                {},
+                Exception("uq_audit_events_workspace_sequence"),
+            )
+        return real_flush(*args, **kwargs)
+
+    monkeypatch.setattr(db, "flush", flaky_flush)
+    second = logger.append_event(
+        workspace_id=workspace.id,
+        actor_user_id=user.id,
+        actor_type="user",
+        event_type="auth",
+        action="token_refreshed",
+        subject_type="session",
+        subject_id="s1",
+    )
+    db.commit()
+
+    assert state["calls"] >= 2
+    assert first.sequence_no == 1
     assert second.sequence_no == 2
     assert second.prev_hash == first.event_hash
     db.close()
@@ -142,11 +239,14 @@ def test_scheduler_syncs_workspace_job() -> None:
     manager = BriefingSchedulerManager(enabled=True, db_factory=lambda: db)
     manager.sync_workspace_job(workspace.id)
     job = manager.scheduler.get_job(f"weekly-briefing:{workspace.id}")
+    overlay_job = manager.scheduler.get_job(f"overlay-refresh:{workspace.id}")
 
     assert job is not None
+    assert overlay_job is not None
     assert str(job.trigger.timezone) == "Europe/Zurich"
     assert "fri" in str(job.trigger).lower()
     assert "7" in str(job.trigger)
+    assert str(overlay_job.trigger.timezone) == "America/New_York"
     db.close()
 
 
@@ -247,7 +347,317 @@ def test_scheduled_briefing_cycle_generates_publishes_and_exports() -> None:
     verify_db = session_factory()
     saved = verify_db.scalar(select(BriefingRun).where(BriefingRun.id == result.briefing_id))
     assert saved is not None
-    assert saved.status == "published"
-    assert saved.pdf_path is not None
-    assert Path(saved.pdf_path).exists()
+    assert saved.status == "draft"
+    assert "Scheduled briefing generated but not auto-published because quality gate failed" in result.detail
+    assert "Deterministic fallback was used" in result.detail
+    quality_gate = json.loads(saved.output_json)["quality_gate"]
+    assert quality_gate["publish_ready"] is False
+    assert "deterministic_fallback" in quality_gate["blocking_reasons"]
+    if saved.pdf_path is not None:
+        assert Path(saved.pdf_path).exists()
+    elif "PDF export unavailable" in result.detail:
+        assert "PDF export unavailable — WeasyPrint system libraries not installed" in result.detail
     verify_db.close()
+
+
+def test_scheduled_briefing_cycle_publishes_when_quality_gate_passes(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_factory = make_session_factory()
+    db = session_factory()
+    workspace = Workspace(
+        name="Publish Workspace",
+        slug="publish-workspace",
+        reporting_currency="USD",
+        timezone="UTC",
+        plan="starter",
+    )
+    db.add(workspace)
+    db.flush()
+    user = User(
+        workspace_id=workspace.id,
+        email="publish-owner@example.com",
+        display_name="Owner",
+        password_hash="not-needed",
+        role="owner",
+        scope="All clients",
+        totp_enabled=False,
+    )
+    db.add(user)
+    db.flush()
+    db.add(
+        WorkspaceSetting(
+            workspace_id=workspace.id,
+            briefing_day="Monday",
+            briefing_time="06:00",
+            briefing_recipients="cio@example.com",
+            briefing_auto_publish=True,
+            briefing_send_pdf=False,
+            briefing_include_audit_footer=False,
+            ai_model="claude-opus-4-6",
+            ai_risk_tone="conservative",
+            ai_allow_trade_actions=False,
+            sso_mode="disabled",
+            updated_at=workspace.created_at,
+        )
+    )
+    snapshot = PortfolioSnapshot(
+        workspace_id=workspace.id,
+        uploaded_by=user.id,
+        source="csv",
+        position_count=1,
+        total_aum_usd=1000.0,
+        is_current=True,
+    )
+    db.add(snapshot)
+    db.flush()
+    db.add(
+        Position(
+            snapshot_id=snapshot.id,
+            workspace_id=workspace.id,
+            ticker="AAPL",
+            name="Apple",
+            position_currency="USD",
+            quantity=5,
+            price_usd=200,
+            market_value_usd=1000,
+            asset_class="public_equity",
+            geo_region="US",
+            sector="Technology",
+            market_segment="Large Cap",
+            custodian="Goldman",
+            price_source="manual",
+        )
+    )
+    workspace_id = workspace.id
+    db.commit()
+    db.close()
+
+    def fake_generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id) -> BriefingRun:
+        from backend.models.analytics import VarResult
+
+        live_var = db.scalar(select(VarResult).where(VarResult.snapshot_id == snapshot.id).order_by(VarResult.computed_at.desc()))
+        assert live_var is not None
+        briefing = BriefingRun(
+            workspace_id=snapshot.workspace_id,
+            snapshot_id=snapshot.id,
+            var_result_id=live_var.id,
+            generated_by=user_id,
+            version=1,
+            status="draft",
+            week_label="week-15-2026",
+            output_json=json.dumps(
+                {
+                    "headline": "Weekly Risk Briefing — week-15-2026",
+                    "executive_summary": "Ready to publish.",
+                    "portfolio_risks": [{"risk_area": "Liquidity", "severity": "elevated", "finding": "Test", "implication": "Test"}],
+                    "recommendations": ["One", "Two"],
+                    "quality_gate": {
+                        "publish_ready": True,
+                        "blocking_reasons": [],
+                        "blocking_messages": [],
+                    },
+                },
+                sort_keys=True,
+            ),
+            model="claude-sonnet-4-6",
+            input_tokens=100,
+            output_tokens=120,
+        )
+        db.add(briefing)
+        db.flush()
+        return briefing
+
+    monkeypatch.setattr("backend.services.scheduler.generate_briefing", fake_generate_briefing)
+    monkeypatch.setattr("backend.services.scheduler.export_briefing_pdf", lambda *_args, **_kwargs: None)
+
+    result = run_workspace_briefing_cycle(workspace_id, db_factory=session_factory)
+
+    assert result.status == "succeeded"
+    verify_db = session_factory()
+    saved = verify_db.scalar(select(BriefingRun).where(BriefingRun.id == result.briefing_id))
+    assert saved is not None
+    assert saved.status == "published"
+    assert saved.published_at is not None
+    verify_db.close()
+
+
+def test_scheduled_briefing_cycle_holds_draft_when_quality_gate_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_factory = make_session_factory()
+    db = session_factory()
+    workspace = Workspace(
+        name="Gate Workspace",
+        slug="gate-workspace",
+        reporting_currency="USD",
+        timezone="UTC",
+        plan="starter",
+    )
+    db.add(workspace)
+    db.flush()
+    user = User(
+        workspace_id=workspace.id,
+        email="gate-owner@example.com",
+        display_name="Owner",
+        password_hash="not-needed",
+        role="owner",
+        scope="All clients",
+        totp_enabled=False,
+    )
+    db.add(user)
+    db.flush()
+    db.add(
+        WorkspaceSetting(
+            workspace_id=workspace.id,
+            briefing_day="Monday",
+            briefing_time="06:00",
+            briefing_recipients="cio@example.com",
+            briefing_auto_publish=True,
+            briefing_send_pdf=False,
+            briefing_include_audit_footer=False,
+            ai_model="claude-opus-4-6",
+            ai_risk_tone="conservative",
+            ai_allow_trade_actions=False,
+            sso_mode="disabled",
+            updated_at=workspace.created_at,
+        )
+    )
+    snapshot = PortfolioSnapshot(
+        workspace_id=workspace.id,
+        uploaded_by=user.id,
+        source="csv",
+        position_count=1,
+        total_aum_usd=1000.0,
+        is_current=True,
+    )
+    db.add(snapshot)
+    db.flush()
+    db.add(
+        Position(
+            snapshot_id=snapshot.id,
+            workspace_id=workspace.id,
+            ticker="AAPL",
+            name="Apple",
+            position_currency="USD",
+            quantity=5,
+            price_usd=200,
+            market_value_usd=1000,
+            asset_class="public_equity",
+            geo_region="US",
+            sector="Technology",
+            market_segment="Large Cap",
+            custodian="Goldman",
+            price_source="manual",
+        )
+    )
+    workspace_id = workspace.id
+    db.commit()
+    db.close()
+
+    def fake_generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id) -> BriefingRun:
+        from backend.models.analytics import VarResult
+
+        live_var = db.scalar(select(VarResult).where(VarResult.snapshot_id == snapshot.id).order_by(VarResult.computed_at.desc()))
+        assert live_var is not None
+        briefing = BriefingRun(
+            workspace_id=snapshot.workspace_id,
+            snapshot_id=snapshot.id,
+            var_result_id=live_var.id,
+            generated_by=user_id,
+            version=1,
+            status="draft",
+            week_label="week-15-2026",
+            output_json=json.dumps(
+                {
+                    "headline": "Weekly Risk Briefing — week-15-2026",
+                    "executive_summary": "Needs review.",
+                    "portfolio_risks": [{"risk_area": "Liquidity", "severity": "elevated", "finding": "Test", "implication": "Test"}],
+                    "recommendations": ["One"],
+                    "quality_gate": {
+                        "publish_ready": False,
+                        "blocking_reasons": ["thin_recommendations"],
+                        "blocking_messages": ["Generated recommendations are incomplete"],
+                    },
+                },
+                sort_keys=True,
+            ),
+            model="claude-sonnet-4-6",
+            input_tokens=100,
+            output_tokens=120,
+        )
+        db.add(briefing)
+        db.flush()
+        return briefing
+
+    monkeypatch.setattr("backend.services.scheduler.generate_briefing", fake_generate_briefing)
+    monkeypatch.setattr("backend.services.scheduler.export_briefing_pdf", lambda *_args, **_kwargs: None)
+
+    result = run_workspace_briefing_cycle(workspace_id, db_factory=session_factory)
+
+    assert result.status == "succeeded"
+    assert "quality gate failed" in result.detail
+    verify_db = session_factory()
+    saved = verify_db.scalar(select(BriefingRun).where(BriefingRun.id == result.briefing_id))
+    assert saved is not None
+    assert saved.status == "draft"
+    verify_db.close()
+
+
+def test_layout_parser_uses_local_xlsx_fallback() -> None:
+    from io import BytesIO
+
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Holdings"
+    sheet.append(["Ticker", "Market Value USD"])
+    sheet.append(["MSFT", 5040])
+    buffer = BytesIO()
+    workbook.save(buffer)
+
+    parsed = parse_document_layout("xlsx", buffer.getvalue())
+
+    assert parsed["parser"] == "xlsx-layout-parser"
+    assert parsed["rows"][1][0] == "MSFT"
+
+
+def test_reconciliation_uses_deterministic_fallback_without_provider() -> None:
+    result = reconcile_extraction(
+        {"doc_type": "NAV_STATEMENT", "confidence": 0.9},
+        {"positions": [], "row_confidence": [], "confidence": 0.3},
+        {"sector_exposures": {}, "confidence": 0.4},
+        {"wire_bank": None, "confidence": 0.8},
+    )
+
+    assert result["reconciliation_model"] == "deterministic-reconciliation"
+    assert "no_positions_extracted" in result["errors"]
+
+
+def test_reconciliation_prefers_claude_when_configured(monkeypatch) -> None:
+    class FakeMessages:
+        def create(self, **_kwargs):
+            return SimpleNamespace(content=[SimpleNamespace(text='{"doc_type":"NAV_STATEMENT","overall_confidence":0.93,"errors":[],"field_reviews":[]}')])
+
+    class FakeAnthropic:
+        def __init__(self, api_key: str):
+            self.api_key = api_key
+            self.messages = FakeMessages()
+
+    monkeypatch.setattr(
+        "backend.services.ingest.agents.reconciliation.get_settings",
+        lambda: SimpleNamespace(anthropic_api_key="test-key"),
+    )
+    monkeypatch.setattr("backend.services.ingest.agents.reconciliation._is_test_runtime", lambda: False)
+    import sys
+
+    sys.modules["anthropic"] = SimpleNamespace(Anthropic=FakeAnthropic)
+    try:
+        result = reconcile_extraction(
+            {"doc_type": "NAV_STATEMENT", "confidence": 0.9},
+            {"positions": [{"ticker": "MSFT", "quantity": 1}], "row_confidence": [{"row": 1, "confidence": 0.91, "issues": []}], "confidence": 0.92},
+            {"sector_exposures": {"Technology": 100.0}, "confidence": 0.9},
+            {"wire_bank": None, "confidence": 0.88},
+        )
+    finally:
+        sys.modules.pop("anthropic", None)
+
+    assert result["reconciliation_model"] == "claude-opus-4-6"
+    assert result["overall_confidence"] == 0.93

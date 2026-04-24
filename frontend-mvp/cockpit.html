@@ -3,75 +3,97 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Risk Cockpit — ChiefRiskBot MVP</title>
+  <title>Risk Cockpit — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
-  <link rel="stylesheet" href="../_shell.css"/>
+  <link rel="stylesheet" href="_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
 </head>
-<body data-page="cockpit">
+<body data-page="cockpit" class="mvp-app-loading">
   <div class="app" id="app-root">
     <main>
-      <div class="mvp-page">
-        <div class="mvp-hero">
-          <div>
-            <h1>Risk cockpit</h1>
-            <p>This is the MVP read layer: current snapshot, live VaR, concentration mix, and the current risk register from the backend.</p>
-          </div>
-          <div class="mvp-actions">
-            <button id="refresh-cockpit" class="btn"><span class="ms">refresh</span>Refresh</button>
-            <button id="rerun-risk" class="btn primary"><span class="ms">playlist_add_check</span>Re-run risk</button>
-          </div>
+      <div class="essay-hero compact">
+        <div class="essay-meta">
+          <span>Risk</span>
+          <span id="cockpit-last-updated" style="opacity:.6"></span>
         </div>
-        <div id="cockpit-status" class="mvp-notice" hidden data-global-status></div>
-        <div id="cockpit-kpis" class="mvp-grid cards-4"></div>
-        <div class="mvp-grid two">
-          <section class="mvp-card">
-            <div class="mvp-card-header">
-              <div>
-                <div class="uplabel">Composition</div>
-                <h2>Asset class mix</h2>
+        <h1>Risk Cockpit</h1>
+        <p class="essay-deck-hero">Regime, factor exposures, and the risks that need action now.</p>
+        <div class="essay-actions">
+          <button id="refresh-cockpit" class="btn"><span class="ms">refresh</span>Refresh</button>
+          <button id="rerun-risk" class="btn primary"><span class="ms">playlist_add_check</span>Re-run risk</button>
+        </div>
+      </div>
+
+      <div id="cockpit-status" class="mvp-notice" hidden data-global-status></div>
+
+      <div class="essay-layout">
+        <aside class="essay-toc" id="cockpit-toc" aria-label="Sections">
+          <div class="essay-toc-label">Sections</div>
+          <a href="#cockpit-section-composition">Composition</a>
+          <a href="#cockpit-section-risk">Risk at a Glance</a>
+          <a href="#cockpit-section-register">Active Risks</a>
+        </aside>
+        <article class="essay-body no-reveal">
+
+          <!-- KPI strip -->
+          <div id="cockpit-kpis" class="mvp-grid cards-4" style="margin-bottom:48px"></div>
+
+          <!-- Composition section -->
+          <section class="essay-section is-visible" id="cockpit-section-composition">
+            <div class="essay-eyebrow">Composition</div>
+            <h2 class="essay-heading-sm" id="cockpit-composition-title">Asset class mix</h2>
+            <div class="essay-pills" id="cockpit-composition-toggles">
+              <button type="button" class="essay-pill active" data-dimension="asset_class">Asset Class</button>
+              <button type="button" class="essay-pill" data-dimension="sector">Sector</button>
+              <button type="button" class="essay-pill" data-dimension="geo_region">Geography</button>
+            </div>
+            <div class="essay-figure">
+              <div id="cockpit-composition" class="mvp-cockpit-composition"></div>
+            </div>
+          </section>
+
+          <!-- Risk at a glance -->
+          <section class="essay-section is-visible" id="cockpit-section-risk">
+            <div class="essay-eyebrow">Risk</div>
+            <h2 class="essay-heading-sm">Risk at a Glance</h2>
+            <div id="cockpit-var-summary" class="mvp-var-summary"></div>
+            <div id="cockpit-var-visual" class="mvp-var-visual"></div>
+            <div class="mvp-list" id="cockpit-var-drivers"></div>
+          </section>
+
+          <!-- Active risks register -->
+          <section class="essay-section is-visible" id="cockpit-section-register">
+            <div class="essay-eyebrow">Register</div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:16px">
+              <h2 class="essay-heading-sm" style="margin-bottom:0">Active Risks</h2>
+              <div class="essay-pills" id="cockpit-risk-filters" style="margin:0">
+                <button type="button" class="essay-pill active" data-severity="all">All</button>
+                <button type="button" class="essay-pill" data-severity="priority">Priority</button>
+                <button type="button" class="essay-pill" data-severity="elevated">Elevated</button>
+                <button type="button" class="essay-pill" data-severity="watch">Watch</button>
               </div>
             </div>
-            <div class="mvp-card-body mvp-list" id="cockpit-allocations"></div>
-          </section>
-          <section class="mvp-card">
-            <div class="mvp-card-header">
-              <div>
-                <div class="uplabel">VaR</div>
-                <h2>Top contributors</h2>
-              </div>
-            </div>
-            <div class="mvp-card-body mvp-list" id="cockpit-contribs"></div>
-          </section>
-        </div>
-        <section class="mvp-card">
-          <div class="mvp-card-header">
-            <div>
-              <div class="uplabel">Register</div>
-              <h2>Active risks</h2>
-            </div>
-          </div>
-          <div class="mvp-card-body" style="padding:0">
             <div class="mvp-table-wrap">
-              <table class="mvp-table">
+              <table class="mvp-table mvp-risk-table">
                 <thead>
                   <tr>
-                    <th>Severity</th>
-                    <th>Risk</th>
-                    <th>Ticker</th>
+                    <th style="width:40px"></th>
+                    <th>Risk Source</th>
+                    <th>Assessment</th>
                     <th>Description</th>
                   </tr>
                 </thead>
                 <tbody id="cockpit-register"></tbody>
               </table>
             </div>
-          </div>
-        </section>
+          </section>
+
+        </article>
       </div>
     </main>
   </div>

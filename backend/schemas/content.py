@@ -13,6 +13,7 @@ class BriefingResponse(BaseModel):
     status: str
     week_label: str
     output: dict[str, Any]
+    scope: str = "full"
     pdf_path: Optional[str] = None
     created_at: datetime
     published_at: Optional[datetime] = None
@@ -29,6 +30,7 @@ class SettingsResponse(BaseModel):
     briefing_auto_publish: bool
     briefing_send_pdf: bool
     briefing_include_audit_footer: bool
+    reporting_currency: str
     ai_model: str
     ai_risk_tone: str
     ai_custom_instructions: Optional[str] = None
@@ -42,6 +44,7 @@ class SettingsPatchRequest(BaseModel):
     briefing_auto_publish: Optional[bool] = None
     briefing_send_pdf: Optional[bool] = None
     briefing_include_audit_footer: Optional[bool] = None
+    reporting_currency: Optional[str] = None
     ai_model: Optional[str] = None
     ai_risk_tone: Optional[str] = None
     ai_custom_instructions: Optional[str] = None
@@ -93,3 +96,31 @@ class ExtractionResponse(BaseModel):
     confidence: list[dict[str, Any]]
     needs_review_count: int
     raw_text_truncated: bool
+
+
+class ReviewFieldResponse(BaseModel):
+    field: str
+    reason: str
+    confidence: float
+    resolved: bool = False
+    resolution_note: Optional[str] = None
+
+
+class ReviewUpdateRequest(BaseModel):
+    positions: Optional[list[dict[str, Any]]] = None
+    treasury: Optional[dict[str, Any]] = None
+    resolved_fields: list[str] = []
+
+
+class ExtractionReviewResponse(BaseModel):
+    id: str
+    positions: list[dict[str, Any]]
+    confidence: list[dict[str, Any]]
+    needs_review_count: int
+    raw_text_truncated: bool
+    layout: dict[str, Any]
+    classification: dict[str, Any]
+    risk: dict[str, Any]
+    treasury: dict[str, Any]
+    reconciliation: dict[str, Any]
+    field_reviews: list[ReviewFieldResponse]

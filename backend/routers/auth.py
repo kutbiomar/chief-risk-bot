@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 from datetime import timedelta
 from typing import Optional, Tuple
 
@@ -9,24 +11,35 @@ from sqlalchemy.orm import Session
 
 from backend.config import get_settings
 from backend.deps import get_db
-from backend.models.auth import ApiKey, AuthChallenge, PasswordResetToken, User, UserSession
+from backend.models.auth import ApiKey, AuthChallenge, PasswordResetToken, User, UserSession, WorkspaceSetting
+from backend.models.onboarding import OnboardingProgress
+from backend.models.portfolio import Workspace
 from backend.schemas.auth import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
     LoginResponse,
     MessageResponse,
+    RegisterRequest,
     ResetPasswordRequest,
     SessionResponse,
     TotpVerifyRequest,
     UserResponse,
 )
 from backend.services.auth.password import hash_password, verify_password
+from backend.services.auth.supabase import (
+    authenticate_supabase_password,
+    create_supabase_password_user,
+    is_supabase_auth_enabled,
+    resolve_supabase_identity,
+    update_supabase_password,
+)
+from backend.services.rate_limit import allow_request
 from backend.services.auth.session import (
     CSRF_COOKIE_NAME,
     SESSION_COOKIE_NAME,
-    create_session,
     ensure_utc,
+    create_session,
     get_session_by_token,
     make_opaque_token,
     sha256_hex,
@@ -35,15 +48,19 @@ from backend.services.auth.session import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 AuthContext = Tuple[Optional[UserSession], User]
+AUTH_RATE_LIMIT_MAX_REQUESTS = 10
+AUTH_RATE_LIMIT_WINDOW_SECONDS = 60
 
 
-def _serialize_user(user: User) -> UserResponse:
+def _serialize_user(db: Session, user: User) -> UserResponse:
+    workspace = db.get(Workspace, user.workspace_id)
     return UserResponse(
         id=user.id,
         email=user.email,
         display_name=user.display_name,
         role=user.role,
         workspace_id=user.workspace_id,
+        workspace_name=workspace.name if workspace is not None else None,
     )
 
 
@@ -76,6 +93,79 @@ def _clear_auth_cookies(response: Response) -> None:
     response.delete_cookie(CSRF_COOKIE_NAME, path="/")
 
 
+def _slugify_workspace_name(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.strip().lower()).strip("-")
+    return slug or "workspace"
+
+
+def _build_unique_workspace_slug(db: Session, workspace_name: str) -> str:
+    base = _slugify_workspace_name(workspace_name)
+    slug = base
+    suffix = 2
+    while db.scalar(select(Workspace.id).where(Workspace.slug == slug)) is not None:
+        slug = f"{base}-{suffix}"
+        suffix += 1
+    return slug
+
+
+def _bootstrap_workspace_membership(
+    db: Session,
+    *,
+    workspace_name: str,
+    display_name: str,
+    email: str,
+    password: Optional[str],
+    timezone: str,
+    reporting_currency: str,
+    auth_provider: Optional[str] = None,
+    auth_subject: Optional[str] = None,
+) -> User:
+    normalized_currency = str(reporting_currency or "CHF").strip().upper() or "CHF"
+    normalized_timezone = str(timezone or "UTC").strip() or "UTC"
+    workspace = Workspace(
+        name=workspace_name.strip(),
+        slug=_build_unique_workspace_slug(db, workspace_name),
+        reporting_currency=normalized_currency,
+        timezone=normalized_timezone,
+        plan="starter",
+    )
+    db.add(workspace)
+    db.flush()
+
+    user = User(
+        workspace_id=workspace.id,
+        email=email.strip().lower(),
+        display_name=display_name.strip(),
+        password_hash=hash_password(password) if password else None,
+        auth_provider=auth_provider,
+        auth_subject=auth_subject,
+        role="owner",
+        scope="All clients",
+        totp_enabled=False,
+    )
+    db.add(user)
+
+    now = utc_now()
+    db.add(
+        WorkspaceSetting(
+            workspace_id=workspace.id,
+            reporting_currency=normalized_currency,
+            updated_at=now,
+        )
+    )
+    db.add(
+        OnboardingProgress(
+            workspace_id=workspace.id,
+            current_step=1,
+            completed_steps_json=json.dumps(["workspace_created"]),
+            total_steps=5,
+            last_step_completed_at=now,
+        )
+    )
+    db.flush()
+    return user
+
+
 def _bearer_token(request: Request) -> Optional[str]:
     authorization = request.headers.get("Authorization")
     if not authorization:
@@ -97,12 +187,11 @@ def _resolve_api_key_user(db: Session, raw_token: str) -> Optional[User]:
         return None
 
     user = db.scalar(
-        select(User)
-        .where(
+        select(User).where(
+            User.id == key.user_id,
             User.workspace_id == key.workspace_id,
             User.disabled_at.is_(None),
         )
-        .order_by(User.created_at.asc())
     )
     if user is None:
         return None
@@ -110,6 +199,56 @@ def _resolve_api_key_user(db: Session, raw_token: str) -> Optional[User]:
     key.last_used_at = utc_now()
     db.flush()
     return user
+
+
+def _resolve_supabase_user(db: Session, raw_token: str) -> Optional[User]:
+    try:
+        identity = resolve_supabase_identity(raw_token)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    if identity is None:
+        return None
+
+    user = db.scalar(select(User).where(User.auth_subject == identity.subject, User.disabled_at.is_(None)))
+    if user is None:
+        user = db.scalar(select(User).where(User.email == identity.email, User.disabled_at.is_(None)))
+        if user is None:
+            return None
+        user.auth_provider = "supabase"
+        user.auth_subject = identity.subject
+        if not user.display_name:
+            user.display_name = identity.display_name
+        db.flush()
+    return user
+
+
+def _request_origin_identifier(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        first = forwarded.split(",")[0].strip()
+        if first:
+            return first
+    if request.client and request.client.host:
+        return request.client.host
+    return "unknown"
+
+
+def _enforce_auth_rate_limit(request: Request, route_name: str, email: Optional[str] = None) -> None:
+    normalized_email = (email or "").strip().lower() or "anonymous"
+    source = _request_origin_identifier(request)
+    key = f"{route_name}:{source}:{normalized_email}"
+    allowed, retry_after = allow_request(
+        key,
+        limit=AUTH_RATE_LIMIT_MAX_REQUESTS,
+        window_seconds=AUTH_RATE_LIMIT_WINDOW_SECONDS,
+    )
+    if allowed:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail="Too many authentication attempts. Try again shortly.",
+        headers={"Retry-After": str(retry_after)},
+    )
 
 
 def require_session(
@@ -131,6 +270,10 @@ def require_session(
         return session, user
 
     user = _resolve_api_key_user(db, raw_token)
+    if user is not None:
+        return None, user
+
+    user = _resolve_supabase_user(db, raw_token)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session")
     return None, user
@@ -159,6 +302,28 @@ def login(
     response: Response,
     db: Session = Depends(get_db),
 ) -> LoginResponse:
+    _enforce_auth_rate_limit(request, "login", payload.email)
+    if is_supabase_auth_enabled():
+        try:
+            access_token, identity = authenticate_supabase_password(email=payload.email, password=payload.password)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials") from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+
+        user = db.scalar(select(User).where(User.auth_subject == identity.subject, User.disabled_at.is_(None)))
+        if user is None:
+            user = db.scalar(select(User).where(User.email == identity.email, User.disabled_at.is_(None)))
+            if user is None:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is not provisioned for this workspace")
+            user.auth_provider = "supabase"
+            user.auth_subject = identity.subject
+            if not user.display_name:
+                user.display_name = identity.display_name
+            db.commit()
+
+        return LoginResponse(user=_serialize_user(db, user), access_token=access_token)
+
     stmt = select(User).where(User.email == payload.email)
     user = db.scalar(stmt)
     if user is None or user.password_hash is None:
@@ -166,24 +331,76 @@ def login(
     if user.disabled_at is not None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    if user.totp_enabled:
-        challenge_token = make_opaque_token()
-        challenge = AuthChallenge(
-            user_id=user.id,
-            challenge_type="totp",
-            token_hash=sha256_hex(challenge_token),
-            attempt_count=0,
-            max_attempts=5,
-            expires_at=utc_now() + timedelta(minutes=5),
-        )
-        db.add(challenge)
-        db.commit()
-        return LoginResponse(requires_totp=True, session_challenge=challenge_token)
-
     session, raw_token = create_session(db, user, request.headers.get("user-agent", "unknown"))
     db.commit()
     _set_auth_cookies(response, raw_token, session.csrf_secret)
-    return LoginResponse(user=_serialize_user(user))
+    return LoginResponse(user=_serialize_user(db, user))
+
+
+@router.post("/register", response_model=LoginResponse)
+def register(
+    payload: RegisterRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> LoginResponse:
+    _enforce_auth_rate_limit(request, "register", payload.email)
+    normalized_email = payload.email.strip().lower()
+    if db.scalar(select(User.id).where(User.email == normalized_email)) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A user with that email already exists")
+
+    if is_supabase_auth_enabled():
+        try:
+            identity = create_supabase_password_user(
+                email=normalized_email,
+                password=payload.password,
+                display_name=payload.display_name.strip(),
+            )
+        except ValueError as exc:
+            detail = str(exc)
+            status_code = status.HTTP_409_CONFLICT if "already exists" in detail.lower() else status.HTTP_400_BAD_REQUEST
+            raise HTTPException(status_code=status_code, detail=detail) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+
+        user = _bootstrap_workspace_membership(
+            db,
+            workspace_name=payload.workspace_name,
+            display_name=payload.display_name,
+            email=normalized_email,
+            password=None,
+            timezone=payload.timezone,
+            reporting_currency=payload.reporting_currency,
+            auth_provider="supabase",
+            auth_subject=identity.subject,
+        )
+        db.commit()
+
+        try:
+            access_token, _ = authenticate_supabase_password(
+                email=normalized_email,
+                password=payload.password,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Workspace created but unable to establish Supabase session") from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        return LoginResponse(user=_serialize_user(db, user), access_token=access_token)
+
+    user = _bootstrap_workspace_membership(
+        db,
+        workspace_name=payload.workspace_name,
+        display_name=payload.display_name,
+        email=normalized_email,
+        password=payload.password,
+        timezone=payload.timezone,
+        reporting_currency=payload.reporting_currency,
+        auth_provider="local",
+    )
+    session, raw_token = create_session(db, user, request.headers.get("user-agent", "unknown"))
+    db.commit()
+    _set_auth_cookies(response, raw_token, session.csrf_secret)
+    return LoginResponse(user=_serialize_user(db, user))
 
 
 @router.post("/totp/verify", response_model=LoginResponse)
@@ -193,35 +410,10 @@ def totp_verify(
     response: Response,
     db: Session = Depends(get_db),
 ) -> LoginResponse:
-    challenge = db.scalar(
-        select(AuthChallenge).where(AuthChallenge.token_hash == sha256_hex(payload.session_challenge))
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="TOTP verification is disabled",
     )
-    if (
-        challenge is None
-        or challenge.challenge_type != "totp"
-        or challenge.consumed_at is not None
-        or ensure_utc(challenge.expires_at) <= utc_now()
-        or challenge.attempt_count >= challenge.max_attempts
-    ):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid challenge")
-
-    user = db.get(User, challenge.user_id)
-    if user is None or not user.totp_enabled or user.disabled_at is not None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid challenge")
-
-    # Placeholder verification for Milestone 1 skeleton until real TOTP validation is added.
-    if payload.code != "000000":
-        challenge.attempt_count += 1
-        if challenge.attempt_count >= challenge.max_attempts:
-            challenge.consumed_at = utc_now()
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid TOTP code")
-
-    challenge.consumed_at = utc_now()
-    session, raw_token = create_session(db, user, request.headers.get("user-agent", "unknown"))
-    db.commit()
-    _set_auth_cookies(response, raw_token, session.csrf_secret)
-    return LoginResponse(user=_serialize_user(user))
 
 
 @router.get("/session", response_model=SessionResponse)
@@ -229,20 +421,22 @@ def get_session(
     request: Request,
     response: Response,
     auth: AuthContext = Depends(require_session),
+    db: Session = Depends(get_db),
 ) -> SessionResponse:
     session, user = auth
     raw_token = request.cookies.get(SESSION_COOKIE_NAME) or _bearer_token(request)
     if raw_token and session is not None:
         _set_auth_cookies(response, raw_token, session.csrf_secret)
-    return SessionResponse(user=_serialize_user(user))
+    return SessionResponse(user=_serialize_user(db, user))
 
 
 @router.get("/me", response_model=SessionResponse)
 def get_me(
     auth: AuthContext = Depends(require_session),
+    db: Session = Depends(get_db),
 ) -> SessionResponse:
     _, user = auth
-    return SessionResponse(user=_serialize_user(user))
+    return SessionResponse(user=_serialize_user(db, user))
 
 
 @router.post("/logout", response_model=MessageResponse, dependencies=[Depends(require_cookie_csrf)])
@@ -283,11 +477,17 @@ def logout_all(
     return MessageResponse(detail="All sessions revoked")
 
 
-@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+@router.post(
+    "/forgot-password",
+    response_model=ForgotPasswordResponse,
+    dependencies=[Depends(require_cookie_csrf)],
+)
 def forgot_password(
     payload: ForgotPasswordRequest,
+    request: Request,
     db: Session = Depends(get_db),
 ) -> ForgotPasswordResponse:
+    _enforce_auth_rate_limit(request, "forgot_password", payload.email)
     user = db.scalar(select(User).where(User.email == payload.email))
     if user is None:
         return ForgotPasswordResponse(accepted=True)
@@ -314,7 +514,11 @@ def forgot_password(
     return ForgotPasswordResponse(accepted=True)
 
 
-@router.post("/reset-password", response_model=MessageResponse)
+@router.post(
+    "/reset-password",
+    response_model=MessageResponse,
+    dependencies=[Depends(require_cookie_csrf)],
+)
 def reset_password(
     payload: ResetPasswordRequest,
     db: Session = Depends(get_db),
@@ -334,7 +538,22 @@ def reset_password(
     if user is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset token")
 
-    user.password_hash = hash_password(payload.new_password)
+    if is_supabase_auth_enabled():
+        try:
+            identity = update_supabase_password(
+                subject=user.auth_subject,
+                email=user.email,
+                password=payload.new_password,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        user.auth_provider = "supabase"
+        user.auth_subject = identity.subject
+    else:
+        user.password_hash = hash_password(payload.new_password)
+
     reset_token.used_at = utc_now()
     db.execute(
         update(UserSession)

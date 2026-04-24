@@ -3,58 +3,90 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Onboarding — ChiefRiskBot MVP</title>
+  <title>Workspace Setup — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
-  <link rel="stylesheet" href="../_shell.css"/>
+  <link rel="stylesheet" href="_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
 </head>
-<body data-page="onboarding">
+<body data-page="onboarding" class="mvp-app-loading">
   <div class="app" id="app-root">
     <main>
-      <div class="mvp-page">
-        <div class="mvp-hero">
-          <div>
-            <h1>Get the workspace to first briefing.</h1>
-            <p>This screen compresses the MVP onboarding into the actual backend actions that matter: upload a portfolio, ingest supporting documents, run risk, and generate the first briefing.</p>
-          </div>
-          <div class="mvp-actions">
-            <a class="btn" href="cockpit.html"><span class="ms">dashboard</span>Open cockpit</a>
-          </div>
+      <div class="essay-hero compact" style="text-align:left;padding-left:max(32px,5vw);padding-right:max(32px,5vw)">
+        <div class="essay-meta" style="justify-content:flex-start"><span>First Run</span></div>
+        <h1 style="text-align:left;margin-left:0;font-size:clamp(28px,4vw,44px)">Take <span id="onboarding-workspace-name">your workspace</span> to first briefing.</h1>
+        <p class="essay-deck-hero" style="margin-left:0;font-size:16px">Import the book, add optional source documents, run analysis, and generate the first committee memo.</p>
+        <div class="essay-actions" style="justify-content:flex-start">
+          <a class="btn" href="cockpit.html"><span class="ms">dashboard</span>Open cockpit</a>
         </div>
-        <div id="onboarding-status" class="mvp-notice" hidden data-global-status></div>
+      </div>
+
+      <div id="onboarding-status" class="mvp-notice" hidden data-global-status style="margin:0 max(32px,5vw) 16px"></div>
+
+      <div style="padding:0 max(32px,5vw) 64px;display:flex;flex-direction:column;gap:24px;max-width:900px">
+
+        <!-- Progress card -->
+        <section class="mvp-card">
+          <div class="mvp-card-header">
+            <div>
+              <div class="uplabel">Progress</div>
+              <h2>Guided setup</h2>
+            </div>
+            <div class="mvp-item-subtle">Next action: <b id="onboarding-next-action">Workspace created</b></div>
+          </div>
+          <div class="mvp-card-body">
+            <div id="onboarding-stepper" class="mvp-onboarding-stepper"></div>
+            <div id="onboarding-summary" class="mvp-grid cards-3" style="margin-top:16px"></div>
+          </div>
+        </section>
+
+        <!-- Ready state -->
+        <section id="onboarding-ready" class="mvp-card pad" hidden>
+          <div class="mvp-item" style="padding:0;border-bottom:0;align-items:center">
+            <div>
+              <div class="uplabel">Ready</div>
+              <div class="mvp-item-title">Your workspace is ready.</div>
+              <div class="mvp-item-subtle">The onboarding steps are complete. Continue in the live cockpit.</div>
+            </div>
+            <a class="btn primary" href="cockpit.html"><span class="ms">north_east</span>Go to cockpit</a>
+          </div>
+        </section>
+
+        <!-- Two-column setup flow -->
         <div class="mvp-grid two">
           <section class="mvp-card">
             <div class="mvp-card-header">
               <div>
-                <div class="uplabel">Progress</div>
-                <h2>Onboarding state</h2>
-              </div>
-              <div id="onboarding-meta" class="mvp-item-subtle">0 of 5 steps complete</div>
-            </div>
-            <div class="mvp-card-body mvp-list" id="onboarding-steps"></div>
-          </section>
-          <section class="mvp-card">
-            <div class="mvp-card-header">
-              <div>
-                <div class="uplabel">Run the flow</div>
-                <h2>Operator actions</h2>
+                <div class="uplabel">Actions</div>
+                <h2>Setup tasks</h2>
               </div>
             </div>
             <div class="mvp-card-body">
-              <div class="mvp-form">
+              <div class="mvp-form mvp-onboarding-flow">
                 <form id="csv-form" class="mvp-form">
+                  <div class="uplabel">Step 1</div>
                   <div class="mvp-field">
                     <label for="csv-file">Portfolio CSV</label>
-                    <input id="csv-file" type="file" accept=".csv,.tsv" />
+                    <div class="mvp-dropzone" data-file-dropzone data-input-id="csv-file">
+                      <input id="csv-file" type="file" accept=".csv,.tsv" />
+                      <div class="mvp-dropzone-copy">
+                        <span class="ms">upload_file</span>
+                        <div>
+                          <div class="mvp-dropzone-title">Drop portfolio CSV here</div>
+                          <div class="mvp-dropzone-meta">or click to browse <code>.csv</code> / <code>.tsv</code></div>
+                        </div>
+                      </div>
+                      <div class="mvp-dropzone-selected" data-file-selected>No file selected</div>
+                    </div>
                   </div>
                   <button class="btn primary" type="submit"><span class="ms">upload_file</span>Upload portfolio</button>
                 </form>
                 <form id="document-form" class="mvp-form">
+                  <div class="uplabel">Step 2 · Optional</div>
                   <div class="mvp-field">
                     <label for="document-folder">Document folder</label>
                     <select id="document-folder">
@@ -65,7 +97,17 @@
                   </div>
                   <div class="mvp-field">
                     <label for="document-file">Supporting document</label>
-                    <input id="document-file" type="file" accept=".pdf,.docx,.xlsx" />
+                    <div class="mvp-dropzone" data-file-dropzone data-input-id="document-file">
+                      <input id="document-file" type="file" accept=".pdf,.docx,.xlsx" />
+                      <div class="mvp-dropzone-copy">
+                        <span class="ms">description</span>
+                        <div>
+                          <div class="mvp-dropzone-title">Drop PE statement or notice here</div>
+                          <div class="mvp-dropzone-meta">or click to browse <code>.pdf</code>, <code>.docx</code>, or <code>.xlsx</code></div>
+                        </div>
+                      </div>
+                      <div class="mvp-dropzone-selected" data-file-selected>No file selected</div>
+                    </div>
                   </div>
                   <button class="btn" type="submit"><span class="ms">description</span>Upload and parse document</button>
                 </form>
@@ -76,7 +118,29 @@
               </div>
             </div>
           </section>
+
+          <section class="mvp-card">
+            <div class="mvp-card-header">
+              <div>
+                <div class="uplabel">Checklist</div>
+                <h2>Onboarding state</h2>
+              </div>
+              <div id="onboarding-meta" class="mvp-item-subtle">0 of 5 steps complete</div>
+            </div>
+            <div class="mvp-card-body">
+              <div class="mvp-list" id="onboarding-steps"></div>
+              <div class="mvp-card pad" style="margin-top:18px">
+                <div class="uplabel">What this does</div>
+                <div class="mvp-list" style="margin-top:12px">
+                  <div class="mvp-item"><div><div class="mvp-item-title">Portfolio becomes the source of truth</div><div class="mvp-item-subtle">CSV import creates the live snapshot used across cockpit, liquidity, and briefings.</div></div></div>
+                  <div class="mvp-item"><div><div class="mvp-item-title">Documents feed the review queue</div><div class="mvp-item-subtle">Optional uploads create extraction artifacts without changing the portfolio until you approve them.</div></div></div>
+                  <div class="mvp-item"><div><div class="mvp-item-title">Analysis is persisted</div><div class="mvp-item-subtle">Risk and briefing generation write to the real workspace, not a demo-only codepath.</div></div></div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
+
       </div>
     </main>
   </div>

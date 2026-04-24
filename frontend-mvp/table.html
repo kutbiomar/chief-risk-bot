@@ -3,29 +3,28 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Positions — ChiefRiskBot MVP</title>
+  <title>Positions — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
-  <link rel="stylesheet" href="../_shell.css"/>
+  <link rel="stylesheet" href="_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
 </head>
-<body data-page="table">
+<body data-page="table" class="mvp-app-loading">
   <div class="app" id="app-root">
     <main>
-      <div class="mvp-page">
-        <div class="mvp-hero">
-          <div>
-            <h1>Positions</h1>
-            <p>This MVP page is the working portfolio editor. It uses the immutable snapshot backend, so every create, update, or delete materializes a new current snapshot.</p>
-          </div>
-          <div class="mvp-actions">
-            <button id="new-position" class="btn primary"><span class="ms">add</span>New position</button>
-          </div>
+      <div class="essay-hero compact" style="text-align:left;padding-left:max(32px,5vw);padding-right:max(32px,5vw)">
+        <div class="essay-meta" style="justify-content:flex-start"><span>Operations</span></div>
+        <h1 style="text-align:left;margin-left:0;font-size:clamp(28px,4vw,40px)">Positions</h1>
+        <p class="essay-deck-hero" style="margin-left:0;font-size:16px">Your current portfolio positions. Add, edit, or remove holdings — each change creates a versioned snapshot.</p>
+        <div class="essay-actions" style="justify-content:flex-start;margin-top:20px">
+          <button id="new-position" class="btn primary"><span class="ms">add</span>New position</button>
         </div>
+      </div>
+      <div style="padding:0 max(32px,5vw) 64px">
         <div id="table-status" class="mvp-notice" hidden data-global-status></div>
         <div class="mvp-grid two">
           <section class="mvp-card">
@@ -38,15 +37,19 @@
             </div>
             <div class="mvp-card-body" style="padding:0">
               <div class="mvp-table-wrap">
-                <table class="mvp-table">
+                <table class="mvp-table is-clickable">
                   <thead>
                     <tr>
-                      <th>Ticker</th>
+                      <th>Identifier</th>
                       <th>Name</th>
-                      <th class="num">Quantity</th>
-                      <th class="num">Market value</th>
-                      <th>Asset class</th>
+                      <th>Asset Class</th>
+                      <th>Sector</th>
+                      <th>Subsector</th>
+                      <th>Market Segment</th>
+                      <th>Region</th>
                       <th>Custodian</th>
+                      <th>Added</th>
+                      <th>Modified</th>
                     </tr>
                   </thead>
                   <tbody id="positions-body"></tbody>
@@ -65,8 +68,9 @@
               <form id="position-form" class="mvp-form">
                 <div class="mvp-form-grid">
                   <div class="mvp-field">
-                    <label for="form-ticker">Ticker</label>
-                    <input id="form-ticker" required/>
+                    <label for="form-ticker">Identifier (ticker if listed)</label>
+                    <input id="form-ticker" placeholder="MSFT, BXPE, OAKFUND, CASHCHF"/>
+                    <div class="mvp-item-subtle">For private funds, use an internal identifier if no exchange ticker exists.</div>
                   </div>
                   <div class="mvp-field">
                     <label for="form-name">Name</label>
@@ -74,34 +78,79 @@
                   </div>
                   <div class="mvp-field">
                     <label for="form-quantity">Quantity</label>
-                    <input id="form-quantity" type="number" step="0.01" required/>
+                    <input id="form-quantity" type="text" inputmode="decimal" data-format="decimal" required/>
                   </div>
                   <div class="mvp-field">
                     <label for="form-market-value">Market value USD</label>
-                    <input id="form-market-value" type="number" step="0.01" required/>
+                    <input id="form-market-value" type="text" inputmode="decimal" data-format="decimal" required/>
                   </div>
                   <div class="mvp-field">
                     <label for="form-asset-class">Asset class</label>
                     <select id="form-asset-class">
-                      <option value="public_equity">public_equity</option>
-                      <option value="fixed_income">fixed_income</option>
-                      <option value="private_equity">private_equity</option>
-                      <option value="real_estate">real_estate</option>
-                      <option value="cash">cash</option>
-                      <option value="alternative">alternative</option>
+                      <option value="public_equity">Public Equity</option>
+                      <option value="fixed_income">Fixed Income</option>
+                      <option value="private_equity">Private Equity</option>
+                      <option value="real_assets">Real Assets</option>
+                      <option value="real_estate">Real Estate</option>
+                      <option value="cash">Cash &amp; Equivalents</option>
+                      <option value="alternative">Alternative</option>
                     </select>
                   </div>
                   <div class="mvp-field">
                     <label for="form-region">Geo region</label>
-                    <input id="form-region"/>
+                    <select id="form-region">
+                      <option value="">Unset</option>
+                      <option value="global">Global</option>
+                      <option value="north_america">North America</option>
+                      <option value="latin_america">Latin America</option>
+                      <option value="europe">Europe</option>
+                      <option value="middle_east_africa">Middle East &amp; Africa</option>
+                      <option value="asia_pacific">Asia Pacific</option>
+                      <option value="switzerland">Switzerland</option>
+                    </select>
                   </div>
                   <div class="mvp-field">
                     <label for="form-sector">Sector</label>
-                    <input id="form-sector"/>
+                    <select id="form-sector">
+                      <option value="">Unset</option>
+                      <option value="technology">Technology</option>
+                      <option value="financials">Financials</option>
+                      <option value="healthcare">Healthcare</option>
+                      <option value="industrials">Industrials</option>
+                      <option value="consumer_discretionary">Consumer Discretionary</option>
+                      <option value="consumer_staples">Consumer Staples</option>
+                      <option value="energy">Energy</option>
+                      <option value="materials">Materials</option>
+                      <option value="utilities">Utilities</option>
+                      <option value="real_estate">Real Estate</option>
+                      <option value="private_equity">Private Equity</option>
+                      <option value="fixed_income">Fixed Income</option>
+                      <option value="cash">Cash</option>
+                      <option value="alternatives">Alternatives</option>
+                      <option value="multi_sector">Multi Sector</option>
+                    </select>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="form-subsector">Subsector</label>
+                    <select id="form-subsector"><option value="">Unset</option></select>
                   </div>
                   <div class="mvp-field">
                     <label for="form-segment">Market segment</label>
-                    <input id="form-segment"/>
+                    <select id="form-segment">
+                      <option value="">Unset</option>
+                      <option value="large_cap">Large Cap</option>
+                      <option value="mid_cap">Mid Cap</option>
+                      <option value="small_cap">Small Cap</option>
+                      <option value="fund">Fund</option>
+                      <option value="etf">ETF</option>
+                      <option value="reit">REIT</option>
+                      <option value="private_fund">Private Fund</option>
+                      <option value="private_credit">Private Credit</option>
+                      <option value="venture">Venture</option>
+                      <option value="infrastructure">Infrastructure</option>
+                      <option value="operating_cash">Operating Cash</option>
+                      <option value="money_market">Money Market</option>
+                    </select>
                   </div>
                   <div class="mvp-field">
                     <label for="form-custodian">Custodian</label>
@@ -112,6 +161,7 @@
                   <label for="form-notes">Notes</label>
                   <textarea id="form-notes" rows="4"></textarea>
                 </div>
+                <div id="position-version-meta" class="mvp-item-subtle" style="margin-top:4px"></div>
                 <div class="mvp-form-actions">
                   <button id="delete-position" class="btn" type="button" disabled><span class="ms">delete</span>Delete</button>
                   <button class="btn primary" type="submit"><span class="ms">save</span>Save</button>

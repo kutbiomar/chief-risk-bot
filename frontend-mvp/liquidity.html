@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Liquidity — ChiefRiskBot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_shell.css"/>
+  <link rel="stylesheet" href="_mvp.css"/>
+  <script src="_shell.js" defer></script>
+  <script src="_app.js" defer></script>
+</head>
+<body data-page="liquidity" class="mvp-app-loading">
+  <div class="app" id="app-root">
+    <main>
+      <div class="essay-hero compact">
+        <div class="essay-meta"><span>Liquidity</span></div>
+        <h1>Liquidity Ladder</h1>
+        <p class="essay-deck-hero">Expected inflows and outflows across the next 24 months, with a stress-case toggle and a configurable buffer target.</p>
+        <div class="essay-actions">
+          <button id="liquidity-refresh" class="btn"><span class="ms">refresh</span>Refresh</button>
+          <button id="liquidity-scenario" class="btn"><span class="ms">tornado</span>Stress case</button>
+        </div>
+      </div>
+
+      <div id="liquidity-status" class="mvp-notice" hidden data-global-status></div>
+
+      <div class="essay-layout">
+        <aside class="essay-toc" aria-label="Sections">
+          <div class="essay-toc-label">Sections</div>
+          <a href="#liquidity-section-kpis">Cash Position</a>
+          <a href="#liquidity-section-chart">Cash Flow Ladder</a>
+          <a href="#liquidity-section-detail">Near-Term Detail</a>
+        </aside>
+        <article class="essay-body no-reveal">
+
+          <!-- KPIs -->
+          <section class="essay-section is-visible" id="liquidity-section-kpis">
+            <div class="essay-eyebrow">Cash Position</div>
+            <div id="liquidity-kpis" class="mvp-grid cards-4"></div>
+          </section>
+
+          <!-- Ladder chart -->
+          <section class="essay-section is-visible" id="liquidity-section-chart" style="margin-top:48px">
+            <div class="essay-eyebrow">Cash Flow Ladder</div>
+            <h2 class="essay-heading-sm">Projected monthly cash flows</h2>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <label class="mvp-buffer-input" style="font-family:'Inter Tight',sans-serif;font-size:13px;display:flex;align-items:center;gap:8px;color:rgba(27,43,94,.65)">
+                Buffer target
+                <input id="liquidity-buffer" type="text" inputmode="numeric" value="2,000,000" data-format="integer" style="font-family:'JetBrains Mono',monospace;font-size:13px;border:1px solid rgba(27,43,94,.2);border-radius:4px;padding:6px 10px;background:#fff8f6;color:#1B2B5E;width:140px"/>
+              </label>
+            </div>
+            <div class="essay-figure" style="padding:0;background:none;border:none">
+              <div id="liquidity-chart-summary" class="mvp-liquidity-summary"></div>
+              <div id="liquidity-chart" class="mvp-liquidity-chart-wrap"></div>
+            </div>
+          </section>
+
+          <!-- Detail panels -->
+          <section class="essay-section is-visible" id="liquidity-section-detail" style="margin-top:48px">
+            <div class="mvp-grid mvp-liquidity-lower-grid">
+              <div class="mvp-card">
+                <div class="mvp-card-header">
+                  <div><div class="uplabel">Upcoming</div><h2>Near-term pressure points</h2></div>
+                </div>
+                <div class="mvp-card-body" id="liquidity-gaps"></div>
+              </div>
+              <div class="mvp-card">
+                <div class="mvp-card-header">
+                  <div><div class="uplabel">Cash Flow</div><h2>Next 90 days</h2></div>
+                </div>
+                <div class="mvp-card-body" id="liquidity-detail"></div>
+              </div>
+              <div class="mvp-card">
+                <div class="mvp-card-header">
+                  <div><div class="uplabel">Watchpoints</div><h2>Operational read</h2></div>
+                </div>
+                <div class="mvp-card-body" id="liquidity-notes"></div>
+              </div>
+            </div>
+          </section>
+
+        </article>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

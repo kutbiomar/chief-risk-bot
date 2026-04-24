@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Settings — ChiefRiskBot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_shell.css"/>
+  <link rel="stylesheet" href="_mvp.css"/>
+  <script src="_shell.js" defer></script>
+  <script src="_app.js" defer></script>
+</head>
+<body data-page="settings" class="mvp-app-loading">
+  <div class="app" id="app-root">
+    <main>
+      <div class="essay-hero compact" style="text-align:left;padding-left:max(32px,5vw);padding-right:max(32px,5vw)">
+        <div class="essay-meta" style="justify-content:flex-start"><span>Operations</span></div>
+        <h1 style="text-align:left;margin-left:0;font-size:clamp(28px,4vw,40px)">Settings</h1>
+        <p class="essay-deck-hero" style="margin-left:0;font-size:16px">Workspace defaults for reporting, briefing cadence, and AI output.</p>
+      </div>
+      <div style="padding:0 max(32px,5vw) 64px">
+        <div id="settings-status" class="mvp-notice" hidden data-global-status></div>
+        <div id="settings-overview" class="mvp-grid cards-3" style="margin-bottom:20px"></div>
+        <form id="settings-form" class="mvp-form">
+          <div class="mvp-grid two">
+            <section class="mvp-card mvp-settings-card">
+              <div class="mvp-card-header">
+                <div>
+                  <div class="uplabel">Workspace</div>
+                  <h2>General</h2>
+                </div>
+              </div>
+              <div class="mvp-card-body">
+                <div class="mvp-form-grid">
+                  <div class="mvp-field">
+                    <label for="settings-reporting-currency">Reporting currency</label>
+                    <select id="settings-reporting-currency">
+                      <option value="CHF">CHF</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                    </select>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="settings-briefing-day">Briefing day</label>
+                    <select id="settings-briefing-day">
+                      <option value="Monday">Monday</option>
+                      <option value="Tuesday">Tuesday</option>
+                      <option value="Wednesday">Wednesday</option>
+                      <option value="Thursday">Thursday</option>
+                      <option value="Friday">Friday</option>
+                    </select>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="settings-briefing-time">Briefing time</label>
+                    <input id="settings-briefing-time" type="time"/>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="settings-briefing-recipients">Recipients</label>
+                    <input id="settings-briefing-recipients" type="text"/>
+                  </div>
+                </div>
+                <div class="mvp-list">
+                  <label class="mvp-item mvp-toggle-row">
+                    <div>
+                      <div class="mvp-item-title">Auto-publish briefings</div>
+                      <div class="mvp-item-subtle">Publish automatically when the generated briefing is ready.</div>
+                    </div>
+                    <input id="settings-auto-publish" type="checkbox"/>
+                  </label>
+                  <label class="mvp-item mvp-toggle-row">
+                    <div>
+                      <div class="mvp-item-title">Send PDF attachment</div>
+                      <div class="mvp-item-subtle">Attach a PDF version to briefing delivery.</div>
+                    </div>
+                    <input id="settings-send-pdf" type="checkbox"/>
+                  </label>
+                  <label class="mvp-item mvp-toggle-row">
+                    <div>
+                      <div class="mvp-item-title">Include audit footer</div>
+                      <div class="mvp-item-subtle">Append model and provenance metadata to published briefings.</div>
+                    </div>
+                    <input id="settings-audit-footer" type="checkbox"/>
+                  </label>
+                </div>
+              </div>
+            </section>
+            <section class="mvp-card mvp-settings-card">
+              <div class="mvp-card-header">
+                <div>
+                  <div class="uplabel">AI</div>
+                  <h2>Generation defaults</h2>
+                </div>
+              </div>
+              <div class="mvp-card-body">
+                <div class="mvp-form-grid">
+                  <div class="mvp-field">
+                    <label for="settings-ai-model">Model</label>
+                    <select id="settings-ai-model">
+                      <option value="claude-opus-4-6">claude-opus-4-6</option>
+                      <option value="claude-sonnet-4-5">claude-sonnet-4-5</option>
+                    </select>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="settings-ai-risk-tone">Risk tone</label>
+                    <select id="settings-ai-risk-tone">
+                      <option value="conservative">Conservative</option>
+                      <option value="balanced">Balanced</option>
+                      <option value="aggressive">Aggressive</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="mvp-field">
+                  <label for="settings-ai-custom-instructions">Custom instructions</label>
+                  <textarea id="settings-ai-custom-instructions" rows="5"></textarea>
+                </div>
+                <label class="mvp-item mvp-toggle-row">
+                  <div>
+                    <div class="mvp-item-title">Allow draft trade actions</div>
+                    <div class="mvp-item-subtle">Allow the model to include trade ideas in draft output.</div>
+                  </div>
+                  <input id="settings-ai-allow-trade-actions" type="checkbox"/>
+                </label>
+              </div>
+            </section>
+          </div>
+          <div class="mvp-form-actions">
+            <button class="btn primary" type="submit"><span class="ms">save</span>Save settings</button>
+          </div>
+        </form>
+      </div><!-- /padding wrapper -->
+    </main>
+  </div>
+</body>
+</html>

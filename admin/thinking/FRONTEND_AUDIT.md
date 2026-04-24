@@ -1,6 +1,10 @@
 # ChiefRiskBot — Frontend Audit & Screen Inventory
 *Cross-referenced against `admin/thinking/ARCHITECTURE.md`. April 2026.*
 
+> Update 2026-04-15: the active MVP direction has been simplified. Macro Overlay is no longer part
+> of the primary MVP flow, and the cockpit now favors a plain-English downside read over dense
+> overlay/triangulation surfaces. See `admin/thinking/MVP_SIMPLIFIED_COCKPIT_SPEC.md`.
+
 ---
 
 ## MVP Screen Inventory
@@ -60,26 +64,19 @@ Exist in the UI, partially needed for demo context, but not on the critical path
 ### cockpit.html
 
 **What the frontend expects:**
-- KPI strip: AUM, 1-day VaR (99%), Active Risk count (priority/elevated), HHI, Liquidity %
+- KPI strip: portfolio value, bad normal day estimate, active risk count, liquidity outlook
 - Portfolio donut: % by asset class (5 slices) with position count
-- VaR mini stats: 30D vol, Sharpe, Beta, Max DD
-- Risk register table: 12 risks, each with title, severity, AUM affected, MC probability
-- Mitigation tree: visual decision tree for selected risk
-- VaR time series chart: 6-week history with event markers
-- System status bar: source count, latency, sync status
+- Risk at a glance card: plain-English VaR summary, simple bar visual, top downside drivers
+- Risk register table: current flags by severity
 
 **Backend gaps vs ARCHITECTURE.md:**
 - `GET /api/cockpit` — covers KPIs, donut, risk register ✓
-- `GET /api/var/history` — covers VaR chart ✓
 - `POST /api/risk/run` + `GET /api/risk/status/{job_id}` — required to render async/degraded agent runs ✓
-- Mitigation tree — **NOT in architecture plan and should stay out of backend for demo.**
-  Generate statically in the frontend from the top priority risk / deterministic flags.
-- Monte Carlo `P(loss>5%)` per risk — **NOT computed by VaR engine and should not be added
-  as a backend field for demo.** If the UI keeps it, label it as indicative frontend-only copy
-  or remove it from the MVP screen.
-- Real-time sync status bar — demo can show static "all synced 3m ago"
+- No additional backend work is required for the simplified cockpit. The current cockpit payload
+  already provides the data needed for the plain-English downside card.
 
-**Action:** Remove backend dependency on mitigation-tree and per-risk MC probability from the MVP audit.
+**Action:** Keep the simplified cockpit on top of `GET /api/cockpit` and avoid reintroducing
+overlay/triangulation dependencies into the active MVP shell.
 
 ---
 

@@ -13,6 +13,13 @@ from backend.deps import get_db
 from backend.main import app
 
 
+@pytest.fixture(autouse=True)
+def default_local_auth(monkeypatch, request) -> None:
+    if "supabase" in request.node.name:
+        return
+    monkeypatch.setattr("backend.routers.auth.is_supabase_auth_enabled", lambda: False)
+
+
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
     engine = create_engine(

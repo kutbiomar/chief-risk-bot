@@ -66,8 +66,24 @@ class RiskRunResponse(BaseModel):
     flags: list[RiskFlagResponse]
 
 
+class OverlayFactorSummary(BaseModel):
+    factor_key: str
+    label: str
+    score: float
+    direction: str
+    aum_exposed_usd: float
+
+
+class OverlaySummaryResponse(BaseModel):
+    regime: str
+    composite_score: float
+    top_risk_factors: list[OverlayFactorSummary]
+    as_of_date: date
+
+
 class CockpitResponse(BaseModel):
     snapshot_id: str
     portfolio_summary: dict[str, Any]
     var_result: VarResponse
     risk_register: list[dict[str, Any]]
+    overlay_summary: OverlaySummaryResponse

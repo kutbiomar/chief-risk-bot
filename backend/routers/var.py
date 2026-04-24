@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from backend.deps import get_db
 from backend.models.analytics import VarResult
 from backend.models.portfolio import PortfolioSnapshot
-from backend.routers.auth import require_session
+from backend.routers.auth import require_cookie_csrf, require_session
 from backend.schemas.analytics import VarContribution, VarResponse
 from backend.services.var import compute_var_for_snapshot
 
@@ -38,7 +38,7 @@ def _serialize(result: VarResult) -> VarResponse:
     )
 
 
-@router.post("/compute", response_model=VarResponse)
+@router.post("/compute", response_model=VarResponse, dependencies=[Depends(require_cookie_csrf)])
 def compute_var(
     auth=Depends(require_session),
     db: Session = Depends(get_db),

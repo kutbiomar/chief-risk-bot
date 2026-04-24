@@ -54,8 +54,19 @@ class PositionResponse(BaseModel):
     geo_region: Optional[str] = None
     sector: Optional[str] = None
     market_segment: Optional[str] = None
+    factor_asset_class: Optional[str] = None
+    factor_sector: Optional[str] = None
+    factor_subsector: Optional[str] = None
+    factor_country: Optional[str] = None
+    factor_region: Optional[str] = None
+    factor_market_segment: Optional[str] = None
+    factor_tag_source: Optional[str] = None
+    factor_tag_confidence: Optional[float] = None
     custodian: Optional[str] = None
     notes: Optional[str] = None
+    created_at: datetime
+    first_seen_at: Optional[datetime] = None
+    last_modified_at: Optional[datetime] = None
 
 
 class PositionListResponse(BaseModel):
@@ -75,6 +86,14 @@ class PositionCreateRequest(BaseModel):
     geo_region: Optional[str] = None
     sector: Optional[str] = None
     market_segment: Optional[str] = None
+    factor_asset_class: Optional[str] = None
+    factor_sector: Optional[str] = None
+    factor_subsector: Optional[str] = None
+    factor_country: Optional[str] = None
+    factor_region: Optional[str] = None
+    factor_market_segment: Optional[str] = None
+    factor_tag_source: Optional[str] = None
+    factor_tag_confidence: Optional[float] = None
     custodian: Optional[str] = None
     notes: Optional[str] = None
 
@@ -89,6 +108,14 @@ class PositionUpdateRequest(BaseModel):
     geo_region: Optional[str] = None
     sector: Optional[str] = None
     market_segment: Optional[str] = None
+    factor_asset_class: Optional[str] = None
+    factor_sector: Optional[str] = None
+    factor_subsector: Optional[str] = None
+    factor_country: Optional[str] = None
+    factor_region: Optional[str] = None
+    factor_market_segment: Optional[str] = None
+    factor_tag_source: Optional[str] = None
+    factor_tag_confidence: Optional[float] = None
     custodian: Optional[str] = None
     notes: Optional[str] = None
 

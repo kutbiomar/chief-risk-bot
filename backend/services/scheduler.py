@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
 from typing import Callable
@@ -16,7 +17,8 @@ from backend.models.auth import User, WorkspaceSetting
 from backend.models.content import BriefingRun
 from backend.models.portfolio import PortfolioSnapshot, Workspace
 from backend.services.auth.session import utc_now
-from backend.services.briefings import export_briefing_pdf, generate_briefing
+from backend.services.briefings import PdfExportUnavailableError, export_briefing_pdf, generate_briefing
+from backend.services.overlay.pipeline import run_workspace_overlay_cycle
 from backend.services.risk import run_risk_analysis
 from backend.services.var import compute_var_for_snapshot
 
@@ -44,6 +46,10 @@ class SchedulerRunResult:
 
 def _job_id(workspace_id: str) -> str:
     return f"weekly-briefing:{workspace_id}"
+
+
+def _overlay_job_id(workspace_id: str) -> str:
+    return f"overlay-refresh:{workspace_id}"
 
 
 def _parse_schedule(day: str, time_value: str, timezone_name: str) -> CronTrigger:
@@ -117,19 +123,36 @@ def run_workspace_briefing_cycle(
         run_risk_analysis(db, snapshot, owner.id if owner is not None else None)
         briefing = generate_briefing(db, snapshot, owner.id if owner is not None else None)
 
+        detail = "Scheduled briefing run completed"
         if settings.briefing_auto_publish:
-            briefing.status = "published"
-            briefing.published_at = utc_now()
-            briefing.published_by = owner.id if owner is not None else None
+            quality_gate = {}
+            try:
+                quality_gate = json.loads(briefing.output_json).get("quality_gate", {})
+            except Exception:
+                logger.warning("Unable to parse briefing quality gate for scheduled publish check", exc_info=True)
+            if quality_gate.get("publish_ready", briefing.model != "deterministic-demo-briefing"):
+                briefing.status = "published"
+                briefing.published_at = utc_now()
+                briefing.published_by = owner.id if owner is not None else None
+            else:
+                reasons = quality_gate.get("blocking_messages") or ["Briefing quality checks did not pass"]
+                detail = (
+                    "Scheduled briefing generated but not auto-published because quality gate failed: "
+                    + "; ".join(reasons)
+                )
 
         exported_path = None
         if settings.briefing_send_pdf:
-            exported_path = export_briefing_pdf(db, briefing, workspace_id)
+            try:
+                exported_path = export_briefing_pdf(db, briefing, workspace_id)
+            except PdfExportUnavailableError as exc:
+                logger.warning("Scheduled briefing PDF export unavailable for workspace %s: %s", workspace_id, exc)
+                detail = f"{detail}. {exc}" if detail != "Scheduled briefing run completed" else str(exc)
 
         db.commit()
         return SchedulerRunResult(
             status="succeeded",
-            detail="Scheduled briefing run completed",
+            detail=detail,
             briefing_id=briefing.id,
             snapshot_id=snapshot.id,
             exported_path=exported_path,
@@ -191,6 +214,20 @@ class BriefingSchedulerManager:
                 max_instances=1,
                 misfire_grace_time=3600,
             )
+            self.scheduler.add_job(
+                run_workspace_overlay_cycle,
+                trigger=CronTrigger(
+                    hour=17,
+                    minute=0,
+                    timezone=ZoneInfo("America/New_York"),
+                ),
+                kwargs={"workspace_id": workspace_id},
+                id=_overlay_job_id(workspace_id),
+                replace_existing=True,
+                coalesce=True,
+                max_instances=1,
+                misfire_grace_time=3600,
+            )
         except Exception:
             logger.exception("Failed to sync scheduler job for workspace %s", workspace_id)
         finally:
@@ -207,11 +244,15 @@ class BriefingSchedulerManager:
         finally:
             db.close()
 
-        active_ids = {_job_id(workspace_id) for workspace_id in workspace_ids}
+        active_ids = {
+            identifier
+            for workspace_id in workspace_ids
+            for identifier in (_job_id(workspace_id), _overlay_job_id(workspace_id))
+        }
         for workspace_id in workspace_ids:
             self.sync_workspace_job(workspace_id)
         for job in list(self.scheduler.get_jobs()):
-            if job.id.startswith("weekly-briefing:") and job.id not in active_ids:
+            if (job.id.startswith("weekly-briefing:") or job.id.startswith("overlay-refresh:")) and job.id not in active_ids:
                 self.scheduler.remove_job(job.id)
 
 

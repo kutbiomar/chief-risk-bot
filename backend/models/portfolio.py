@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, LargeBinary, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database import Base
@@ -26,6 +26,15 @@ class Workspace(Base, TimestampMixin):
 
 class PortfolioSnapshot(Base, TimestampMixin):
     __tablename__ = "portfolio_snapshots"
+    __table_args__ = (
+        Index(
+            "uq_portfolio_snapshots_one_current_per_workspace",
+            "workspace_id",
+            unique=True,
+            sqlite_where=text("is_current = 1"),
+            postgresql_where=text("is_current = true"),
+        ),
+    )
 
     id: Mapped[str] = uuid_pk()
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False, index=True)
@@ -65,6 +74,14 @@ class Position(Base, TimestampMixin):
     geo_region: Mapped[Optional[str]] = mapped_column(Text)
     sector: Mapped[Optional[str]] = mapped_column(Text)
     market_segment: Mapped[Optional[str]] = mapped_column(Text)
+    factor_asset_class: Mapped[Optional[str]] = mapped_column(Text)
+    factor_sector: Mapped[Optional[str]] = mapped_column(Text)
+    factor_subsector: Mapped[Optional[str]] = mapped_column(Text)
+    factor_country: Mapped[Optional[str]] = mapped_column(Text)
+    factor_region: Mapped[Optional[str]] = mapped_column(Text)
+    factor_market_segment: Mapped[Optional[str]] = mapped_column(Text)
+    factor_tag_source: Mapped[Optional[str]] = mapped_column(Text)
+    factor_tag_confidence: Mapped[Optional[float]] = mapped_column(Float)
     custodian: Mapped[Optional[str]] = mapped_column(Text)
     price_source: Mapped[str] = mapped_column(Text, nullable=False, default="manual")
     beta_vs_spy: Mapped[Optional[float]] = mapped_column(Float)

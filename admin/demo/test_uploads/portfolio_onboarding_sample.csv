@@ -1,0 +1,8 @@
+ticker,quantity,asset_class,custodian,geo_region,sector,market_segment,notes,name,position_currency,price_local,price_usd,market_value_local,market_value_usd
+MSFT,180,Public Equity,Pictet,North America,Technology,Large Cap,Core listed equity,Microsoft Corp,USD,418.00,418.00,75240.00,75240.00
+NESN,220,Public Equity,Julius Baer,Europe,Consumer Staples,Large Cap,Swiss core equity,Nestle SA,CHF,94.00,103.00,20680.00,22660.00
+LQD,1200,Fixed Income,UBS,North America,Investment Grade Credit,ETF,Duration sleeve,iShares iBoxx $ Inv Grade Corporate Bond ETF,USD,101.10,101.10,121320.00,121320.00
+VNQ,340,Real Estate,Pershing,North America,Real Estate,REIT,Listed real estate sleeve,Vanguard Real Estate ETF,USD,86.25,86.25,29325.00,29325.00
+BXPE,1,Private Equity,Manual,Global,Private Equity,Fund,Quarterly manager statement,Blackstone Tactical Opportunities Fund,USD,850000.00,850000.00,850000.00,850000.00
+OAKFUND,1,Private Equity,Manual,Europe,Private Equity,Fund,Quarterly manager statement,Oak Hill Co-Invest Fund IV,USD,420000.00,420000.00,420000.00,420000.00
+CSHCHF,1,Cash,Pictet,Switzerland,Cash,Operating Cash,Liquidity reserve,CHF Operating Cash,CHF,285000.00,313000.00,285000.00,313000.00

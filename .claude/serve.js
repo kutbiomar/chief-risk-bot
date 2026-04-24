@@ -74,7 +74,15 @@ function sendFile(req, res) {
     }
 
     const ext = path.extname(result.file).slice(1).toLowerCase();
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'text/plain' });
+    const cacheControl = ['html', 'css', 'js'].includes(ext)
+      ? 'no-store, no-cache, must-revalidate'
+      : 'public, max-age=3600';
+    res.writeHead(200, {
+      'Content-Type': MIME[ext] || 'text/plain',
+      'Cache-Control': cacheControl,
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    });
     res.end(result.data);
   });
 }

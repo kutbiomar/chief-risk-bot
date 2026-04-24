@@ -3,27 +3,27 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Documents — ChiefRiskBot MVP</title>
+  <title>Documents — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
-  <link rel="stylesheet" href="../_shell.css"/>
+  <link rel="stylesheet" href="_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
 </head>
-<body data-page="documents">
+<body data-page="documents" class="mvp-app-loading">
   <div class="app" id="app-root">
     <main>
-      <div class="mvp-page">
-        <div class="mvp-hero">
-          <div>
-            <h1>Documents</h1>
-            <p>This page wires the family-office wedge directly into the backend: upload statements, parse them, inspect extraction output, then approve into a new current portfolio snapshot.</p>
-          </div>
-        </div>
+      <div class="essay-hero compact" style="text-align:left;padding-left:max(32px,5vw);padding-right:max(32px,5vw)">
+        <div class="essay-meta" style="justify-content:flex-start"><span>Operations</span></div>
+        <h1 style="text-align:left;margin-left:0;font-size:clamp(28px,4vw,40px)">Documents</h1>
+        <p class="essay-deck-hero" style="margin-left:0;font-size:16px">Upload custodian statements and fund reports. ChiefRiskBot extracts positions and maps them to your portfolio.</p>
+      </div>
+      <div style="padding:0 max(32px,5vw) 64px">
         <div id="documents-status" class="mvp-notice" hidden data-global-status></div>
+        <div id="documents-summary" class="mvp-grid cards-4" style="margin-bottom:20px"></div>
         <div class="mvp-grid sidebar">
           <aside class="mvp-card">
             <div class="mvp-card-header">
@@ -48,18 +48,31 @@
                     <label for="upload-document-folder">Folder</label>
                     <select id="upload-document-folder">
                       <option value="custodian_statements">custodian_statements</option>
+                      <option value="capital_calls">capital_calls</option>
+                      <option value="distribution_notices">distribution_notices</option>
                       <option value="private_equity">private_equity</option>
                       <option value="real_estate">real_estate</option>
                     </select>
                   </div>
                   <div class="mvp-field">
                     <label for="upload-document-file">File</label>
-                    <input id="upload-document-file" type="file" accept=".pdf,.docx,.xlsx"/>
+                    <div class="mvp-dropzone" data-file-dropzone data-input-id="upload-document-file">
+                      <input id="upload-document-file" type="file" accept=".pdf,.docx,.xlsx"/>
+                      <div class="mvp-dropzone-copy">
+                        <span class="ms">upload</span>
+                        <div>
+                          <div class="mvp-dropzone-title">Drop document here</div>
+                          <div class="mvp-dropzone-meta">or click to browse `.pdf`, `.docx`, or `.xlsx`</div>
+                        </div>
+                      </div>
+                      <div class="mvp-dropzone-selected" data-file-selected>No file selected</div>
+                    </div>
                   </div>
                 </div>
                 <div class="mvp-form-actions" style="justify-content:flex-start">
-                  <button class="btn primary" type="submit"><span class="ms">upload</span>Upload</button>
+                  <button class="btn primary" type="submit"><span class="ms">upload</span>Upload &amp; parse</button>
                   <button id="parse-document" class="btn" type="button"><span class="ms">analytics</span>Parse</button>
+                  <button id="save-document-review" class="btn" type="button"><span class="ms">fact_check</span>Save review</button>
                   <button id="approve-document" class="btn" type="button"><span class="ms">task_alt</span>Approve into portfolio</button>
                 </div>
               </form>
@@ -78,7 +91,7 @@
             <div class="mvp-card-header">
               <div>
                 <div class="uplabel">Preview</div>
-                <h3>Extraction</h3>
+                <h3>Review queue</h3>
               </div>
             </div>
             <div class="mvp-card-body mvp-doc-preview" id="document-preview"></div>

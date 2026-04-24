@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.deps import get_db
 from backend.models.portfolio import PortfolioSnapshot, Position
-from backend.routers.auth import require_session
+from backend.routers.auth import require_cookie_csrf, require_session
 from backend.schemas.portfolio import (
     PortfolioSummaryResponse,
     PositionCreateRequest,
@@ -42,6 +42,29 @@ def _resolve_snapshot(db: Session, workspace_id: str, snapshot_id: Optional[str]
         )
     if snapshot is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio snapshot not found")
+    return snapshot
+
+
+def _ensure_current_snapshot(db: Session, workspace_id: str, user_id: str) -> PortfolioSnapshot:
+    snapshot = db.scalar(
+        select(PortfolioSnapshot).where(
+            PortfolioSnapshot.workspace_id == workspace_id,
+            PortfolioSnapshot.is_current.is_(True),
+        )
+    )
+    if snapshot is not None:
+        return snapshot
+    snapshot = PortfolioSnapshot(
+        id=str(uuid4()),
+        workspace_id=workspace_id,
+        uploaded_by=user_id,
+        source="manual_init",
+        position_count=0,
+        total_aum_usd=0.0,
+        is_current=True,
+    )
+    db.add(snapshot)
+    db.flush()
     return snapshot
 
 
@@ -85,10 +108,24 @@ def list_positions(
     db: Session = Depends(get_db),
 ) -> PositionListResponse:
     _, user = auth
-    snapshot = _resolve_snapshot(db, user.workspace_id, snapshot_id)
+    snapshot = _resolve_snapshot(db, user.workspace_id, snapshot_id) if snapshot_id else _ensure_current_snapshot(db, user.workspace_id, user.id)
     positions = db.scalars(
         select(Position).where(Position.snapshot_id == snapshot.id).order_by(Position.market_value_usd.desc())
     ).all()
+    history_rows = db.scalars(
+        select(Position).where(Position.workspace_id == user.workspace_id)
+    ).all()
+    first_seen_map: dict[tuple[str, str, str, str], object] = {}
+    for row in history_rows:
+        key = (
+            str(row.ticker or "").strip().upper(),
+            str(row.name or "").strip().lower(),
+            str(row.asset_class or "").strip().lower(),
+            str(row.custodian or "").strip().lower(),
+        )
+        current_first = first_seen_map.get(key)
+        if current_first is None or row.created_at < current_first:
+            first_seen_map[key] = row.created_at
     items = [
         PositionResponse(
             id=position.id,
@@ -101,8 +138,24 @@ def list_positions(
             geo_region=position.geo_region,
             sector=position.sector,
             market_segment=position.market_segment,
+            factor_asset_class=position.factor_asset_class,
+            factor_sector=position.factor_sector,
+            factor_subsector=position.factor_subsector,
+            factor_country=position.factor_country,
+            factor_region=position.factor_region,
+            factor_market_segment=position.factor_market_segment,
+            factor_tag_source=position.factor_tag_source,
+            factor_tag_confidence=position.factor_tag_confidence,
             custodian=position.custodian,
             notes=position.notes,
+            created_at=position.created_at,
+            first_seen_at=first_seen_map.get((
+                str(position.ticker or "").strip().upper(),
+                str(position.name or "").strip().lower(),
+                str(position.asset_class or "").strip().lower(),
+                str(position.custodian or "").strip().lower(),
+            )),
+            last_modified_at=position.created_at,
         )
         for position in positions
     ]
@@ -125,12 +178,20 @@ def _materialize_successor_snapshot(
         select(Position).where(Position.snapshot_id == current_snapshot.id)
     ).all()
 
-    # Demote current snapshot
-    db.execute(
+    demoted = db.execute(
         update(PortfolioSnapshot)
-        .where(PortfolioSnapshot.id == current_snapshot.id)
+        .where(
+            PortfolioSnapshot.id == current_snapshot.id,
+            PortfolioSnapshot.workspace_id == current_snapshot.workspace_id,
+            PortfolioSnapshot.is_current.is_(True),
+        )
         .values(is_current=False)
     )
+    if demoted.rowcount != 1:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Current snapshot changed during update. Retry the request.",
+        )
 
     new_snapshot = PortfolioSnapshot(
         id=str(uuid4()),
@@ -168,6 +229,14 @@ def _materialize_successor_snapshot(
                 geo_region=pos.geo_region,
                 sector=pos.sector,
                 market_segment=pos.market_segment,
+                factor_asset_class=pos.factor_asset_class,
+                factor_sector=pos.factor_sector,
+                factor_subsector=pos.factor_subsector,
+                factor_country=pos.factor_country,
+                factor_region=pos.factor_region,
+                factor_market_segment=pos.factor_market_segment,
+                factor_tag_source=pos.factor_tag_source,
+                factor_tag_confidence=pos.factor_tag_confidence,
                 custodian=pos.custodian,
                 price_source=pos.price_source,
                 beta_vs_spy=pos.beta_vs_spy,
@@ -192,14 +261,19 @@ def _recalculate_snapshot_totals(db: Session, snapshot: PortfolioSnapshot) -> No
 # POST /portfolio/positions — add a position
 # ---------------------------------------------------------------------------
 
-@router.post("/positions", response_model=PositionMutationResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/positions",
+    response_model=PositionMutationResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_cookie_csrf)],
+)
 def create_position(
     body: PositionCreateRequest,
     auth=Depends(require_session),
     db: Session = Depends(get_db),
 ) -> PositionMutationResponse:
     _, user = auth
-    current = _resolve_snapshot(db, user.workspace_id, None)
+    current = _ensure_current_snapshot(db, user.workspace_id, user.id)
     new_snapshot, _ = _materialize_successor_snapshot(db, current, user.id, source="manual_edit")
 
     # Derive market_value_usd from price if not provided
@@ -221,6 +295,14 @@ def create_position(
         geo_region=body.geo_region,
         sector=body.sector,
         market_segment=body.market_segment,
+        factor_asset_class=body.factor_asset_class,
+        factor_sector=body.factor_sector,
+        factor_subsector=body.factor_subsector,
+        factor_country=body.factor_country,
+        factor_region=body.factor_region,
+        factor_market_segment=body.factor_market_segment,
+        factor_tag_source=body.factor_tag_source,
+        factor_tag_confidence=body.factor_tag_confidence,
         custodian=body.custodian,
         notes=body.notes,
         price_source="manual",
@@ -251,7 +333,11 @@ def create_position(
 # PATCH /portfolio/positions/{id} — edit a position
 # ---------------------------------------------------------------------------
 
-@router.patch("/positions/{position_id}", response_model=PositionMutationResponse)
+@router.patch(
+    "/positions/{position_id}",
+    response_model=PositionMutationResponse,
+    dependencies=[Depends(require_cookie_csrf)],
+)
 def update_position(
     position_id: str,
     body: PositionUpdateRequest,
@@ -297,6 +383,22 @@ def update_position(
         copied_target.sector = body.sector
     if body.market_segment is not None:
         copied_target.market_segment = body.market_segment
+    if body.factor_asset_class is not None:
+        copied_target.factor_asset_class = body.factor_asset_class
+    if body.factor_sector is not None:
+        copied_target.factor_sector = body.factor_sector
+    if body.factor_subsector is not None:
+        copied_target.factor_subsector = body.factor_subsector
+    if body.factor_country is not None:
+        copied_target.factor_country = body.factor_country
+    if body.factor_region is not None:
+        copied_target.factor_region = body.factor_region
+    if body.factor_market_segment is not None:
+        copied_target.factor_market_segment = body.factor_market_segment
+    if body.factor_tag_source is not None:
+        copied_target.factor_tag_source = body.factor_tag_source
+    if body.factor_tag_confidence is not None:
+        copied_target.factor_tag_confidence = body.factor_tag_confidence
     if body.custodian is not None:
         copied_target.custodian = body.custodian
     if body.notes is not None:
@@ -331,7 +433,11 @@ def update_position(
 # DELETE /portfolio/positions/{id} — remove a position
 # ---------------------------------------------------------------------------
 
-@router.delete("/positions/{position_id}", response_model=PositionMutationResponse)
+@router.delete(
+    "/positions/{position_id}",
+    response_model=PositionMutationResponse,
+    dependencies=[Depends(require_cookie_csrf)],
+)
 def delete_position(
     position_id: str,
     auth=Depends(require_session),

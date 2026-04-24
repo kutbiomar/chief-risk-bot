@@ -1,0 +1,51 @@
+name: Health Check
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # every 5 minutes
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check /api/health
+        run: |
+          RESPONSE=$(curl -s -o /tmp/health.json -w "%{http_code}" https://api.chiefriskbot.com/api/health)
+          echo "HTTP status: $RESPONSE"
+          cat /tmp/health.json | python3 -m json.tool
+
+          if [ "$RESPONSE" != "200" ]; then
+            echo "::error::Health check returned HTTP $RESPONSE"
+            exit 1
+          fi
+
+          STATUS=$(python3 -c "import json,sys; d=json.load(open('/tmp/health.json')); sys.exit(0 if d.get('status')=='ok' else 1)")
+          if [ $? -ne 0 ]; then
+            echo "::error::Health check status is not 'ok'"
+            cat /tmp/health.json
+            exit 1
+          fi
+
+          # Check for any failing components
+          python3 - <<'PY'
+          import json, sys
+          d = json.load(open('/tmp/health.json'))
+          failed = [k for k, v in d.get('components', {}).items() if v.get('status') != 'ok']
+          if failed:
+              print(f"Failing components: {', '.join(failed)}", file=sys.stderr)
+              sys.exit(1)
+          print("All components ok")
+          PY
+
+      - name: Report 5xx error rate
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          d = json.load(open('/tmp/health.json'))
+          rate = d.get('metrics', {}).get('error_rate_5xx', 0)
+          print(f"5xx error rate: {rate:.2%}")
+          if rate > 0.01:
+              print(f"ERROR: 5xx rate {rate:.2%} exceeds 1% threshold", file=sys.stderr)
+              sys.exit(1)
+          PY
