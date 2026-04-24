@@ -6,6 +6,7 @@ from backend.models.jobs import AsyncJob
 from backend.models.onboarding import OnboardingProgress
 from backend.models.overlay import AssetFactorExposure, FactorScore, ProxyBasket, RiskRegime, StressScenario
 from backend.models.portfolio import PortfolioSnapshot, Position, Workspace
+from backend.models.private_markets import CapitalEvent, Commitment, Fund
 
 __all__ = [
     "ApiKey",
@@ -13,6 +14,8 @@ __all__ = [
     "AuditEvent",
     "AuthChallenge",
     "BriefingRun",
+    "CapitalEvent",
+    "Commitment",
     "Document",
     "ExtractionArtifact",
     "ExtractionResult",
@@ -25,6 +28,7 @@ __all__ = [
     "Position",
     "PriceCache",
     "ProxyBasket",
+    "Fund",
     "RiskFlag",
     "RiskRegime",
     "RiskScore",
