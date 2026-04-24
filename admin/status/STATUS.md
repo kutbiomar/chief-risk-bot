@@ -45,7 +45,7 @@ FastAPI + vanilla HTML/JS frontend + market data + LLM briefing pipeline.
 Production is live. Three small items remain:
 
 1. **PDF export** — Dockerfile fix (`d5283db`) is deploying via CI run 24895238321. Verify `200` once deploy completes.
-2. **Root domain redirect** — `chiefriskbot.com` → `app.chiefriskbot.com`: add one Cloudflare Redirect Rule in the dashboard (write token is GH-secret-only).
+2. **Root domain redirect** — ✅ `chiefriskbot.com` → `app.chiefriskbot.com` 301 confirmed live.
 3. **Nightly backup (EX8)** — Add `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` to GitHub `24April26` environment secrets → backup.yml activates automatically.
 
 ## Reference docs
