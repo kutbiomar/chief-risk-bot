@@ -1,4 +1,17 @@
 (function () {
+  const DEFAULT_CURRENCY = 'CHF';
+  const SETTINGS_STORAGE_KEY = 'crb_workspace_settings';
+  const AUTH_TOKEN_STORAGE_KEY = 'crb.auth_token';
+  const AUTH_TOKEN_SESSION_STORAGE_KEY = 'crb.auth_token.session';
+  const AUTH_STORAGE_PREFERENCE_KEY = 'crb.auth_storage';
+  const REPORTING_FX_RATES = {
+    USD: 1,
+    CHF: 0.91,
+    EUR: 0.93,
+    GBP: 0.79,
+  };
+  let preferredCurrency = DEFAULT_CURRENCY;
+
   const STEP_LABELS = {
     workspace_created: 'Workspace created',
     portfolio_uploaded: 'Portfolio uploaded',
@@ -13,6 +26,83 @@
     return match ? decodeURIComponent(match[1]) : '';
   }
 
+  function getAuthToken() {
+    try {
+      return window.sessionStorage.getItem(AUTH_TOKEN_SESSION_STORAGE_KEY)
+        || window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
+        || '';
+    } catch {
+      return '';
+    }
+  }
+
+  function saveAuthToken(token, persist = false) {
+    try {
+      if (token) {
+        if (persist) {
+          window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+          window.sessionStorage.removeItem(AUTH_TOKEN_SESSION_STORAGE_KEY);
+          window.localStorage.setItem(AUTH_STORAGE_PREFERENCE_KEY, 'local');
+        } else {
+          window.sessionStorage.setItem(AUTH_TOKEN_SESSION_STORAGE_KEY, token);
+          window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+          window.localStorage.setItem(AUTH_STORAGE_PREFERENCE_KEY, 'session');
+        }
+      } else {
+        window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+        window.sessionStorage.removeItem(AUTH_TOKEN_SESSION_STORAGE_KEY);
+        window.localStorage.removeItem(AUTH_STORAGE_PREFERENCE_KEY);
+      }
+    } catch {
+      // ignore storage failures
+    }
+  }
+
+  function clearAuthState() {
+    saveAuthToken('');
+    sessionStorage.removeItem('crb.user');
+  }
+
+  function preferredAuthPersistence() {
+    try {
+      return window.localStorage.getItem(AUTH_STORAGE_PREFERENCE_KEY) === 'local';
+    } catch {
+      return false;
+    }
+  }
+
+  function browserTimezone() {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  }
+
+  function markPageReady() {
+    document.body.classList.remove('mvp-app-loading');
+    document.body.classList.add('mvp-ready');
+  }
+
+  function setButtonBusy(button, busy, busyLabel) {
+    if (!button) return;
+    if (!button.dataset.defaultHtml) {
+      button.dataset.defaultHtml = button.innerHTML;
+    }
+    button.disabled = busy;
+    button.classList.toggle('is-loading', busy);
+    if (busy) {
+      button.innerHTML = `<span class="mvp-inline-spinner" aria-hidden="true"></span>${escapeHtml(busyLabel || 'Working...')}`;
+    } else {
+      button.innerHTML = button.dataset.defaultHtml;
+    }
+  }
+
+  async function withButtonBusy(button, busyLabel, task) {
+    setButtonBusy(button, true, busyLabel);
+    try {
+      return await task();
+    } finally {
+      setButtonBusy(button, false);
+    }
+  }
+
   function escapeHtml(value) {
     return String(value ?? '')
       .replaceAll('&', '&amp;')
@@ -23,10 +113,11 @@
   }
 
   function formatCurrency(value, digits = 0) {
-    const number = Number(value || 0);
+    const rate = REPORTING_FX_RATES[preferredCurrency] || 1;
+    const number = Number(value || 0) * rate;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: preferredCurrency,
       maximumFractionDigits: digits,
       minimumFractionDigits: digits,
     }).format(number);
@@ -79,6 +170,23 @@
     return `Week of ${formatter.format(monday)}`;
   }
 
+  function formatMonthKey(value) {
+    const match = String(value || '').match(/^(\d{4})-(\d{2})$/);
+    if (!match) return String(value || '');
+    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      year: '2-digit',
+      timeZone: 'UTC',
+    }).format(date);
+  }
+
+  function clampNumber(value, fallback, minimum = Number.NEGATIVE_INFINITY) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.max(minimum, parsed);
+  }
+
   function truncateText(value, maxLength) {
     const text = String(value || '').trim();
     if (!text || text.length <= maxLength) return text;
@@ -95,12 +203,157 @@
   }
 
   function formatCompactCurrency(value) {
-    const number = Number(value || 0);
+    const rate = REPORTING_FX_RATES[preferredCurrency] || 1;
+    const number = Number(value || 0) * rate;
     const abs = Math.abs(number);
-    if (abs >= 1_000_000_000) return `${number < 0 ? '-' : ''}$${formatNumber(abs / 1_000_000_000, 2)}B`;
-    if (abs >= 1_000_000) return `${number < 0 ? '-' : ''}$${formatNumber(abs / 1_000_000, 1)}M`;
-    if (abs >= 1_000) return `${number < 0 ? '-' : ''}$${formatNumber(abs / 1_000, 1)}K`;
-    return formatCurrency(number, 0);
+    const parts = new Intl.NumberFormat('en-US', { style: 'currency', currency: preferredCurrency, maximumFractionDigits: 0 }).formatToParts(0);
+    const symbol = parts.find((part) => part.type === 'currency')?.value || preferredCurrency;
+    if (abs >= 1_000_000_000) return `${number < 0 ? '-' : ''}${symbol}${formatNumber(abs / 1_000_000_000, 2)}B`;
+    if (abs >= 1_000_000) return `${number < 0 ? '-' : ''}${symbol}${formatNumber(abs / 1_000_000, 1)}M`;
+    if (abs >= 1_000) return `${number < 0 ? '-' : ''}${symbol}${formatNumber(abs / 1_000, 1)}K`;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: preferredCurrency,
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    }).format(number);
+  }
+
+  function normalizeCurrencyCode(value) {
+    const normalized = String(value || '').trim().toUpperCase();
+    return /^[A-Z]{3}$/.test(normalized) ? normalized : DEFAULT_CURRENCY;
+  }
+
+  function loadStoredSettings() {
+    try {
+      return JSON.parse(window.localStorage.getItem(SETTINGS_STORAGE_KEY) || 'null');
+    } catch {
+      return null;
+    }
+  }
+
+  function applyWorkspaceSettings(settings) {
+    const nextCurrency = normalizeCurrencyCode(settings?.reporting_currency);
+    preferredCurrency = nextCurrency;
+    try {
+      const merged = { ...(loadStoredSettings() || {}), ...(settings || {}), reporting_currency: nextCurrency };
+      window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(merged));
+    } catch {
+      // ignore storage failures
+    }
+  }
+
+  function parseFormattedNumber(value) {
+    const normalized = String(value ?? '')
+      .replace(/[^0-9,.-]/g, '')
+      .replace(/,(?=\d{3}\b)/g, '')
+      .replace(/,/g, '.');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : NaN;
+  }
+
+  function formatNumberInputValue(value, mode = 'decimal') {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return '';
+    const digits = mode === 'integer' ? 0 : (Number.isInteger(parsed) ? 0 : 2);
+    return new Intl.NumberFormat('en-US', {
+      maximumFractionDigits: digits,
+      minimumFractionDigits: 0,
+    }).format(parsed);
+  }
+
+  function sanitizeNumberInputValue(value, mode = 'decimal') {
+    const source = String(value ?? '');
+    const hasLeadingMinus = source.trimStart().startsWith('-');
+    let normalized = source
+      .replace(/,/g, '.')
+      .replace(/[^0-9.-]/g, '')
+      .replace(/-/g, '');
+    if (mode === 'integer') {
+      normalized = normalized.replace(/\./g, '');
+    } else {
+      const dotIndex = normalized.indexOf('.');
+      if (dotIndex !== -1) {
+        normalized = `${normalized.slice(0, dotIndex + 1)}${normalized.slice(dotIndex + 1).replace(/\./g, '')}`;
+      }
+    }
+    if (hasLeadingMinus) normalized = `-${normalized}`;
+    return normalized;
+  }
+
+  function attachFormattedNumberInput(input, mode = 'decimal') {
+    if (!input || input.dataset.formatBound === 'true') return;
+    input.dataset.formatBound = 'true';
+    input.setAttribute('inputmode', mode === 'integer' ? 'numeric' : 'decimal');
+    input.setAttribute('pattern', mode === 'integer' ? '^-?[0-9]*$' : '^-?[0-9]*[.,]?[0-9]*$');
+
+    const sync = () => {
+      const parsed = parseFormattedNumber(input.value);
+      if (Number.isFinite(parsed)) {
+        input.value = formatNumberInputValue(parsed, mode);
+      }
+    };
+
+    input.addEventListener('focus', () => {
+      const parsed = parseFormattedNumber(input.value);
+      if (Number.isFinite(parsed)) input.value = String(parsed);
+    });
+    input.addEventListener('input', () => {
+      const sanitized = sanitizeNumberInputValue(input.value, mode);
+      if (sanitized !== input.value) input.value = sanitized;
+    });
+    input.addEventListener('blur', sync);
+    sync();
+  }
+
+  function bindFormattedNumberInputs(root = document) {
+    root.querySelectorAll('input[data-format="integer"], input[data-format="decimal"]').forEach((input) => {
+      attachFormattedNumberInput(input, input.dataset.format || 'decimal');
+    });
+  }
+
+  function bindFileDropzones(root = document) {
+    root.querySelectorAll('[data-file-dropzone]').forEach((zone) => {
+      if (zone.dataset.dropzoneBound === 'true') return;
+      zone.dataset.dropzoneBound = 'true';
+      const inputId = zone.dataset.inputId || '';
+      const input = inputId ? document.getElementById(inputId) : zone.querySelector('input[type="file"]');
+      const selected = zone.querySelector('[data-file-selected]');
+      if (!input) return;
+
+      const syncSelected = () => {
+        const file = input.files?.[0];
+        if (selected) {
+          selected.textContent = file ? `${file.name} · ${formatNumber(file.size || 0, 0)} bytes` : 'No file selected';
+        }
+      };
+
+      const stop = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      };
+
+      ['dragenter', 'dragover'].forEach((name) => {
+        zone.addEventListener(name, (event) => {
+          stop(event);
+          zone.classList.add('is-dragover');
+        });
+      });
+      ['dragleave', 'dragend', 'drop'].forEach((name) => {
+        zone.addEventListener(name, (event) => {
+          stop(event);
+          zone.classList.remove('is-dragover');
+        });
+      });
+      zone.addEventListener('drop', (event) => {
+        const files = event.dataTransfer?.files;
+        if (!files?.length) return;
+        input.files = files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      input.addEventListener('change', syncSelected);
+      syncSelected();
+    });
   }
 
   function formatDateTime(value) {
@@ -115,10 +368,41 @@
     }).format(date);
   }
 
+  function buildPositionIdentifier(tickerValue, nameValue) {
+    const explicit = String(tickerValue || '').trim().toUpperCase();
+    if (explicit) return explicit;
+    const normalized = String(nameValue || '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '')
+      .slice(0, 12);
+    return normalized || `POS${Date.now().toString().slice(-6)}`;
+  }
+
+  function isRecentTimestamp(value, windowMs = 15 * 60 * 1000) {
+    if (!value) return false;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return false;
+    return Math.abs(Date.now() - date.getTime()) <= windowMs;
+  }
+
   function titleCase(value) {
     return String(value || '')
       .replaceAll('_', ' ')
       .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  function normalizeWeekday(value, fallback = 'Monday') {
+    const normalized = String(value || '').trim().toLowerCase();
+    const weekdays = {
+      monday: 'Monday',
+      tuesday: 'Tuesday',
+      wednesday: 'Wednesday',
+      thursday: 'Thursday',
+      friday: 'Friday',
+      saturday: 'Saturday',
+      sunday: 'Sunday',
+    };
+    return weekdays[normalized] || fallback;
   }
 
   function severityClass(value) {
@@ -137,6 +421,38 @@
     if (score >= 0.75) return 'watch';
     if (score >= 0.5) return 'elevated';
     return 'priority';
+  }
+
+  function qualityTone(gate) {
+    if (!gate) return 'watch';
+    if (gate.publish_ready) return 'good';
+    return (gate.blocking_reasons || []).length ? 'elevated' : 'watch';
+  }
+
+  function qualitySummary(gate) {
+    if (!gate) return 'Manual review recommended';
+    return gate.summary || (gate.publish_ready ? 'Publish ready' : 'Manual review required');
+  }
+
+  function renderQualityNote(gate) {
+    if (!gate) return '';
+    const blocking = gate.blocking_messages || [];
+    const warnings = gate.warning_messages || [];
+    return `
+      <div class="mvp-quality-note">
+        <div class="mvp-feature-meta">
+          <span class="mvp-pill ${qualityTone(gate)}">${escapeHtml(qualitySummary(gate))}</span>
+          <span>${escapeHtml(`Score ${formatNumber(gate.score || 0, 0)}/100`)}</span>
+          <span>${escapeHtml(`${formatNumber(gate.agent_success_count || 0, 0)} of ${formatNumber(gate.expected_agent_count || 0, 0)} agents completed`)}</span>
+        </div>
+        ${(blocking.length || warnings.length) ? `
+          <div class="mvp-quality-list">
+            ${blocking.map((item) => `<span>${escapeHtml(item)}</span>`).join('')}
+            ${warnings.map((item) => `<span>${escapeHtml(item)}</span>`).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
   }
 
   function setStatus(node, message, tone) {
@@ -190,6 +506,11 @@
       }
     }
 
+    const token = getAuthToken();
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
     const response = await fetch(path.startsWith('/api') ? path : `/api${path}`, {
       method,
       headers,
@@ -216,7 +537,13 @@
   }
 
   async function download(path, fallbackName) {
+    const headers = new Headers();
+    const token = getAuthToken();
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
     const response = await fetch(path.startsWith('/api') ? path : `/api${path}`, {
+      headers,
       credentials: 'include',
     });
     if (!response.ok) {
@@ -249,10 +576,49 @@
     return filename;
   }
 
-  async function getSession() {
-    const session = await api('/auth/session');
-    sessionStorage.setItem('crb.user', JSON.stringify(session.user));
-    return session.user;
+  async function fetchBlob(path) {
+    const headers = new Headers();
+    const token = getAuthToken();
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    const response = await fetch(path.startsWith('/api') ? path : `/api${path}`, {
+      headers,
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      const contentType = response.headers.get('content-type') || '';
+      const payload = contentType.includes('application/json')
+        ? await response.json()
+        : await response.text();
+      const detail =
+        typeof payload === 'object' && payload && 'detail' in payload
+          ? payload.detail
+          : typeof payload === 'string'
+            ? payload
+            : `Request failed (${response.status})`;
+      throw new Error(detail);
+    }
+    return {
+      blob: await response.blob(),
+      contentType: response.headers.get('content-type') || '',
+      filename: parseDownloadFilename(response.headers.get('content-disposition'), 'document'),
+    };
+  }
+
+  async function getSession(retries = 0) {
+    try {
+      const session = await api('/auth/session');
+      sessionStorage.setItem('crb.user', JSON.stringify(session.user));
+      return session.user;
+    } catch (error) {
+      const shouldRetry = retries > 0
+        && Boolean(getAuthToken())
+        && /invalid session/i.test(String(error.message || ''));
+      if (!shouldRetry) throw error;
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+      return getSession(retries - 1);
+    }
   }
 
   function updateShellUser(user) {
@@ -275,10 +641,16 @@
   async function requireSession(activePage, crumbs) {
     let user;
     try {
-      user = await getSession();
+      user = await getSession(3);
     } catch {
       window.location.href = `login.html?next=${encodeURIComponent(window.location.pathname.split('/').pop() || 'cockpit.html')}`;
       return null;
+    }
+
+    try {
+      applyWorkspaceSettings(await api('/settings'));
+    } catch {
+      applyWorkspaceSettings(loadStoredSettings() || { reporting_currency: DEFAULT_CURRENCY });
     }
 
     if (window.CRBMvpShell) {
@@ -288,11 +660,13 @@
       if (logout) {
         logout.addEventListener('click', async () => {
           try {
-            await api('/auth/logout', { method: 'POST' });
+            if (!getAuthToken()) {
+              await api('/auth/logout', { method: 'POST' });
+            }
           } catch {
             // ignore logout cleanup errors
           }
-          sessionStorage.removeItem('crb.user');
+          clearAuthState();
           window.location.href = 'login.html';
         });
       }
@@ -323,6 +697,63 @@
     return steps.join('');
   }
 
+  function onboardingStepperMarkup(state) {
+    const completed = new Set(state.completed_steps || []);
+    return Object.keys(STEP_LABELS)
+      .map((step, index, steps) => {
+        const done = completed.has(step);
+        const active = !done && state.next_step === step;
+        return `
+          <div class="mvp-onboarding-step ${done ? 'is-done' : active ? 'is-active' : ''}">
+            <div class="mvp-onboarding-step-badge">${done ? '<span class="ms">check</span>' : index + 1}</div>
+            <div>
+              <div class="mvp-onboarding-step-label">${escapeHtml(STEP_LABELS[step])}</div>
+              <div class="mvp-item-subtle">${done ? 'Complete' : active ? 'Current focus' : 'Queued'}</div>
+            </div>
+          </div>
+          ${index < steps.length - 1 ? '<div class="mvp-onboarding-step-rail"></div>' : ''}
+        `;
+      })
+      .join('');
+  }
+
+  function documentStatusTone(value) {
+    const normalized = String(value || '').toLowerCase();
+    if (normalized === 'done' || normalized === 'approved') return 'good';
+    if (normalized === 'failed') return 'priority';
+    if (normalized === 'needs_review') return 'elevated';
+    return 'watch';
+  }
+
+  function documentStatusLabel(value) {
+    const normalized = String(value || '').toLowerCase();
+    const labels = {
+      pending: 'Queued',
+      processing: 'Parsing',
+      done: 'Ready for review',
+      needs_review: 'Needs review',
+      approved: 'Approved',
+      failed: 'Parse failed',
+    };
+    return labels[normalized] || titleCase(normalized || 'pending');
+  }
+
+  function documentStatusDescription(documentRecord, extraction) {
+    const normalized = String(documentRecord?.extraction_status || '').toLowerCase();
+    if (normalized === 'done') {
+      return extraction
+        ? `${formatNumber(extraction.positions?.length || 0, 0)} candidate rows extracted. Review and approve when ready.`
+        : 'Extraction completed. Review and approve the output.';
+    }
+    if (normalized === 'needs_review') {
+      return 'One or more fields need human confirmation before approval.';
+    }
+    if (normalized === 'failed') {
+      return 'The parser could not finish this document. Re-run parse after checking the file.';
+    }
+    return 'The file is stored and ready to be parsed into reviewable holdings.';
+  }
+
   async function markOnboardingStep(step) {
     return api('/onboarding/step', { method: 'POST', body: { step } });
   }
@@ -330,11 +761,25 @@
   async function resolveAuthenticatedLanding(useNext = false) {
     const next = useNext ? getQueryParam('next') : '';
     if (next) return next;
-    const state = await api('/onboarding/state');
-    return state.is_complete ? 'cockpit.html' : 'onboarding.html';
+    let attempts = 3;
+    while (attempts > 0) {
+      try {
+        const state = await api('/onboarding/state');
+        return state.is_complete ? 'cockpit.html' : 'onboarding.html';
+      } catch (error) {
+        attempts -= 1;
+        const transient = attempts > 0
+          && Boolean(getAuthToken())
+          && /invalid session/i.test(String(error.message || ''));
+        if (!transient) throw error;
+        await new Promise((resolve) => window.setTimeout(resolve, 250));
+      }
+    }
+    return 'onboarding.html';
   }
 
   async function initIndex() {
+    applyWorkspaceSettings(loadStoredSettings() || { reporting_currency: DEFAULT_CURRENCY });
     try {
       await getSession();
       window.location.href = await resolveAuthenticatedLanding();
@@ -344,34 +789,130 @@
   }
 
   async function initLogin() {
-    try {
-      await getSession();
-      window.location.href = await resolveAuthenticatedLanding(true);
-      return;
-    } catch {
-      // stay on login
+    applyWorkspaceSettings(loadStoredSettings() || { reporting_currency: DEFAULT_CURRENCY });
+    if (getAuthToken() || getCookie('__crb_session')) {
+      try {
+        await getSession(3);
+        window.location.href = await resolveAuthenticatedLanding(true);
+        return;
+      } catch {
+        clearAuthState();
+      }
     }
 
-    const form = document.getElementById('login-form');
     const status = document.getElementById('login-status');
-    const submit = document.getElementById('login-submit');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const forgotForm = document.getElementById('forgot-password-form');
+    const loginSubmit = document.getElementById('login-submit');
+    const registerSubmit = document.getElementById('register-submit');
+    const forgotSubmit = document.getElementById('forgot-submit');
+    const authTabs = Array.from(document.querySelectorAll('[data-auth-mode]'));
+    const authPanels = Array.from(document.querySelectorAll('[data-auth-panel]'));
+    const showReset = document.getElementById('show-reset');
+    const loginRemember = document.getElementById('login-remember');
+    const registerRemember = document.getElementById('register-remember');
+    const timezoneLabel = document.getElementById('register-timezone');
+    const loginEmail = document.getElementById('email');
+    const loginPassword = document.getElementById('password');
+    const registerWorkspaceName = document.getElementById('register-workspace-name');
+    const registerName = document.getElementById('register-name');
+    const registerEmail = document.getElementById('register-email');
+    const registerPassword = document.getElementById('register-password');
+    const registerCurrency = document.getElementById('register-reporting-currency');
+    const forgotEmail = document.getElementById('forgot-email');
+    let authMode = 'sign-in';
 
-    form.addEventListener('submit', async (event) => {
+    function setAuthMode(nextMode) {
+      authMode = nextMode;
+      authTabs.forEach((tab) => {
+        const active = tab.dataset.authMode === nextMode;
+        tab.classList.toggle('is-active', active);
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      authPanels.forEach((panel) => {
+        panel.hidden = panel.dataset.authPanel !== nextMode;
+      });
+      setStatus(status, '', '');
+    }
+
+    const persistDefault = preferredAuthPersistence();
+    if (loginRemember) loginRemember.checked = persistDefault;
+    if (registerRemember) registerRemember.checked = persistDefault;
+    if (timezoneLabel) timezoneLabel.textContent = browserTimezone();
+    setStatus(status, 'Sign in with a live workspace or create a new Supabase-backed workspace.', '');
+    setAuthMode(getQueryParam('mode') === 'reset' ? 'reset' : 'sign-in');
+
+    authTabs.forEach((tab) => {
+      tab.addEventListener('click', () => setAuthMode(tab.dataset.authMode || 'sign-in'));
+    });
+    showReset?.addEventListener('click', () => setAuthMode('reset'));
+
+    loginForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       setStatus(status, '', '');
-      submit.disabled = true;
       try {
-        const payload = {
-          email: document.getElementById('email').value.trim(),
-          password: document.getElementById('password').value,
-        };
-        await api('/auth/login', { method: 'POST', body: payload });
-        await getSession();
-        window.location.href = await resolveAuthenticatedLanding(true);
+        await withButtonBusy(loginSubmit, 'Signing in...', async () => {
+          const login = await api('/auth/login', {
+            method: 'POST',
+            body: {
+              email: loginEmail.value.trim(),
+              password: loginPassword.value,
+            },
+          });
+          saveAuthToken(login.access_token || '', loginRemember?.checked);
+          if (login.user) {
+            sessionStorage.setItem('crb.user', JSON.stringify(login.user));
+          }
+          window.location.href = await resolveAuthenticatedLanding(true);
+        });
+      } catch (error) {
+        clearAuthState();
+        setStatus(status, error.message, 'error');
+      }
+    });
+
+    registerForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      setStatus(status, '', '');
+      try {
+        await withButtonBusy(registerSubmit, 'Creating workspace...', async () => {
+          const response = await api('/auth/register', {
+            method: 'POST',
+            body: {
+              workspace_name: registerWorkspaceName.value.trim(),
+              display_name: registerName.value.trim(),
+              email: registerEmail.value.trim(),
+              password: registerPassword.value,
+              timezone: browserTimezone(),
+              reporting_currency: registerCurrency.value,
+            },
+          });
+          saveAuthToken(response.access_token || '', registerRemember?.checked);
+          if (response.user) {
+            sessionStorage.setItem('crb.user', JSON.stringify(response.user));
+          }
+          window.location.href = await resolveAuthenticatedLanding(true);
+        });
+      } catch (error) {
+        clearAuthState();
+        setStatus(status, error.message, 'error');
+      }
+    });
+
+    forgotForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      setStatus(status, '', '');
+      try {
+        await withButtonBusy(forgotSubmit, 'Sending reset...', async () => {
+          await api('/auth/forgot-password', {
+            method: 'POST',
+            body: { email: forgotEmail.value.trim() },
+          });
+        });
+        setStatus(status, 'If that email exists, a reset flow has been accepted for the workspace.', 'success');
       } catch (error) {
         setStatus(status, error.message, 'error');
-      } finally {
-        submit.disabled = false;
       }
     });
   }
@@ -379,16 +920,48 @@
   async function initOnboarding() {
     const user = await requireSession('onboarding.html', ['Workspace', 'Onboarding']);
     if (!user) return;
+    bindFileDropzones(document);
 
     const stateNode = document.getElementById('onboarding-steps');
     const status = document.getElementById('onboarding-status');
     const stateMeta = document.getElementById('onboarding-meta');
     const readyBanner = document.getElementById('onboarding-ready');
+    const stepperNode = document.getElementById('onboarding-stepper');
+    const summaryNode = document.getElementById('onboarding-summary');
+    const nextActionNode = document.getElementById('onboarding-next-action');
+    const workspaceNode = document.getElementById('onboarding-workspace-name');
+    const onboardingUrl = new URL(window.location.href);
+    if (workspaceNode) workspaceNode.textContent = user.workspace_name || 'Your workspace';
 
     async function refreshState() {
       const state = await api('/onboarding/state');
       stateNode.innerHTML = stepMarkup(state);
       stateMeta.textContent = `${state.completed_steps.length} of ${state.total_steps} steps complete`;
+      if (stepperNode) {
+        stepperNode.innerHTML = onboardingStepperMarkup(state);
+      }
+      if (summaryNode) {
+        summaryNode.innerHTML = `
+          <div class="mvp-feature-stat">
+            <div class="uplabel">Progress</div>
+            <div class="value">${formatNumber(state.completed_steps.length, 0)} / ${formatNumber(state.total_steps, 0)}</div>
+            <div class="meta">A tighter first-run flow: import the book, add optional documents, run analysis, and publish the first memo.</div>
+          </div>
+          <div class="mvp-feature-stat">
+            <div class="uplabel">Next step</div>
+            <div class="value">${escapeHtml(STEP_LABELS[state.next_step] || 'Ready')}</div>
+            <div class="meta">${state.is_complete ? 'Onboarding is finished. Continue in the cockpit.' : 'This is the next action required to reach a live briefing.'}</div>
+          </div>
+          <div class="mvp-feature-stat">
+            <div class="uplabel">Workspace</div>
+            <div class="value">${escapeHtml(user.workspace_name || 'Workspace')}</div>
+            <div class="meta">Timezone ${escapeHtml(browserTimezone())} · Auth path live</div>
+          </div>
+        `;
+      }
+      if (nextActionNode) {
+        nextActionNode.textContent = STEP_LABELS[state.next_step] || 'Open cockpit';
+      }
       if (readyBanner) {
         readyBanner.hidden = !state.is_complete;
       }
@@ -421,11 +994,13 @@
       const formData = new FormData();
       formData.append('file', file);
       try {
-        const response = await api('/ingest/csv', { method: 'POST', formData });
-        await markOnboardingStep('portfolio_uploaded');
-        await ensureVarReady();
-        await refreshState();
-        setStatus(status, 'Portfolio uploaded and VaR computed. Your holdings are ready.', 'success');
+        await withButtonBusy(event.submitter, 'Uploading portfolio...', async () => {
+          await api('/ingest/csv', { method: 'POST', formData });
+          await markOnboardingStep('portfolio_uploaded');
+          await ensureVarReady();
+          await refreshState();
+        });
+        setStatus(status, 'Portfolio uploaded and valued. The holdings are now live in the workspace.', 'success');
       } catch (error) {
         setStatus(status, error.message, 'error');
       }
@@ -442,10 +1017,15 @@
       formData.append('folder', document.getElementById('document-folder').value);
       formData.append('file', file);
       try {
-        const documentRecord = await api('/documents/upload', { method: 'POST', formData });
-        await api(`/documents/${documentRecord.id}/parse`, { method: 'POST' });
-        await refreshState();
-        setStatus(status, `Document uploaded and parsed: ${documentRecord.filename}.`, 'success');
+        await withButtonBusy(event.submitter, 'Uploading document...', async () => {
+          const documentRecord = await api('/documents/upload', { method: 'POST', formData });
+          await api(`/documents/${documentRecord.id}/parse`, { method: 'POST' });
+          await refreshState();
+          const documentsUrl = new URL('documents.html', onboardingUrl);
+          documentsUrl.searchParams.set('documentId', documentRecord.id);
+          documentsUrl.searchParams.set('uploaded', '1');
+          window.location.href = documentsUrl.toString();
+        });
       } catch (error) {
         setStatus(status, error.message, 'error');
       }
@@ -453,8 +1033,10 @@
 
     document.getElementById('run-risk').addEventListener('click', async () => {
       try {
-        await ensureRiskReady();
-        await refreshState();
+        await withButtonBusy(document.getElementById('run-risk'), 'Running analysis...', async () => {
+          await ensureRiskReady();
+          await refreshState();
+        });
         setStatus(status, 'Risk analysis completed for the current portfolio.', 'success');
       } catch (error) {
         setStatus(status, error.message, 'error');
@@ -463,12 +1045,104 @@
 
     document.getElementById('generate-briefing').addEventListener('click', async () => {
       try {
-        await ensureVarReady();
-        await ensureRiskReady();
-        const briefing = await api('/briefings/generate', { method: 'POST' });
-        await markOnboardingStep('briefing_generated');
-        await refreshState();
-        setStatus(status, `${formatWeekLabel(briefing.week_label)} generated.`, 'success');
+        await withButtonBusy(document.getElementById('generate-briefing'), 'Generating briefing...', async () => {
+          await ensureVarReady();
+          await ensureRiskReady();
+          const briefing = await api('/briefings/generate', { method: 'POST' });
+          await markOnboardingStep('briefing_generated');
+          await refreshState();
+          setStatus(status, `${formatWeekLabel(briefing.week_label)} generated.`, 'success');
+        });
+      } catch (error) {
+        setStatus(status, error.message, 'error');
+      }
+    });
+  }
+
+  async function initSettings() {
+    const user = await requireSession('settings.html', ['Workspace', 'Settings']);
+    if (!user) return;
+
+    const status = document.getElementById('settings-status');
+    const form = document.getElementById('settings-form');
+    const overview = document.getElementById('settings-overview');
+    const fields = {
+      reporting_currency: document.getElementById('settings-reporting-currency'),
+      briefing_day: document.getElementById('settings-briefing-day'),
+      briefing_time: document.getElementById('settings-briefing-time'),
+      briefing_recipients: document.getElementById('settings-briefing-recipients'),
+      briefing_auto_publish: document.getElementById('settings-auto-publish'),
+      briefing_send_pdf: document.getElementById('settings-send-pdf'),
+      briefing_include_audit_footer: document.getElementById('settings-audit-footer'),
+      ai_model: document.getElementById('settings-ai-model'),
+      ai_risk_tone: document.getElementById('settings-ai-risk-tone'),
+      ai_custom_instructions: document.getElementById('settings-ai-custom-instructions'),
+      ai_allow_trade_actions: document.getElementById('settings-ai-allow-trade-actions'),
+    };
+
+    function fill(settings) {
+      fields.reporting_currency.value = normalizeCurrencyCode(settings.reporting_currency);
+      fields.briefing_day.value = normalizeWeekday(settings.briefing_day, 'Monday');
+      fields.briefing_time.value = settings.briefing_time || '06:00';
+      fields.briefing_recipients.value = settings.briefing_recipients || '';
+      fields.briefing_auto_publish.checked = Boolean(settings.briefing_auto_publish);
+      fields.briefing_send_pdf.checked = Boolean(settings.briefing_send_pdf);
+      fields.briefing_include_audit_footer.checked = Boolean(settings.briefing_include_audit_footer);
+      fields.ai_model.value = settings.ai_model || 'claude-opus-4-6';
+      fields.ai_risk_tone.value = settings.ai_risk_tone || 'conservative';
+      fields.ai_custom_instructions.value = settings.ai_custom_instructions || '';
+      fields.ai_allow_trade_actions.checked = Boolean(settings.ai_allow_trade_actions);
+      if (overview) {
+        overview.innerHTML = `
+          <div class="mvp-feature-stat">
+            <div class="uplabel">Reporting</div>
+            <div class="value">${escapeHtml(normalizeCurrencyCode(settings.reporting_currency))}</div>
+            <div class="meta">Default currency for cockpit, liquidity, and briefing reads.</div>
+          </div>
+          <div class="mvp-feature-stat">
+            <div class="uplabel">Cadence</div>
+            <div class="value">${escapeHtml(`${normalizeWeekday(settings.briefing_day, 'Monday')} ${settings.briefing_time || '06:00'}`)}</div>
+            <div class="meta">${settings.briefing_recipients ? `${escapeHtml(settings.briefing_recipients)} receive the memo.` : 'Recipients are configured directly in this workspace.'}</div>
+          </div>
+          <div class="mvp-feature-stat">
+            <div class="uplabel">AI profile</div>
+            <div class="value">${escapeHtml(settings.ai_model || 'claude-opus-4-6')}</div>
+            <div class="meta">${escapeHtml(titleCase(settings.ai_risk_tone || 'conservative'))} tone${settings.ai_allow_trade_actions ? ' · trade ideas enabled' : ' · no trade actions'}</div>
+          </div>
+        `;
+      }
+    }
+
+    try {
+      const settings = await api('/settings');
+      applyWorkspaceSettings(settings);
+      fill(settings);
+    } catch (error) {
+      setStatus(status, error.message, 'error');
+      return;
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const payload = {
+        reporting_currency: normalizeCurrencyCode(fields.reporting_currency.value),
+        briefing_day: fields.briefing_day.value,
+        briefing_time: fields.briefing_time.value,
+        briefing_recipients: fields.briefing_recipients.value.trim(),
+        briefing_auto_publish: fields.briefing_auto_publish.checked,
+        briefing_send_pdf: fields.briefing_send_pdf.checked,
+        briefing_include_audit_footer: fields.briefing_include_audit_footer.checked,
+        ai_model: fields.ai_model.value,
+        ai_risk_tone: fields.ai_risk_tone.value,
+        ai_custom_instructions: fields.ai_custom_instructions.value.trim(),
+        ai_allow_trade_actions: fields.ai_allow_trade_actions.checked,
+      };
+      try {
+        const submitButton = form.querySelector('button[type="submit"]');
+        const response = await withButtonBusy(submitButton, 'Saving...', async () => api('/settings', { method: 'PATCH', body: payload }));
+        applyWorkspaceSettings(response);
+        fill(response);
+        setStatus(status, 'Settings saved.', 'success');
       } catch (error) {
         setStatus(status, error.message, 'error');
       }
@@ -482,18 +1156,12 @@
     const status = document.getElementById('cockpit-status');
     const kpis = document.getElementById('cockpit-kpis');
     const composition = document.getElementById('cockpit-composition');
-    const contributions = document.getElementById('cockpit-contribs');
     const varSummary = document.getElementById('cockpit-var-summary');
-    const varStats = document.getElementById('cockpit-var-stats');
+    const varVisual = document.getElementById('cockpit-var-visual');
+    const varDrivers = document.getElementById('cockpit-var-drivers');
     const register = document.getElementById('cockpit-register');
-    const overlayAlertTop = document.getElementById('cockpit-overlay-alerts-top');
-    const overlaySummary = document.getElementById('cockpit-overlay-summary');
-    const overlayFactors = document.getElementById('cockpit-overlay-factors');
-    const overlayStress = document.getElementById('cockpit-overlay-stress');
-    const overlayRegime = document.getElementById('cockpit-overlay-regime');
     const compositionTitle = document.getElementById('cockpit-composition-title');
     const compositionToggles = document.getElementById('cockpit-composition-toggles');
-    const varToggles = document.getElementById('cockpit-var-toggles');
     const riskFilters = document.getElementById('cockpit-risk-filters');
     const compositionPalette = ['#1B2B5E', '#72594c', '#C9A449', '#006972', '#d3c3bc', '#8f6f9d'];
     const compositionTitles = {
@@ -501,36 +1169,10 @@
       sector: 'Sector mix',
       geo_region: 'Geographic mix',
     };
-    const varMetricConfig = {
-      var_1d_99: {
-        label: '1-Day VaR (99%)',
-        formatter: (value) => formatCurrency(value),
-        meta: (body) => `${formatPct(body.var_result.model_coverage_pct, 0)} modeled coverage`,
-      },
-      var_1d_95: {
-        label: '1-Day VaR (95%)',
-        formatter: (value) => formatCurrency(value),
-        meta: (body) => `${formatPct(body.var_result.model_coverage_pct, 0)} modeled coverage`,
-      },
-      cvar_1d_95: {
-        label: '1-Day CVaR (95%)',
-        formatter: (value) => formatCurrency(value),
-        meta: () => 'Expected loss in the worst tail',
-      },
-      max_drawdown_1y: {
-        label: 'Max Drawdown (1Y)',
-        formatter: (value) => formatPct(value, 2),
-        meta: () => 'Historical drawdown estimate',
-      },
-    };
     let compositionDimension = 'asset_class';
-    let activeVarMetric = 'var_1d_95';
     let riskSeverity = 'all';
     let cockpitBody = null;
-    let overlayTriangulation = null;
-    let overlayStressBody = null;
-    let overlayRegimeBody = null;
-    let dismissedOverlayAlerts = new Set();
+    let liquiditySummary = null;
 
     function setActiveToggle(container, valueKey, activeValue) {
       if (!container) return;
@@ -612,38 +1254,59 @@
     }
 
     function renderVar(body) {
-      const metricConfig = varMetricConfig[activeVarMetric] || varMetricConfig.var_1d_95;
-      const metricValue = body.var_result[activeVarMetric];
-      const lossLabel = body.var_result.worst_scenario_date
-        ? `${body.var_result.worst_scenario_date} worst day`
-        : 'Worst day unavailable';
+      const varResult = body.var_result;
+      const bars = [
+        { label: 'Bad normal day', value: Number(varResult.var_1d_95 || 0), tone: 'watch', meta: 'VaR 95%' },
+        { label: 'Severe day', value: Number(varResult.var_1d_99 || 0), tone: 'elevated', meta: 'VaR 99%' },
+        { label: 'Worst modeled day', value: Number(varResult.worst_scenario_loss || 0), tone: 'priority', meta: String(varResult.worst_scenario_date || 'History') },
+      ];
+      const maxBarValue = Math.max(...bars.map((item) => item.value), 1);
+      const topDrivers = (varResult.position_contributions || []).slice(0, 3);
+      const driverSummary = topDrivers.length
+        ? topDrivers.map((item) => item.ticker).join(', ')
+        : 'current concentration and position mix';
+
       varSummary.innerHTML = `
         <div>
-          <div class="uplabel">${escapeHtml(metricConfig.label)}</div>
-          <div class="mvp-var-headline">${metricConfig.formatter(metricValue)}</div>
-          <div class="mvp-item-subtle">${escapeHtml(metricConfig.meta(body))}</div>
+          <div class="uplabel">Downside read</div>
+          <div class="mvp-var-headline">${formatCurrency(varResult.var_1d_95)}</div>
+          <div class="mvp-var-plain-english">On a bad normal day, the portfolio could lose about ${formatCurrency(varResult.var_1d_95)}.</div>
+          <div class="mvp-item-subtle">Modeled coverage ${formatPct(varResult.model_coverage_pct, 0)}. Severe-day estimate is ${formatCurrency(varResult.var_1d_99)}.</div>
         </div>
         <div class="mvp-var-meta">
-          <div>Computed ${escapeHtml(formatDateTime(body.var_result.computed_at))}</div>
-          <div>${formatNumber(body.var_result.effective_lookback_days, 0)} lookback days</div>
+          <div>Computed ${escapeHtml(formatDateTime(varResult.computed_at))}</div>
+          <div>${formatNumber(varResult.effective_lookback_days, 0)} lookback days</div>
         </div>
       `;
 
-      varStats.innerHTML = `
-        <div class="mvp-stat-item"><div class="uplabel">Worst day</div><div class="value">${formatCurrency(body.var_result.worst_scenario_loss)}</div><div class="meta">${escapeHtml(lossLabel)}</div></div>
-        <div class="mvp-stat-item"><div class="uplabel">Coverage</div><div class="value">${formatPct(body.var_result.model_coverage_pct, 0)}</div><div class="meta">modeled</div></div>
-        <div class="mvp-stat-item"><div class="uplabel">CVaR 99%</div><div class="value">${formatCurrency(body.var_result.cvar_1d_99)}</div><div class="meta">tail loss</div></div>
-        <div class="mvp-stat-item"><div class="uplabel">Method</div><div class="value">${escapeHtml(titleCase(body.var_result.methodology))}</div><div class="meta">risk engine</div></div>
+      varVisual.innerHTML = `
+        <div class="mvp-var-chart">
+          ${bars.map((item) => `
+            <div class="mvp-var-bar-row">
+              <div class="mvp-var-bar-label">
+                <span>${escapeHtml(item.label)}</span>
+                <span class="mvp-item-subtle">${escapeHtml(item.meta)}</span>
+              </div>
+              <div class="mvp-var-bar-track">
+                <div class="mvp-var-bar-fill ${item.tone}" style="width:${Math.max((item.value / maxBarValue) * 100, 8)}%"></div>
+              </div>
+              <div class="mvp-var-bar-value">${formatCurrency(item.value)}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="mvp-var-note">
+          <div class="mvp-item-title">What is pushing downside now</div>
+          <div class="mvp-item-subtle">${escapeHtml(driverSummary)} are the largest current drivers of modeled downside.</div>
+        </div>
       `;
 
-      contributions.innerHTML = (body.var_result.position_contributions || [])
-        .slice(0, 6)
+      varDrivers.innerHTML = topDrivers
         .map(
           (item) => `
             <div class="mvp-item">
               <div>
-                <div class="mvp-item-title">${escapeHtml(item.ticker)}</div>
-                <div class="mvp-item-subtle">${escapeHtml(titleCase(item.method))}</div>
+                <div class="mvp-item-title">${escapeHtml(item.ticker)} is pushing current downside</div>
+                <div class="mvp-item-subtle">${escapeHtml(titleCase(item.method))} estimate</div>
               </div>
               <div style="text-align:right">
                 <div class="mvp-item-title">${formatCurrency(item.contribution_usd)}</div>
@@ -653,6 +1316,9 @@
           `
         )
         .join('');
+      if (!topDrivers.length) {
+        varDrivers.innerHTML = '<div class="mvp-empty">No downside drivers available.</div>';
+      }
     }
 
     function renderRegister(body) {
@@ -689,149 +1355,41 @@
         : '<tr><td colspan="4" class="mvp-empty">No risks in this severity bucket.</td></tr>';
     }
 
-    function renderOverlay() {
-      const summary = cockpitBody?.overlay_summary;
-      if (!summary || !overlayTriangulation || !overlayStressBody || !overlayRegimeBody) {
-        if (overlayAlertTop) overlayAlertTop.innerHTML = '';
-        overlaySummary.innerHTML = '<div class="mvp-empty">Overlay data unavailable.</div>';
-        overlayFactors.innerHTML = '';
-        overlayStress.innerHTML = '';
-        if (overlayRegime) overlayRegime.innerHTML = '';
-        return;
-      }
-
-      const visibleAlerts = (overlayStressBody.alerts || []).filter((item) => !dismissedOverlayAlerts.has(item.rule || item.headline));
-      if (overlayAlertTop) {
-        overlayAlertTop.innerHTML = visibleAlerts.length
-          ? `
-              <div class="mvp-overlay-alerts mvp-overlay-alerts-top">
-                ${visibleAlerts.map((item) => `
-                  <div class="mvp-notice ${item.severity === 'priority' ? 'error' : ''}">
-                    <div class="mvp-overlay-banner-head">
-                      <strong>${escapeHtml(item.headline)}</strong>
-                      <button type="button" class="btn" data-dismiss-alert="${escapeHtml(item.rule || item.headline)}">Dismiss</button>
-                    </div>
-                    ${escapeHtml(item.description)}
-                  </div>
-                `).join('')}
-              </div>
-            `
-          : '';
-        overlayAlertTop.querySelectorAll('[data-dismiss-alert]').forEach((button) => {
-          button.addEventListener('click', () => {
-            dismissedOverlayAlerts.add(button.dataset.dismissAlert || '');
-            renderOverlay();
-          });
-        });
-      }
-
-      if (overlayRegime) {
-        overlayRegime.innerHTML = `
-          <span class="mvp-pill ${severityClass(summary.regime)}">${escapeHtml(titleCase(summary.regime))}</span>
-          <span class="mvp-item-subtle">Changed ${escapeHtml(formatDateTime(overlayRegimeBody.created_at))}</span>
-        `;
-      }
-
-      overlaySummary.innerHTML = `
-        <div class="mvp-overlay-kpis">
-          <div class="mvp-stat-item">
-            <div class="uplabel">Composite score</div>
-            <div class="value">${formatNumber(summary.composite_score, 2)}</div>
-            <div class="meta">${escapeHtml(titleCase(summary.regime))} regime</div>
-          </div>
-          <div class="mvp-stat-item">
-            <div class="uplabel">AUM at risk</div>
-            <div class="value">${formatCompactCurrency(overlayTriangulation.aum_at_risk_usd)}</div>
-            <div class="meta">Factors above 70</div>
-          </div>
-          <div class="mvp-stat-item">
-            <div class="uplabel">Top factor</div>
-            <div class="value">${escapeHtml(summary.top_risk_factors[0]?.label || 'N/A')}</div>
-            <div class="meta">${formatCompactCurrency(summary.top_risk_factors[0]?.aum_exposed_usd || 0)}</div>
-          </div>
-          <div class="mvp-stat-item">
-            <div class="uplabel">Trigger</div>
-            <div class="value">${escapeHtml(titleCase(overlayRegimeBody.trigger_signal || 'baseline'))}</div>
-            <div class="meta">${escapeHtml(overlayRegimeBody.methodology_note || '')}</div>
-          </div>
-        </div>
-      `;
-
-      overlayFactors.innerHTML = `
-        <div class="mvp-overlay-panel mvp-overlay-scroll">
-          <div class="uplabel">Factor table</div>
-          <table class="mvp-table mvp-overlay-factor-table">
-            <thead>
-              <tr>
-                <th>Factor</th>
-                <th>Score</th>
-                <th>Direction</th>
-                <th class="num">% Port.</th>
-                <th class="num">AUM</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(overlayTriangulation.factors || []).map((item) => `
-                <tr>
-                  <td>
-                    <div class="mvp-risk-name">${escapeHtml(item.label)}</div>
-                    <div class="mvp-risk-desc">${escapeHtml(titleCase(item.factor_type))}</div>
-                  </td>
-                  <td><span class="mvp-pill ${item.risk_score >= 85 ? 'priority' : item.risk_score >= 75 ? 'elevated' : 'watch'}">${formatNumber(item.risk_score, 0)}</span></td>
-                  <td>${escapeHtml(titleCase(item.direction))}</td>
-                  <td class="num">${formatPct(item.exposure_pct, 1)}</td>
-                  <td class="num">${formatCompactCurrency(item.aum_exposed_usd)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-
-      overlayStress.innerHTML = `
-        <div class="mvp-overlay-panel mvp-overlay-scroll">
-          <div class="uplabel">Stress scenarios</div>
-          <div class="mvp-list">
-            ${(overlayStressBody.scenarios || []).map((item) => `
-              <div class="mvp-item">
-                <div>
-                  <div class="mvp-item-title">${escapeHtml(item.name)}</div>
-                  <div class="mvp-item-subtle">${escapeHtml(item.description)}</div>
-                  <div class="mvp-item-subtle">${escapeHtml((item.top_drivers || []).map((driver) => driver.label).join(' · '))}</div>
-                </div>
-                <div style="text-align:right">
-                  <div class="mvp-item-title">${formatCompactCurrency(item.estimated_impact_usd)}</div>
-                  <div class="mvp-item-subtle">${formatPct(item.estimated_impact_pct, 1)}</div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-          ${visibleAlerts.length ? `
-            <div class="mvp-overlay-alerts">
-              ${visibleAlerts.map((item) => `
-                <div class="mvp-notice ${item.severity === 'priority' ? 'error' : ''}">
-                  <strong>${escapeHtml(item.headline)}</strong><br/>${escapeHtml(item.description)}
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
-        </div>
-      `;
-    }
-
     function renderCockpit(body) {
       const summary = body.portfolio_summary;
       const risks = body.risk_register || [];
+      const liquidity = summary.liquidity_summary || liquiditySummary;
+      const nextCallAmount = Math.abs(Number(liquidity?.next_call_amount_usd || 0));
+      const bufferGap = Math.abs(Number(liquidity?.buffer_gap_usd || 0));
       kpis.innerHTML = `
-        <div class="mvp-kpi mvp-kpi-featured"><div class="uplabel">Total AUM</div><div class="value">${formatCompactCurrency(summary.total_aum_usd)}</div><div class="meta">Live portfolio snapshot</div></div>
-        <div class="mvp-kpi"><div class="uplabel">1-Day VaR (95%)</div><div class="value">${formatCurrency(body.var_result.var_1d_95)}</div><div class="meta">${formatPct(body.var_result.model_coverage_pct, 0)} modeled coverage</div></div>
-        <div class="mvp-kpi"><div class="uplabel">Active Risks</div><div class="value">${formatNumber(risks.length)}</div><div class="meta">${formatNumber(risks.filter((item) => item.severity === 'priority').length)} priority · ${formatNumber(risks.filter((item) => item.severity === 'elevated').length)} elevated</div></div>
-        <div class="mvp-kpi"><div class="uplabel">Liquidity (T+1)</div><div class="value">${formatPct(summary.liquidity_score_pct, 1)}</div><div class="meta">Current portfolio estimate</div></div>
+        <div class="mvp-kpi mvp-kpi-featured"><div class="uplabel">Portfolio value</div><div class="value">${formatCompactCurrency(summary.total_aum_usd)}</div><div class="meta">Live portfolio snapshot</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Bad normal day</div><div class="value">${formatCurrency(body.var_result.var_1d_95)}</div><div class="meta">Estimated 1-day downside at 95%</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Active risks</div><div class="value">${formatNumber(risks.length)}</div><div class="meta">${formatNumber(risks.filter((item) => item.severity === 'priority').length)} priority · ${formatNumber(risks.filter((item) => item.severity === 'elevated').length)} elevated</div></div>
+        <button type="button" class="mvp-kpi mvp-kpi-liquidity" data-open-liquidity>
+          <div class="uplabel">Liquidity outlook</div>
+          <div class="mvp-kpi-liquidity-list">
+            <div class="mvp-kpi-liquidity-item">
+              <div>
+                <div class="value">${liquidity?.next_call_due_date ? formatCompactCurrency(nextCallAmount) : 'None'}</div>
+                <div class="meta">${escapeHtml(liquidity?.next_call_due_date ? `Next call · ${liquidity.next_call_due_date}` : 'No capital call scheduled')}</div>
+              </div>
+            </div>
+            <div class="mvp-kpi-liquidity-item">
+              <div>
+                <div class="value">${formatCompactCurrency(liquidity?.net_liquidity_usd || 0)}</div>
+                <div class="meta">Net 90-day liquidity</div>
+              </div>
+            </div>
+            <div class="mvp-kpi-liquidity-item mvp-kpi-liquidity-status">
+              <span class="mvp-pill ${liquidity?.buffer_breach ? 'priority' : 'good'}">${liquidity?.buffer_breach ? 'Buffer breach' : 'Buffer intact'}</span>
+              <div class="meta">${liquidity?.buffer_breach ? `${formatCompactCurrency(bufferGap)} shortfall to buffer` : `${formatCompactCurrency(liquidity?.projected_cash_usd || 0)} projected cash`}</div>
+            </div>
+          </div>
+        </button>
       `;
       renderComposition(body);
       renderVar(body);
       renderRegister(body);
-      renderOverlay();
     }
 
     function renderCockpitLoading() {
@@ -844,46 +1402,31 @@
       `).join('');
       composition.innerHTML = '<div class="mvp-empty">Loading composition...</div>';
       varSummary.innerHTML = '';
-      varStats.innerHTML = '';
-      contributions.innerHTML = '<div class="mvp-empty">Loading VaR contributors...</div>';
+      varVisual.innerHTML = '';
+      varDrivers.innerHTML = '<div class="mvp-empty">Loading downside read...</div>';
       register.innerHTML = '<tr><td colspan="4" class="mvp-empty">Loading risk register...</td></tr>';
-      overlaySummary.innerHTML = '<div class="mvp-empty">Loading overlay summary...</div>';
-      overlayFactors.innerHTML = '';
-      overlayStress.innerHTML = '';
-      if (overlayAlertTop) overlayAlertTop.innerHTML = '';
-      if (overlayRegime) overlayRegime.innerHTML = '';
     }
 
     async function loadCockpit() {
       renderCockpitLoading();
       try {
-        const [cockpitResponse, triangulationResponse, stressResponse, regimeResponse] = await Promise.all([
+        const [cockpitResponse, liquidityResponse] = await Promise.all([
           api('/cockpit'),
-          api('/overlay/aum-triangulation'),
-          api('/overlay/stress'),
-          api('/overlay/regime'),
+          api('/liquidity/summary'),
         ]);
         cockpitBody = cockpitResponse;
-        overlayTriangulation = triangulationResponse;
-        overlayStressBody = stressResponse;
-        overlayRegimeBody = regimeResponse;
+        liquiditySummary = liquidityResponse;
         renderCockpit(cockpitBody);
-        setStatus(status, 'Updated just now.', 'success');
+        setStatus(status, '', '');
       } catch (error) {
         cockpitBody = null;
-        overlayTriangulation = null;
-        overlayStressBody = null;
-        overlayRegimeBody = null;
+        liquiditySummary = null;
         kpis.innerHTML = '';
         composition.innerHTML = '';
         varSummary.innerHTML = '';
-        varStats.innerHTML = '';
-        contributions.innerHTML = '';
+        varVisual.innerHTML = '';
+        varDrivers.innerHTML = '';
         register.innerHTML = '<tr><td colspan="4" class="mvp-empty">No cockpit data available.</td></tr>';
-        if (overlayAlertTop) overlayAlertTop.innerHTML = '';
-        overlaySummary.innerHTML = '';
-        overlayFactors.innerHTML = '';
-        overlayStress.innerHTML = '';
         setStatus(status, error.message, 'error');
       }
     }
@@ -900,18 +1443,6 @@
       });
     }
 
-    if (varToggles) {
-      varToggles.addEventListener('click', (event) => {
-        const button = event.target.closest('button[data-metric]');
-        if (!button || !cockpitBody) return;
-        activeVarMetric = button.dataset.metric || 'var_1d_95';
-        withTransientUpdate([varSummary, varStats, contributions], () => {
-          setActiveToggle(varToggles, 'metric', activeVarMetric);
-          renderVar(cockpitBody);
-        });
-      });
-    }
-
     if (riskFilters) {
       riskFilters.addEventListener('click', (event) => {
         const button = event.target.closest('button[data-severity]');
@@ -924,12 +1455,9 @@
     }
 
     document.getElementById('refresh-cockpit').addEventListener('click', loadCockpit);
-    document.getElementById('refresh-overlay').addEventListener('click', async () => {
-      try {
-        await api('/overlay/run', { method: 'POST' });
-        await loadCockpit();
-      } catch (error) {
-        setStatus(status, error.message, 'error');
+    kpis.addEventListener('click', (event) => {
+      if (event.target.closest('[data-open-liquidity]')) {
+        window.location.href = 'liquidity.html';
       }
     });
     document.getElementById('rerun-risk').addEventListener('click', async () => {
@@ -944,11 +1472,286 @@
     await loadCockpit();
   }
 
+  async function initLiquidity() {
+    const user = await requireSession('liquidity.html', ['Workspace', 'Liquidity']);
+    if (!user) return;
+
+    const status = document.getElementById('liquidity-status');
+    const kpis = document.getElementById('liquidity-kpis');
+    const chart = document.getElementById('liquidity-chart');
+    const chartSummary = document.getElementById('liquidity-chart-summary');
+    const gaps = document.getElementById('liquidity-gaps');
+    const detail = document.getElementById('liquidity-detail');
+    const notes = document.getElementById('liquidity-notes');
+    const scenarioButton = document.getElementById('liquidity-scenario');
+    const bufferInput = document.getElementById('liquidity-buffer');
+    const refreshButton = document.getElementById('liquidity-refresh');
+    bindFormattedNumberInputs(document);
+    let scenario = 'base';
+
+    function renderChart(cashflow, summary) {
+      const rows = cashflow.monthly_buckets || [];
+      if (!rows.length) {
+        chart.innerHTML = '<div class="mvp-empty">No liquidity data available.</div>';
+        return;
+      }
+      const width = Math.max(1100, rows.length * 52);
+      const height = 360;
+      const padding = { top: 20, right: 24, bottom: 44, left: 76 };
+      const innerWidth = width - padding.left - padding.right;
+      const innerHeight = height - padding.top - padding.bottom;
+      const barGroupWidth = innerWidth / rows.length;
+      const barWidth = Math.max(10, Math.min(18, barGroupWidth * 0.24));
+      const bufferValue = Number(cashflow.liquidity_buffer || 0);
+      const domainValues = rows.flatMap((row) => [
+        Number(row.inflows || 0),
+        -Number(row.outflows || 0),
+        Number(row.net || 0),
+        Number(row.cumulative || 0),
+      ]);
+      const rawMin = Math.min(...domainValues, 0);
+      const rawMax = Math.max(...domainValues, bufferValue, 0);
+      const range = Math.max(rawMax - rawMin, 1);
+      const domainPadding = range * 0.12;
+      const domainMin = rawMin - domainPadding;
+      const domainMax = rawMax + domainPadding;
+      const scaleY = (value) => {
+        const ratio = (domainMax - Number(value || 0)) / Math.max(domainMax - domainMin, 1);
+        return padding.top + ratio * innerHeight;
+      };
+      const zeroY = scaleY(0);
+      const linePoints = rows.map((row, index) => {
+        const x = padding.left + barGroupWidth * index + barGroupWidth / 2;
+        const y = scaleY(row.cumulative);
+        return `${x},${y}`;
+      }).join(' ');
+      const tickCount = 5;
+      const ticks = Array.from({ length: tickCount }, (_, index) => {
+        const ratio = index / (tickCount - 1);
+        const value = domainMax - (domainMax - domainMin) * ratio;
+        return {
+          value,
+          y: scaleY(value),
+          label: formatCompactCurrency(value),
+        };
+      });
+
+      chart.innerHTML = `
+        <div class="mvp-liquidity-chart-scroll">
+          <svg viewBox="0 0 ${width} ${height}" class="mvp-liquidity-svg" role="img" aria-label="Liquidity cash flow chart">
+            ${ticks.map((tick) => `
+              <g class="mvp-liquidity-tick">
+                <line x1="${padding.left}" y1="${tick.y}" x2="${width - padding.right}" y2="${tick.y}" class="mvp-liquidity-gridline"/>
+                <text x="${padding.left - 12}" y="${tick.y + 4}" text-anchor="end" class="mvp-liquidity-y-axis">${escapeHtml(tick.label)}</text>
+              </g>
+            `).join('')}
+            <line x1="${padding.left}" y1="${zeroY}" x2="${width - padding.right}" y2="${zeroY}" class="mvp-liquidity-baseline"/>
+            ${rows.map((row, index) => {
+              const x = padding.left + barGroupWidth * index;
+              const centerX = x + barGroupWidth / 2;
+              const inflowValue = Number(row.inflows || 0);
+              const outflowValue = -Number(row.outflows || 0);
+              const netValue = Number(row.net || 0);
+              const cumulativeValue = Number(row.cumulative || 0);
+              const inflowY = scaleY(inflowValue);
+              const outflowY = scaleY(outflowValue);
+              const cumulativeY = scaleY(cumulativeValue);
+              const slotWidth = Math.max(barGroupWidth - 8, 24);
+              const hitX = centerX - slotWidth / 2;
+              const label = `${formatMonthKey(row.month)}. Inflows ${formatCurrency(inflowValue)}. Outflows ${formatCurrency(Math.abs(outflowValue))}. Net ${formatCurrency(netValue)}. Cumulative ${formatCurrency(cumulativeValue)}.`;
+              return `
+                <g class="mvp-liquidity-slot" data-index="${index}">
+                  <rect x="${hitX}" y="${padding.top}" width="${slotWidth}" height="${innerHeight}" class="mvp-liquidity-highlight"/>
+                  <rect x="${x + barGroupWidth * 0.14}" y="${Math.min(inflowY, zeroY)}" width="${barWidth}" height="${Math.max(Math.abs(zeroY - inflowY), 1)}" class="mvp-liquidity-bar inflow"/>
+                  <rect x="${x + barGroupWidth * 0.14 + barWidth + 8}" y="${Math.min(outflowY, zeroY)}" width="${barWidth}" height="${Math.max(Math.abs(outflowY - zeroY), 1)}" class="mvp-liquidity-bar outflow"/>
+                  <line x1="${centerX}" y1="${zeroY}" x2="${centerX}" y2="${cumulativeY}" class="mvp-liquidity-stem"/>
+                  <circle cx="${centerX}" cy="${cumulativeY}" r="4.5" class="mvp-liquidity-point"/>
+                  <rect x="${hitX}" y="${padding.top}" width="${slotWidth}" height="${innerHeight}" class="mvp-liquidity-hitbox" tabindex="0" role="button" aria-label="${escapeHtml(label)}"/>
+                  <text x="${centerX}" y="${height - 14}" text-anchor="middle" class="mvp-liquidity-axis">${escapeHtml(formatMonthKey(row.month))}</text>
+                </g>
+              `;
+            }).join('')}
+            <polyline points="${linePoints}" class="mvp-liquidity-line"/>
+          </svg>
+          <div class="mvp-liquidity-tooltip" id="liquidity-tooltip" hidden></div>
+        </div>
+      `;
+
+      chartSummary.innerHTML = `
+        <div class="mvp-overlay-kpis">
+          <div class="mvp-stat-item"><div class="uplabel">Scenario</div><div class="value">${escapeHtml(titleCase(cashflow.scenario))}</div><div class="meta">${rows.length} monthly buckets</div></div>
+          <div class="mvp-stat-item"><div class="uplabel">Buffer target</div><div class="value">${formatCompactCurrency(cashflow.liquidity_buffer)}</div><div class="meta">${summary.buffer_breach ? `${formatCompactCurrency(summary.buffer_gap_usd)} below target` : 'Target maintained in the 90-day view'}</div></div>
+          <div class="mvp-stat-item"><div class="uplabel">Projected cash after 90 days</div><div class="value">${formatCompactCurrency(summary.projected_cash_usd)}</div><div class="meta">Cash on hand plus next 90-day net flows</div></div>
+          <div class="mvp-stat-item"><div class="uplabel">Gap months</div><div class="value">${formatNumber(cashflow.liquidity_gaps?.length || 0, 0)}</div><div class="meta">${cashflow.liquidity_gaps?.length ? 'Months where projected cash falls short of the target buffer.' : 'No projected months fall below the target buffer.'}</div></div>
+        </div>
+      `;
+
+      const tooltip = document.getElementById('liquidity-tooltip');
+      const scroll = chart.querySelector('.mvp-liquidity-chart-scroll');
+      const slots = [...chart.querySelectorAll('.mvp-liquidity-slot')];
+      
+      function showTooltip(index) {
+        const row = rows[index];
+        const slot = slots[index];
+        if (!row || !slot || !tooltip || !scroll) return;
+        slots.forEach((slot, slotIndex) => {
+          slot.classList.toggle('is-active', slotIndex === index);
+        });
+        const point = slot.querySelector('.mvp-liquidity-point');
+        const pointBox = point?.getBoundingClientRect();
+        const scrollBox = scroll.getBoundingClientRect();
+        tooltip.innerHTML = `
+          <div class="mvp-liquidity-tooltip-title">${escapeHtml(formatMonthKey(row.month))}</div>
+          <div>Inflows <strong>${escapeHtml(formatCompactCurrency(row.inflows || 0))}</strong></div>
+          <div>Outflows <strong>${escapeHtml(formatCompactCurrency(row.outflows || 0))}</strong></div>
+          <div>Net <strong>${escapeHtml(formatCompactCurrency(row.net || 0))}</strong></div>
+          <div>Cumulative <strong>${escapeHtml(formatCompactCurrency(row.cumulative || 0))}</strong></div>
+        `;
+        tooltip.hidden = false;
+        const tooltipWidth = tooltip.offsetWidth || 180;
+        const pointLeft = pointBox ? (pointBox.left - scrollBox.left + scroll.scrollLeft) : (barGroupWidth * index);
+        const pointTop = pointBox ? (pointBox.top - scrollBox.top) : 0;
+        const left = Math.max(12, Math.min(pointLeft - tooltipWidth / 2, scroll.scrollWidth - tooltipWidth - 12));
+        const top = Math.max(12, pointTop - 112);
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+      }
+
+      function hideTooltip() {
+        if (tooltip) tooltip.hidden = true;
+        slots.forEach((slot) => slot.classList.remove('is-active'));
+      }
+
+      slots.forEach((slot, index) => {
+        const hitbox = slot.querySelector('.mvp-liquidity-hitbox');
+        if (!hitbox) return;
+        hitbox.addEventListener('mouseenter', () => showTooltip(index));
+        hitbox.addEventListener('focus', () => showTooltip(index));
+        hitbox.addEventListener('click', () => showTooltip(index));
+        hitbox.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            showTooltip(index);
+          }
+        });
+      });
+
+      scroll?.addEventListener('mouseleave', hideTooltip);
+      scroll?.addEventListener('focusout', (event) => {
+        if (!chart.contains(event.relatedTarget)) hideTooltip();
+      });
+    }
+
+    function renderLiquidity(summary, cashflow) {
+      kpis.innerHTML = `
+        <div class="mvp-kpi mvp-kpi-featured"><div class="uplabel">Next call due</div><div class="value">${summary.next_call_amount_usd ? formatCompactCurrency(summary.next_call_amount_usd) : 'None'}</div><div class="meta">${escapeHtml(summary.next_call_due_date || 'No scheduled call')}</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Total unfunded</div><div class="value">${formatCompactCurrency(summary.total_unfunded_usd)}</div><div class="meta">Commitments still drawable</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Expected distributions</div><div class="value">${formatCompactCurrency(summary.expected_distributions_usd)}</div><div class="meta">Next 90 days</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Net position</div><div class="value">${formatCompactCurrency(summary.net_liquidity_usd)}</div><div class="meta">${summary.buffer_breach ? 'Below target buffer' : 'Above target buffer'}</div></div>
+      `;
+
+      detail.innerHTML = `
+        <div class="mvp-list">
+          <div class="mvp-item"><div><div class="mvp-item-title">Cash on hand</div><div class="mvp-item-subtle">Current cash positions in portfolio</div></div><div class="mvp-item-title">${formatCompactCurrency(summary.cash_on_hand_usd)}</div></div>
+          <div class="mvp-item"><div><div class="mvp-item-title">Scheduled outflows</div><div class="mvp-item-subtle">Calls and fees inside 90 days</div></div><div class="mvp-item-title">${formatCompactCurrency(summary.scheduled_outflows_usd)}</div></div>
+          <div class="mvp-item"><div><div class="mvp-item-title">Projected cash</div><div class="mvp-item-subtle">Cash plus net flows</div></div><div class="mvp-item-title">${formatCompactCurrency(summary.projected_cash_usd)}</div></div>
+          <div class="mvp-item"><div><div class="mvp-item-title">Recallable pending</div><div class="mvp-item-subtle">Distributions not yet clear of recall window</div></div><div class="mvp-item-title">${formatCompactCurrency(summary.recallable_pending_usd)}</div></div>
+        </div>
+      `;
+      if (notes) {
+        notes.innerHTML = `
+          <div class="mvp-list">
+            <div class="mvp-item">
+              <div>
+                <div class="mvp-item-title">Scenario mode</div>
+                <div class="mvp-item-subtle">${scenario === 'stress' ? 'Stress case is active. Inflows are delayed and outflows stay conservative.' : 'Base case is active. This is the clean operational planning view.'}</div>
+              </div>
+              <span class="mvp-pill ${scenario === 'stress' ? 'elevated' : 'good'}">${escapeHtml(titleCase(scenario))}</span>
+            </div>
+            <div class="mvp-item">
+              <div>
+                <div class="mvp-item-title">Next call</div>
+                <div class="mvp-item-subtle">${escapeHtml(summary.next_call_due_date || 'No scheduled capital call in the current view.')}</div>
+              </div>
+              <span class="mvp-pill ${summary.next_call_amount_usd ? 'watch' : 'good'}">${summary.next_call_amount_usd ? formatCompactCurrency(summary.next_call_amount_usd) : 'None'}</span>
+            </div>
+            <div class="mvp-item">
+              <div>
+                <div class="mvp-item-title">Buffer read</div>
+                <div class="mvp-item-subtle">${summary.buffer_breach ? 'Projected cash falls below the selected buffer inside the 90-day window.' : 'Projected cash remains above the selected buffer inside the 90-day window.'}</div>
+              </div>
+              <span class="mvp-pill ${summary.buffer_breach ? 'priority' : 'good'}">${summary.buffer_breach ? 'At risk' : 'Covered'}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      gaps.innerHTML = cashflow.liquidity_gaps?.length ? `
+        <div class="mvp-list">
+          ${cashflow.liquidity_gaps.map((item) => `
+            <div class="mvp-item">
+              <div>
+                <div class="mvp-item-title">${escapeHtml(formatMonthKey(item.month))}</div>
+                <div class="mvp-item-subtle">${escapeHtml(item.description)}</div>
+              </div>
+              <div style="text-align:right">
+                <span class="mvp-pill priority">${formatCompactCurrency(item.gap_amount)}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : '<div class="mvp-empty">No projected liquidity gaps at the current buffer target.</div>';
+
+      renderChart(cashflow, summary);
+      scenarioButton.classList.toggle('primary', scenario === 'stress');
+      scenarioButton.innerHTML = scenario === 'stress'
+        ? '<span class="ms">check_circle</span>Stress case'
+        : '<span class="ms">tornado</span>Stress case';
+    }
+
+    async function loadLiquidity() {
+      setStatus(status, '', '');
+      try {
+        const bufferTarget = clampNumber(parseFormattedNumber(bufferInput.value), 2000000, 0);
+        bufferInput.value = formatNumberInputValue(bufferTarget, 'integer');
+        const [summary, cashflow] = await Promise.all([
+          api(`/liquidity/summary?buffer_target_usd=${encodeURIComponent(bufferTarget)}`),
+          api(`/liquidity/cashflow?months=24&scenario=${encodeURIComponent(scenario)}&buffer_target_usd=${encodeURIComponent(bufferTarget)}`),
+        ]);
+        renderLiquidity(summary, cashflow);
+      } catch (error) {
+        kpis.innerHTML = '';
+        chart.innerHTML = '';
+        chartSummary.innerHTML = '';
+        gaps.innerHTML = '';
+        detail.innerHTML = '';
+        if (notes) notes.innerHTML = '';
+        setStatus(status, error.message, 'error');
+      }
+    }
+
+    refreshButton.addEventListener('click', async () => {
+      await withButtonBusy(refreshButton, 'Refreshing...', loadLiquidity);
+    });
+    scenarioButton.addEventListener('click', async () => {
+      await withButtonBusy(scenarioButton, scenario === 'base' ? 'Loading stress...' : 'Loading base...', async () => {
+        scenario = scenario === 'base' ? 'stress' : 'base';
+        await loadLiquidity();
+      });
+    });
+    bufferInput.addEventListener('change', async () => {
+      await loadLiquidity();
+    });
+
+    await loadLiquidity();
+  }
+
   async function initOverlay() {
     const user = await requireSession('overlay.html', ['Workspace', 'Overlay']);
     if (!user) return;
 
     const status = document.getElementById('overlay-status');
+    const feature = document.getElementById('overlay-feature');
     const kpis = document.getElementById('overlay-kpis');
     const regimePanel = document.getElementById('overlay-regime-panel');
     const triangulationPanel = document.getElementById('overlay-triangulation-panel');
@@ -957,6 +1760,35 @@
     let refreshTimer = null;
 
     function renderOverlayPage({ factors, regime, triangulation, stress }) {
+      const topFactor = (triangulation.factors || [])[0];
+      const topScenario = (stress.scenarios || [])[0];
+      feature.innerHTML = `
+        <div class="mvp-overlay-feature">
+          <div class="mvp-overlay-feature-main">
+            <div class="mvp-overlay-feature-copy">
+              <div class="mvp-feature-meta">
+                <span class="mvp-pill ${severityClass(regime.regime)}">${escapeHtml(titleCase(regime.regime))} regime</span>
+                <span>${escapeHtml(`Updated ${formatDateTime(regime.created_at)}`)}</span>
+              </div>
+              <h3>${escapeHtml(titleCase(regime.trigger_signal || 'baseline'))} is driving today's overlay posture.</h3>
+              <p>${escapeHtml(regime.methodology_note || 'Daily factor scoring and scenario monitoring are aligned to the latest portfolio snapshot.')}</p>
+            </div>
+            <div class="mvp-overlay-feature-side">
+              <div class="mvp-overlay-insight">
+                <div class="uplabel">Top factor at risk</div>
+                <div class="value">${escapeHtml(topFactor?.label || 'N/A')}</div>
+                <div class="meta">${escapeHtml(topFactor ? `${formatPct(topFactor.exposure_pct, 1)} of portfolio · ${formatCompactCurrency(topFactor.aum_exposed_usd)}` : 'No factor exposure available')}</div>
+              </div>
+              <div class="mvp-overlay-insight">
+                <div class="uplabel">Largest scenario</div>
+                <div class="value">${topScenario ? formatCompactCurrency(topScenario.estimated_impact_usd) : 'N/A'}</div>
+                <div class="meta">${escapeHtml(topScenario ? `${topScenario.name} · ${formatPct(topScenario.estimated_impact_pct, 1)}` : 'No scenario impact available')}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
       kpis.innerHTML = `
         <div class="mvp-kpi mvp-kpi-featured"><div class="uplabel">Composite score</div><div class="value">${formatNumber(triangulation.composite_score, 2)}</div><div class="meta">${escapeHtml(titleCase(regime.regime))} regime</div></div>
         <div class="mvp-kpi"><div class="uplabel">AUM at risk</div><div class="value">${formatCompactCurrency(triangulation.aum_at_risk_usd)}</div><div class="meta">Scores above 70</div></div>
@@ -1080,8 +1912,9 @@
           api('/overlay/stress'),
         ]);
         renderOverlayPage({ factors, regime, triangulation, stress });
-        setStatus(status, 'Overlay data refreshed.', 'success');
+        setStatus(status, '', '');
       } catch (error) {
+        feature.innerHTML = '';
         kpis.innerHTML = '';
         regimePanel.innerHTML = '<div class="mvp-empty">Overlay regime unavailable.</div>';
         triangulationPanel.innerHTML = '<div class="mvp-empty">Triangulation unavailable.</div>';
@@ -1120,8 +1953,10 @@
     if (!user) return;
 
     const status = document.getElementById('briefings-status');
+    const overview = document.getElementById('briefings-overview');
     const list = document.getElementById('briefings-list');
     const toggleDrafts = document.getElementById('toggle-drafts');
+    const rail = document.getElementById('briefings-rail');
     let showDrafts = false;
 
     async function loadBriefings() {
@@ -1131,10 +1966,58 @@
           if (left.status === right.status) return right.version - left.version;
           return left.status === 'published' ? -1 : 1;
         });
+        const published = items.filter((item) => item.status === 'published');
+        const drafts = items.filter((item) => item.status !== 'published');
+        const featured = published[0] || items[0] || null;
         const visibleItems = showDrafts ? items : items.filter((item) => item.status === 'published');
         if (toggleDrafts) {
           toggleDrafts.textContent = showDrafts ? 'Hide drafts' : 'Show drafts';
         }
+        if (rail) {
+          rail.innerHTML = `
+            <div class="mvp-card pad mvp-briefings-rail-card">
+              <div class="uplabel">Workflow</div>
+              <h3>Weekly committee cycle</h3>
+              <div class="mvp-list" style="margin-top:12px">
+                <div class="mvp-item"><div><div class="mvp-item-title">Published</div><div class="mvp-item-subtle">Memos already cleared for distribution.</div></div><span class="mvp-pill good">${formatNumber(published.length, 0)}</span></div>
+                <div class="mvp-item"><div><div class="mvp-item-title">Draft queue</div><div class="mvp-item-subtle">Generated output waiting for review or publish.</div></div><span class="mvp-pill elevated">${formatNumber(drafts.length, 0)}</span></div>
+                <div class="mvp-item"><div><div class="mvp-item-title">View mode</div><div class="mvp-item-subtle">${showDrafts ? 'Published and draft items are visible below.' : 'Drafts are hidden until needed.'}</div></div><span class="mvp-pill watch">${showDrafts ? 'all' : 'published'}</span></div>
+              </div>
+            </div>
+          `;
+        }
+        overview.innerHTML = featured
+          ? `
+              <div class="mvp-feature-grid">
+                <div class="mvp-feature-card">
+                  <div class="uplabel">Latest committee pack</div>
+                  <h3>${escapeHtml(featured.output.headline || 'Weekly briefing')}</h3>
+                  <p>${escapeHtml(featured.output.executive_summary || briefingSummary(featured.output))}</p>
+                  <div class="mvp-feature-meta" style="margin-top:14px">
+                    <span class="mvp-pill ${featured.status === 'published' ? 'good' : 'elevated'}">${escapeHtml(featured.status)}</span>
+                    <span>${escapeHtml(formatWeekLabel(featured.week_label))}</span>
+                    <span>v${escapeHtml(featured.version)}</span>
+                  </div>
+                  ${renderQualityNote(featured.output.quality_gate)}
+                </div>
+                <div class="mvp-feature-stat">
+                  <div class="uplabel">Published</div>
+                  <div class="value">${formatNumber(published.length, 0)}</div>
+                  <div class="meta">Investor-ready weekly memos.</div>
+                </div>
+                <div class="mvp-feature-stat">
+                  <div class="uplabel">Drafts</div>
+                  <div class="value">${formatNumber(drafts.length, 0)}</div>
+                  <div class="meta">${showDrafts ? 'Visible in the grid below.' : 'Hidden by default to keep the list focused.'}</div>
+                </div>
+                <div class="mvp-feature-stat">
+                  <div class="uplabel">Current status</div>
+                  <div class="value">${escapeHtml(qualitySummary(featured.output.quality_gate))}</div>
+                  <div class="meta">${escapeHtml((featured.output.quality_gate?.blocking_messages || [])[0] || 'Latest briefing is committee-ready.')}</div>
+                </div>
+              </div>
+            `
+          : '';
         list.innerHTML = visibleItems.length
           ? visibleItems
               .map(
@@ -1142,6 +2025,7 @@
                   <a class="mvp-card pad" href="briefing.html?id=${encodeURIComponent(item.id)}" style="display:block;color:inherit">
                     <div class="mvp-metadata">
                       <span class="mvp-pill ${item.status === 'published' ? 'good' : 'elevated'}">${escapeHtml(item.status)}</span>
+                      ${item.output.quality_gate ? `<span class="mvp-pill ${qualityTone(item.output.quality_gate)}">${escapeHtml(qualitySummary(item.output.quality_gate))}</span>` : ''}
                       <span>${escapeHtml(formatWeekLabel(item.week_label))}</span>
                       <span>v${escapeHtml(item.version)}</span>
                     </div>
@@ -1152,8 +2036,9 @@
               )
               .join('')
           : `<div class="mvp-empty mvp-card">${showDrafts ? 'No briefings yet. Generate the first one from this page.' : 'No published briefings yet. Show drafts or generate a new briefing.'}</div>`;
-        setStatus(status, `${visibleItems.length} briefings loaded.`, 'success');
+        setStatus(status, '', '');
       } catch (error) {
+        overview.innerHTML = '';
         list.innerHTML = '<div class="mvp-empty mvp-card">Unable to load briefings.</div>';
         setStatus(status, error.message, 'error');
       }
@@ -1168,7 +2053,11 @@
 
     document.getElementById('generate-briefing-action').addEventListener('click', async () => {
       try {
-        const briefing = await api('/briefings/generate', { method: 'POST' });
+        const briefing = await withButtonBusy(
+          document.getElementById('generate-briefing-action'),
+          'Generating...',
+          async () => api('/briefings/generate', { method: 'POST' })
+        );
         window.location.href = `briefing.html?id=${encodeURIComponent(briefing.id)}`;
       } catch (error) {
         setStatus(status, error.message, 'error');
@@ -1211,6 +2100,7 @@
         title.textContent = output.headline || 'Weekly briefing';
         meta.innerHTML = `
           <span class="mvp-pill ${briefing.status === 'published' ? 'good' : 'elevated'}">${escapeHtml(briefing.status)}</span>
+          ${output.quality_gate ? `<span class="mvp-pill ${qualityTone(output.quality_gate)}">${escapeHtml(qualitySummary(output.quality_gate))}</span>` : ''}
           <span>${escapeHtml(formatWeekLabel(briefing.week_label))}</span>
           <span>Version ${escapeHtml(briefing.version)}</span>
         `;
@@ -1226,42 +2116,65 @@
         exportButton.innerHTML = legacyTxtExport
           ? '<span class="ms">block</span>PDF unavailable'
           : '<span class="ms">file_download</span>Export PDF';
-        body.innerHTML = `
-          <section class="mvp-card pad">
-            <div class="uplabel">Executive summary</div>
-            <p style="margin:10px 0 0;line-height:1.6">${escapeHtml(output.executive_summary || '')}</p>
-          </section>
-          <section class="mvp-card pad">
-            <div class="uplabel">Market context</div>
-            <p style="margin:10px 0 0;line-height:1.6">${escapeHtml(output.market_context || '')}</p>
-          </section>
-          <section class="mvp-card pad">
-            <div class="uplabel">Portfolio risks</div>
-            <div class="mvp-list" style="margin-top:12px">
-              ${(output.portfolio_risks || [])
-                .map(
-                  (item) => `
-                    <div class="mvp-item">
-                      <div>
-                        <div class="mvp-item-title">${escapeHtml(item.risk_area)}</div>
-                        <div class="mvp-item-subtle">${escapeHtml(item.finding)}</div>
-                        <div class="mvp-item-subtle" style="margin-top:4px">${escapeHtml(item.implication || '')}</div>
-                      </div>
-                      <span class="mvp-pill ${severityClass(item.severity)}">${escapeHtml(item.severity)}</span>
-                    </div>
-                  `
-                )
-                .join('')}
-            </div>
-          </section>
-          <section class="mvp-card pad">
-            <div class="uplabel">Recommendations</div>
-            <ul style="margin:12px 0 0;padding-left:18px;line-height:1.8">
-              ${(output.recommendations || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
-            </ul>
-          </section>
-        `;
-        setStatus(status, `Loaded ${formatWeekLabel(briefing.week_label)}.`, 'success');
+        const sections = [
+          output.executive_summary && {
+            id: 'summary', eyebrow: 'I. Executive Summary', heading: 'The week in one breath',
+            html: `<div class="essay-prose"><p class="essay-deck">${escapeHtml(output.executive_summary)}</p></div>`,
+          },
+          output.market_context && {
+            id: 'context', eyebrow: 'II. Market Context', heading: 'What the tape is saying',
+            html: `<div class="essay-prose"><p>${escapeHtml(output.market_context).replace(/\n\n+/g, '</p><p>')}</p></div>`,
+          },
+          (output.portfolio_risks || []).length && {
+            id: 'risks', eyebrow: 'III. Portfolio Risks', heading: 'Where the exposure sits',
+            html: (output.portfolio_risks || []).map((item) => `
+              <div class="essay-risk">
+                <div class="essay-risk-head">
+                  <div class="essay-risk-title">${escapeHtml(item.risk_area)}</div>
+                  <div class="essay-risk-sev">${escapeHtml(item.severity)}</div>
+                </div>
+                <div class="essay-risk-finding">${escapeHtml(item.finding)}</div>
+                ${item.implication ? `<div class="essay-risk-implication">${escapeHtml(item.implication)}</div>` : ''}
+              </div>`).join(''),
+          },
+          (output.recommendations || []).length && {
+            id: 'recs', eyebrow: 'IV. Recommendations', heading: 'What to do next',
+            html: `<ol class="essay-recs">${(output.recommendations || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ol>`,
+          },
+        ].filter(Boolean);
+
+        body.innerHTML = (output.quality_gate ? `<section class="essay-section"><div class="essay-eyebrow">Quality Gate</div>${renderQualityNote(output.quality_gate)}</section>` : '')
+          + sections.map((s) => `
+            <section class="essay-section" id="sec-${s.id}">
+              <div class="essay-eyebrow">${s.eyebrow}</div>
+              <h2 class="essay-heading">${s.heading}</h2>
+              ${s.html}
+            </section>`).join('');
+
+        const toc = document.getElementById('briefing-toc');
+        if (toc) {
+          toc.innerHTML = `<div class="essay-toc-label">Contents</div>`
+            + sections.map((s) => `<a href="#sec-${s.id}" data-toc="${s.id}">${s.eyebrow.replace(/^[IVX]+\.\s*/, '')}</a>`).join('');
+        }
+
+        const reveal = new IntersectionObserver((entries) => {
+          entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-visible'); reveal.unobserve(e.target); } });
+        }, { threshold: 0.12 });
+        body.querySelectorAll('.essay-section').forEach((el) => reveal.observe(el));
+
+        const tocLinks = toc ? toc.querySelectorAll('a[data-toc]') : [];
+        if (tocLinks.length) {
+          const spy = new IntersectionObserver((entries) => {
+            entries.forEach((e) => {
+              if (e.isIntersecting) {
+                const id = e.target.id.replace(/^sec-/, '');
+                tocLinks.forEach((a) => a.classList.toggle('active', a.dataset.toc === id));
+              }
+            });
+          }, { rootMargin: '-40% 0px -55% 0px' });
+          body.querySelectorAll('.essay-section[id]').forEach((el) => spy.observe(el));
+        }
+        setStatus(status, '', '');
       } catch (error) {
         body.innerHTML = '<div class="mvp-empty">Unable to load briefing.</div>';
         setStatus(status, error.message, 'error');
@@ -1306,11 +2219,76 @@
     const snapshotMeta = document.getElementById('positions-meta');
     const form = document.getElementById('position-form');
     const formTitle = document.getElementById('position-form-title');
+    const versionMeta = document.getElementById('position-version-meta');
     const deleteButton = document.getElementById('delete-position');
     const submitButton = form.querySelector('button[type="submit"]');
+    const formNodes = {
+      ticker: document.getElementById('form-ticker'),
+      name: document.getElementById('form-name'),
+      quantity: document.getElementById('form-quantity'),
+      marketValue: document.getElementById('form-market-value'),
+      assetClass: document.getElementById('form-asset-class'),
+      region: document.getElementById('form-region'),
+      sector: document.getElementById('form-sector'),
+      subsector: document.getElementById('form-subsector'),
+      segment: document.getElementById('form-segment'),
+      custodian: document.getElementById('form-custodian'),
+      notes: document.getElementById('form-notes'),
+    };
     let selected = null;
     let mutationBusy = false;
-    const factorSourceOptions = ['manual', 'extracted', 'inferred'];
+    const SUBSECTORS_BY_SECTOR = {
+      private_equity: ['buyout', 'growth_equity', 'venture_capital', 'co_investment', 'secondaries'],
+      technology: ['application_software', 'semiconductors', 'ai_infrastructure', 'it_services'],
+      financials: ['banks', 'insurance', 'asset_management', 'private_credit'],
+      healthcare: ['biotech', 'pharma', 'medical_devices', 'health_services'],
+      consumer_discretionary: ['retail', 'consumer_internet', 'travel_leisure', 'autos'],
+      consumer_staples: ['food_beverage', 'household_products', 'consumer_brands'],
+      industrials: ['aerospace_defense', 'transportation', 'capital_goods'],
+      energy: ['upstream', 'midstream', 'downstream', 'energy_transition'],
+      fixed_income: ['investment_grade_credit', 'high_yield', 'distressed_debt', 'government_bonds', 'structured_credit'],
+      real_estate: ['reit', 'residential', 'commercial', 'logistics'],
+      real_assets: ['infrastructure', 'timber', 'agriculture', 'commodities'],
+      cash: ['operating_cash', 'money_market'],
+    };
+    const DEFAULT_SUBSECTORS = ['other', 'multi_strategy'];
+
+    function normalizeTaxonomyValue(value) {
+      return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+    }
+
+    function taxonomyLabel(value) {
+      const normalized = normalizeTaxonomyValue(value);
+      if (!normalized) return '';
+      if (normalized === 'reit') return 'REIT';
+      if (normalized === 'ig_credit') return 'IG Credit';
+      return normalized.replaceAll('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+
+    function ensureSelectValue(selectNode, value, fallback = '') {
+      if (!selectNode) return;
+      const normalized = normalizeTaxonomyValue(value);
+      if (!normalized) {
+        selectNode.value = fallback;
+        return;
+      }
+      const hasOption = Array.from(selectNode.options).some((option) => option.value === normalized);
+      selectNode.value = hasOption ? normalized : fallback;
+    }
+
+    function applySubsectorOptions(sectorValue, preferredSubsector = '') {
+      const sectorKey = normalizeTaxonomyValue(sectorValue);
+      const options = SUBSECTORS_BY_SECTOR[sectorKey] || DEFAULT_SUBSECTORS;
+      formNodes.subsector.innerHTML = `
+        <option value="">Unset</option>
+        ${options.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(taxonomyLabel(value))}</option>`).join('')}
+      `;
+      ensureSelectValue(formNodes.subsector, preferredSubsector, '');
+    }
 
     function syncMutationButtons() {
       setEnabled(submitButton, !mutationBusy);
@@ -1319,59 +2297,35 @@
 
     function setForm(position) {
       selected = position;
-      formTitle.textContent = position ? `Edit ${position.ticker}` : 'Add position';
-      document.getElementById('form-ticker').value = position?.ticker || '';
-      document.getElementById('form-ticker').disabled = Boolean(position);
-      document.getElementById('form-name').value = position?.name || '';
-      document.getElementById('form-quantity').value = position?.quantity ?? '';
-      document.getElementById('form-market-value').value = position?.market_value_usd ?? '';
-      document.getElementById('form-asset-class').value = position?.asset_class || 'public_equity';
-      document.getElementById('form-region').value = position?.geo_region || '';
-      document.getElementById('form-sector').value = position?.sector || '';
-      document.getElementById('form-segment').value = position?.market_segment || '';
-      document.getElementById('form-custodian').value = position?.custodian || '';
-      document.getElementById('form-factor-asset-class').value = position?.factor_asset_class || '';
-      document.getElementById('form-factor-sector').value = position?.factor_sector || '';
-      document.getElementById('form-factor-subsector').value = position?.factor_subsector || '';
-      document.getElementById('form-factor-market-segment').value = position?.factor_market_segment || '';
-      document.getElementById('form-factor-country').value = position?.factor_country || '';
-      document.getElementById('form-factor-region').value = position?.factor_region || '';
-      document.getElementById('form-factor-tag-source').value = position?.factor_tag_source || '';
-      document.getElementById('form-factor-tag-confidence').value = position?.factor_tag_confidence ?? '';
-      document.getElementById('form-notes').value = position?.notes || '';
+      formTitle.textContent = position ? `Edit ${position.ticker || position.name || 'position'}` : 'Add position';
+      formNodes.ticker.value = position?.ticker || '';
+      formNodes.ticker.disabled = Boolean(position);
+      formNodes.name.value = position?.name || '';
+      formNodes.quantity.value = position?.quantity ?? '';
+      formNodes.marketValue.value = position?.market_value_usd ?? '';
+      ensureSelectValue(formNodes.assetClass, position?.asset_class || position?.factor_asset_class, 'public_equity');
+      ensureSelectValue(formNodes.region, position?.geo_region || position?.factor_region);
+      ensureSelectValue(formNodes.sector, position?.sector || position?.factor_sector);
+      applySubsectorOptions(formNodes.sector.value, position?.factor_subsector || '');
+      ensureSelectValue(formNodes.segment, position?.market_segment || position?.factor_market_segment);
+      formNodes.custodian.value = position?.custodian || '';
+      formNodes.notes.value = position?.notes || '';
+      if (versionMeta) {
+        if (position) {
+          const added = position.first_seen_at || position.created_at;
+          const modified = position.last_modified_at || position.created_at;
+          versionMeta.textContent = `Date added ${formatDateTime(added)} · Date modified ${formatDateTime(modified)}`;
+        } else {
+          versionMeta.textContent = 'Date added and modified tags appear after this position is saved.';
+        }
+      }
+      bindFormattedNumberInputs(form);
       syncMutationButtons();
     }
 
-    function factorSourceSelect(item) {
-      return `
-        <select data-inline-field="factor_tag_source" data-id="${escapeHtml(item.id)}" class="mvp-inline-input">
-          <option value="">Unset</option>
-          ${factorSourceOptions
-            .map((option) => `<option value="${option}" ${item.factor_tag_source === option ? 'selected' : ''}>${option}</option>`)
-            .join('')}
-        </select>
-      `;
-    }
-
-    async function patchInlineFactor(itemId, field, value) {
-      try {
-        const body = {
-          [field]: value === '' ? null : field === 'factor_tag_confidence' ? Number(value) : value,
-        };
-        if (field !== 'factor_tag_source') {
-          body.factor_tag_source = 'manual';
-          body.factor_tag_confidence = 1.0;
-        }
-        const response = await api(`/portfolio/positions/${itemId}`, {
-          method: 'PATCH',
-          body,
-        });
-        await loadPositions(response.position_id);
-        setStatus(status, 'Factor tags updated.', 'success');
-      } catch (error) {
-        setStatus(status, error.message, 'error');
-        await loadPositions(selected?.id || null);
-      }
+    function showOrDash(value) {
+      const text = String(value ?? '').trim();
+      return text || '—';
     }
 
     async function loadPositions(selectId) {
@@ -1384,18 +2338,21 @@
               <tr data-id="${escapeHtml(item.id)}" class="${selectId === item.id || (!selectId && selected?.id === item.id) ? 'is-selected' : ''}">
                 <td>${escapeHtml(item.ticker)}</td>
                 <td>${escapeHtml(item.name || '')}</td>
-                <td><input class="mvp-inline-input" data-inline-field="factor_asset_class" data-id="${escapeHtml(item.id)}" value="${escapeHtml(item.factor_asset_class || '')}"/></td>
-                <td><input class="mvp-inline-input" data-inline-field="factor_sector" data-id="${escapeHtml(item.id)}" value="${escapeHtml(item.factor_sector || '')}"/></td>
-                <td><input class="mvp-inline-input" data-inline-field="factor_subsector" data-id="${escapeHtml(item.id)}" value="${escapeHtml(item.factor_subsector || '')}"/></td>
-                <td><input class="mvp-inline-input" data-inline-field="factor_market_segment" data-id="${escapeHtml(item.id)}" value="${escapeHtml(item.factor_market_segment || '')}"/></td>
-                <td><input class="mvp-inline-input" data-inline-field="factor_country" data-id="${escapeHtml(item.id)}" value="${escapeHtml(item.factor_country || '')}"/></td>
-                <td><input class="mvp-inline-input" data-inline-field="factor_region" data-id="${escapeHtml(item.id)}" value="${escapeHtml(item.factor_region || '')}"/></td>
-                <td>${factorSourceSelect(item)}</td>
-                <td><span class="mvp-inline-badge">${item.factor_tag_confidence != null ? formatNumber(item.factor_tag_confidence, 2) : 'n/a'}</span></td>
+                <td>${escapeHtml(showOrDash(taxonomyLabel(item.asset_class || item.factor_asset_class)))}</td>
+                <td>${escapeHtml(showOrDash(taxonomyLabel(item.sector || item.factor_sector)))}</td>
+                <td>${escapeHtml(showOrDash(taxonomyLabel(item.factor_subsector)))}</td>
+                <td>${escapeHtml(showOrDash(taxonomyLabel(item.market_segment || item.factor_market_segment)))}</td>
+                <td>${escapeHtml(showOrDash(taxonomyLabel(item.geo_region || item.factor_region)))}</td>
+                <td>${escapeHtml(showOrDash(item.custodian))}</td>
+                <td>${escapeHtml(formatDateTime(item.first_seen_at || item.created_at))}</td>
+                <td>${escapeHtml(formatDateTime(item.last_modified_at || item.created_at))}</td>
               </tr>
             `
           )
           .join('');
+        if (!response.items.length) {
+          tableBody.innerHTML = '<tr><td colspan="10" class="mvp-empty">No positions yet. Add the first holding from the editor.</td></tr>';
+        }
 
         const selectedPosition = response.items.find((item) => item.id === selectId) || response.items.find((item) => item.id === selected?.id) || null;
         setForm(selectedPosition);
@@ -1409,19 +2366,7 @@
           });
         });
 
-        tableBody.querySelectorAll('[data-inline-field]').forEach((input) => {
-          input.addEventListener('click', (event) => event.stopPropagation());
-          input.addEventListener('change', async (event) => {
-            event.stopPropagation();
-            const field = input.dataset.inlineField || '';
-            const itemId = input.dataset.id || '';
-            if (!field || !itemId) return;
-            input.disabled = true;
-            await patchInlineFactor(itemId, field, input.value.trim());
-          });
-        });
-
-        setStatus(status, `Loaded ${response.total} positions.`, 'success');
+        setStatus(status, '', '');
       } catch (error) {
         tableBody.innerHTML = '<tr><td colspan="10" class="mvp-empty">Unable to load positions.</td></tr>';
         setStatus(status, error.message, 'error');
@@ -1433,47 +2378,58 @@
       setForm(null);
     });
 
+    formNodes.sector.addEventListener('change', () => {
+      applySubsectorOptions(formNodes.sector.value, '');
+    });
+
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
+      const isEdit = Boolean(selected);
       mutationBusy = true;
       syncMutationButtons();
+      const nameValue = formNodes.name.value.trim();
+      const normalizedAssetClass = normalizeTaxonomyValue(formNodes.assetClass.value) || 'public_equity';
+      const normalizedSector = normalizeTaxonomyValue(formNodes.sector.value) || null;
+      const normalizedSubsector = normalizeTaxonomyValue(formNodes.subsector.value) || null;
+      const marketSegment = normalizeTaxonomyValue(formNodes.segment.value) || null;
+      const geoRegion = normalizeTaxonomyValue(formNodes.region.value) || null;
       const basePayload = {
-        name: document.getElementById('form-name').value.trim() || null,
-        quantity: Number(document.getElementById('form-quantity').value || 0),
-        market_value_usd: Number(document.getElementById('form-market-value').value || 0),
-        asset_class: document.getElementById('form-asset-class').value,
-        geo_region: document.getElementById('form-region').value.trim() || null,
-        sector: document.getElementById('form-sector').value.trim() || null,
-        market_segment: document.getElementById('form-segment').value.trim() || null,
-        factor_asset_class: document.getElementById('form-factor-asset-class').value.trim() || null,
-        factor_sector: document.getElementById('form-factor-sector').value.trim() || null,
-        factor_subsector: document.getElementById('form-factor-subsector').value.trim() || null,
-        factor_market_segment: document.getElementById('form-factor-market-segment').value.trim() || null,
-        factor_country: document.getElementById('form-factor-country').value.trim() || null,
-        factor_region: document.getElementById('form-factor-region').value.trim() || null,
-        factor_tag_source: document.getElementById('form-factor-tag-source').value || null,
-        factor_tag_confidence: document.getElementById('form-factor-tag-confidence').value === ''
-          ? null
-          : Number(document.getElementById('form-factor-tag-confidence').value),
-        custodian: document.getElementById('form-custodian').value.trim() || null,
-        notes: document.getElementById('form-notes').value.trim() || null,
+        name: nameValue || null,
+        quantity: parseFormattedNumber(formNodes.quantity.value) || 0,
+        market_value_usd: parseFormattedNumber(formNodes.marketValue.value) || 0,
+        asset_class: normalizedAssetClass,
+        geo_region: geoRegion,
+        sector: normalizedSector,
+        market_segment: marketSegment,
+        factor_asset_class: normalizedAssetClass,
+        factor_sector: normalizedSector,
+        factor_subsector: normalizedSubsector,
+        factor_market_segment: marketSegment,
+        factor_country: null,
+        factor_region: geoRegion,
+        factor_tag_source: 'manual',
+        factor_tag_confidence: 1,
+        custodian: formNodes.custodian.value.trim() || null,
+        notes: formNodes.notes.value.trim() || null,
       };
 
       try {
         let response;
-        if (selected) {
+        if (isEdit) {
           response = await api(`/portfolio/positions/${selected.id}`, { method: 'PATCH', body: basePayload });
         } else {
+          const identifier = buildPositionIdentifier(formNodes.ticker.value, nameValue);
           response = await api('/portfolio/positions', {
             method: 'POST',
             body: {
               ...basePayload,
-              ticker: document.getElementById('form-ticker').value.trim(),
-              position_currency: 'USD',
+              ticker: identifier,
+              position_currency: preferredCurrency,
             },
           });
         }
         await loadPositions(response.position_id);
+        setStatus(status, isEdit ? 'Position updated.' : 'Position created.', 'success');
       } catch (error) {
         setStatus(status, error.message, 'error');
       } finally {
@@ -1505,17 +2461,25 @@
   async function initDocuments() {
     const user = await requireSession('documents.html', ['Workspace', 'Data', 'Documents']);
     if (!user) return;
+    bindFileDropzones(document);
 
     const status = document.getElementById('documents-status');
+    const summary = document.getElementById('documents-summary');
     const folders = document.getElementById('document-folders');
     const list = document.getElementById('documents-list');
     const preview = document.getElementById('document-preview');
     const tagInput = document.getElementById('document-tag-input');
     const parseButton = document.getElementById('parse-document');
     const saveReviewButton = document.getElementById('save-document-review');
-    let selectedId = '';
+    const approveButton = document.getElementById('approve-document');
+    const saveTagButton = document.getElementById('save-document-tag');
+    const deleteButton = document.getElementById('delete-document');
+    const pageUrl = new URL(window.location.href);
+    let selectedId = pageUrl.searchParams.get('documentId') || '';
     let currentReview = null;
     let currentDocuments = [];
+    let activeFolder = '';
+    let activeObjectUrl = '';
     const parseStages = ['librarian', 'accountant', 'risk_officer', 'treasury', 'reconciliation'];
     const parseProgress = {
       documentId: '',
@@ -1622,6 +2586,26 @@
           ` : '<div class="mvp-item-subtle" style="margin-top:12px">Parsing in progress. Status updates will refresh automatically.</div>'}
         </div>
       `;
+    }
+
+    function releaseActiveObjectUrl() {
+      if (!activeObjectUrl) return;
+      try {
+        URL.revokeObjectURL(activeObjectUrl);
+      } catch {
+        // no-op
+      }
+      activeObjectUrl = '';
+    }
+
+    function syncDocumentActions(documentRecord = null) {
+      const hasSelection = Boolean(documentRecord && documentRecord.id);
+      setEnabled(parseButton, hasSelection);
+      setEnabled(saveReviewButton, hasSelection);
+      setEnabled(approveButton, hasSelection);
+      setEnabled(saveTagButton, hasSelection);
+      setEnabled(deleteButton, hasSelection);
+      setEnabled(tagInput, hasSelection);
     }
 
     function formatReviewValue(value, options = {}) {
@@ -1806,8 +2790,8 @@
                           <div class="mvp-form-grid">
                             <div class="mvp-field"><label>Ticker</label><input data-position-index="${index}" data-position-field="ticker" value="${escapeHtml(position.ticker || '')}"/></div>
                             <div class="mvp-field"><label>Name</label><input data-position-index="${index}" data-position-field="name" value="${escapeHtml(position.name || '')}"/></div>
-                            <div class="mvp-field"><label>Quantity</label><input data-position-index="${index}" data-position-field="quantity" value="${escapeHtml(position.quantity ?? '')}"/></div>
-                            <div class="mvp-field"><label>Market value USD</label><input data-position-index="${index}" data-position-field="market_value_usd" value="${escapeHtml(position.market_value_usd ?? '')}"/></div>
+                            <div class="mvp-field"><label>Quantity</label><input data-format="decimal" data-position-index="${index}" data-position-field="quantity" value="${escapeHtml(position.quantity ?? '')}"/></div>
+                            <div class="mvp-field"><label>Market value USD</label><input data-format="decimal" data-position-index="${index}" data-position-field="market_value_usd" value="${escapeHtml(position.market_value_usd ?? '')}"/></div>
                             <div class="mvp-field"><label>Asset class</label><input data-position-index="${index}" data-position-field="asset_class" value="${escapeHtml(position.asset_class || '')}"/></div>
                             <div class="mvp-field"><label>Region</label><input data-position-index="${index}" data-position-field="geo_region" value="${escapeHtml(position.geo_region || '')}"/></div>
                             <div class="mvp-field"><label>Sector</label><input data-position-index="${index}" data-position-field="sector" value="${escapeHtml(position.sector || '')}"/></div>
@@ -1831,14 +2815,45 @@
 
     async function renderPreview(documentRecord) {
       if (!documentRecord) {
+        syncDocumentActions(null);
+        releaseActiveObjectUrl();
         currentReview = null;
-        preview.innerHTML = '<div class="mvp-empty">Select a document to inspect extraction results.</div>';
+        preview.innerHTML = '<div class="mvp-empty">No document selected. Upload and parse a file, then select it from the list to open source preview, review fields, and approve.</div>';
         return;
       }
+      syncDocumentActions(documentRecord);
       const extraction = documentRecord.extraction_result_id ? await loadExtraction(documentRecord.id) : null;
       const review = documentRecord.extraction_result_id ? await loadReview(documentRecord.id) : null;
       currentReview = review;
       tagInput.value = documentRecord.tag || '';
+      const filePath = `/documents/${documentRecord.id}/file`;
+      let fileViewMarkup = '<div class="mvp-item-subtle">Original file preview unavailable.</div>';
+      try {
+        releaseActiveObjectUrl();
+        const { blob, contentType } = await fetchBlob(filePath);
+        activeObjectUrl = URL.createObjectURL(blob);
+        const isPdf = String(contentType || '').toLowerCase().includes('application/pdf');
+        if (isPdf) {
+          fileViewMarkup = `
+            <iframe src="${activeObjectUrl}" title="${escapeHtml(documentRecord.filename)}" style="width:100%;height:320px;border:1px solid var(--rule);border-radius:12px;background:#fff"></iframe>
+            <div style="margin-top:10px">
+              <button type="button" class="btn" data-open-source-document-tab="${escapeHtml(documentRecord.id)}"><span class="ms">open_in_new</span>Open in new tab</button>
+              <button type="button" class="btn" data-open-source-document="${escapeHtml(documentRecord.id)}"><span class="ms">download</span>Download source file</button>
+            </div>
+          `;
+        } else {
+          fileViewMarkup = `
+            <div class="mvp-item-subtle">Inline preview is supported for PDF files. This ${escapeHtml(documentRecord.file_type.toUpperCase())} file is available via open/download.</div>
+            <div style="margin-top:10px">
+              <button type="button" class="btn" data-open-source-document-tab="${escapeHtml(documentRecord.id)}"><span class="ms">open_in_new</span>Open source file</button>
+              <button type="button" class="btn" data-open-source-document="${escapeHtml(documentRecord.id)}"><span class="ms">download</span>Download source file</button>
+            </div>
+          `;
+        }
+      } catch (error) {
+        releaseActiveObjectUrl();
+        fileViewMarkup = `<div class="mvp-item-subtle">${escapeHtml(error.message || 'Unable to load source file preview.')}</div>`;
+      }
       preview.innerHTML = `
         <div class="mvp-card pad">
           <div class="mvp-item">
@@ -1846,19 +2861,25 @@
               <div class="mvp-item-title">${escapeHtml(documentRecord.filename)}</div>
               <div class="mvp-item-subtle">${escapeHtml(documentRecord.folder)} · ${escapeHtml(documentRecord.file_type)} · ${formatNumber(documentRecord.file_size_bytes, 0)} bytes</div>
             </div>
-            <span class="mvp-pill ${documentRecord.extraction_status === 'done' ? 'good' : 'elevated'}">${escapeHtml(documentRecord.extraction_status)}</span>
+            <span class="mvp-pill ${documentStatusTone(documentRecord.extraction_status)}">${escapeHtml(documentStatusLabel(documentRecord.extraction_status))}</span>
           </div>
           <div class="mvp-metadata" style="margin-top:12px">
             <span>Malware scan: ${escapeHtml(documentRecord.malware_scan_status)}</span>
             <span>Tag: ${escapeHtml(documentRecord.tag || 'none')}</span>
           </div>
+          <div class="mvp-item-subtle" style="margin-top:12px">${escapeHtml(documentStatusDescription(documentRecord, extraction))}</div>
         </div>
         ${renderParseProgress(documentRecord, extraction, review)}
         <div class="mvp-card pad">
-          <div class="uplabel">Extraction preview</div>
+          <div class="uplabel">Source file</div>
+          <div style="margin-top:10px">${fileViewMarkup}</div>
+        </div>
+        <div class="mvp-card pad">
+          <div class="uplabel">Preview</div>
           ${
             extraction
               ? `
+                <div class="mvp-item-subtle" style="margin-top:10px">First extracted rows for a quick QA pass before approval.</div>
                 <div class="mvp-list" style="margin-top:12px">
                   ${extraction.positions
                     .slice(0, 6)
@@ -1879,61 +2900,145 @@
                     .join('')}
                 </div>
               `
-              : '<div class="mvp-empty">No extraction yet. Parse the document to inspect candidate holdings.</div>'
+              : '<div class="mvp-empty">No extraction yet. Parse the file to create reviewable holdings and treasury fields.</div>'
           }
         </div>
         ${renderReviewEditor(review)}
       `;
+      bindFormattedNumberInputs(preview);
+      preview.querySelectorAll('[data-open-source-document]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          try {
+            const filename = await download(filePath, documentRecord.filename);
+            setStatus(status, `Downloaded source file: ${filename}.`, 'success');
+          } catch (error) {
+            setStatus(status, error.message, 'error');
+          }
+        });
+      });
+      preview.querySelectorAll('[data-open-source-document-tab]').forEach((button) => {
+        button.addEventListener('click', () => {
+          if (!activeObjectUrl) {
+            setStatus(status, 'Source file preview is not available yet.', 'error');
+            return;
+          }
+          window.open(activeObjectUrl, '_blank', 'noopener,noreferrer');
+        });
+      });
     }
 
     async function loadDocuments(options = {}) {
       const preserveStatus = Boolean(options.preserveStatus);
+      const focusSelectedDocument = Boolean(options.focusSelectedDocument);
       try {
         const response = await api('/documents');
         const items = response.items || [];
         currentDocuments = items;
+        const targetedDocument = selectedId ? items.find((item) => item.id === selectedId) : null;
+        const folderEntries = Object.entries(response.folder_counts || {});
+        if (activeFolder && !folderEntries.some(([name]) => name === activeFolder)) {
+          activeFolder = '';
+        }
+        if (targetedDocument && (focusSelectedDocument || !activeFolder)) {
+          activeFolder = targetedDocument.folder || '';
+        }
+        const visibleItems = activeFolder ? items.filter((item) => item.folder === activeFolder) : items;
         const selected =
-          items.find((item) => item.id === selectedId) ||
-          items[0] ||
+          visibleItems.find((item) => item.id === selectedId) ||
+          visibleItems[0] ||
           null;
         selectedId = selected?.id || '';
+        summary.innerHTML = `
+          <div class="mvp-feature-stat mvp-doc-summary-card">
+            <div class="uplabel">Documents</div>
+            <div class="value">${formatNumber(items.length, 0)}</div>
+            <div class="meta">Files available in the current workspace library.</div>
+          </div>
+          <div class="mvp-feature-stat mvp-doc-summary-card">
+            <div class="uplabel">Parsed</div>
+            <div class="value">${formatNumber(items.filter((item) => item.extraction_status !== 'pending').length, 0)}</div>
+            <div class="meta">Extraction completed and available in the review queue.</div>
+          </div>
+          <div class="mvp-feature-stat mvp-doc-summary-card">
+            <div class="uplabel">Pending</div>
+            <div class="value">${formatNumber(items.filter((item) => item.extraction_status === 'pending').length, 0)}</div>
+            <div class="meta">Files that still need parse or approval work.</div>
+          </div>
+          <div class="mvp-feature-stat mvp-doc-summary-card">
+            <div class="uplabel">Active folder</div>
+            <div class="value">${escapeHtml(activeFolder || 'All files')}</div>
+            <div class="meta">${escapeHtml(`${formatNumber(visibleItems.length, 0)} document${visibleItems.length === 1 ? '' : 's'} in scope`)}</div>
+          </div>
+          <div class="mvp-feature-stat mvp-doc-summary-card">
+            <div class="uplabel">Latest upload</div>
+            <div class="value">${escapeHtml(items[0]?.filename || 'No files yet')}</div>
+            <div class="meta">${items[0]?.created_at ? `Uploaded ${escapeHtml(formatDateTime(items[0].created_at))}` : 'Upload a file to populate the review queue.'}</div>
+          </div>
+        `;
 
-        folders.innerHTML = Object.entries(response.folder_counts || {})
+        folders.innerHTML = `
+          <button type="button" class="${activeFolder ? '' : 'is-selected'}" data-folder="">
+            <div class="mvp-item-title">All files</div>
+            <div class="mvp-item-subtle">${formatNumber(items.length, 0)} files</div>
+          </button>
+          ${folderEntries
           .map(
             ([name, count]) => `
-              <button type="button" class="${selected?.folder === name ? 'is-selected' : ''}">
+              <button type="button" class="${activeFolder === name ? 'is-selected' : ''}" data-folder="${escapeHtml(name)}">
                 <div class="mvp-item-title">${escapeHtml(name)}</div>
                 <div class="mvp-item-subtle">${formatNumber(count, 0)} files</div>
               </button>
             `
           )
-          .join('');
+          .join('')}
+        `;
 
-        list.innerHTML = items.length
-          ? items
+        folders.querySelectorAll('button[data-folder]').forEach((button) => {
+          button.addEventListener('click', () => {
+            activeFolder = button.dataset.folder || '';
+            selectedId = '';
+            loadDocuments({ preserveStatus: true });
+          });
+        });
+
+        list.innerHTML = visibleItems.length
+          ? visibleItems
               .map(
                 (item) => `
                   <button type="button" data-id="${escapeHtml(item.id)}" class="${item.id === selectedId ? 'is-selected' : ''}">
-                    <div class="mvp-item-title">${escapeHtml(item.filename)}</div>
-                    <div class="mvp-item-subtle">${escapeHtml(item.folder)} · ${escapeHtml(item.file_type)} · ${escapeHtml(item.extraction_status)}</div>
+                    <div class="mvp-item-title">
+                      ${escapeHtml(item.filename)}
+                      ${item.id === selectedId ? '<span class="mvp-pill elevated">Open</span>' : ''}
+                      ${isRecentTimestamp(item.created_at) ? '<span class="mvp-pill good">Recent</span>' : ''}
+                    </div>
+                    <div class="mvp-item-subtle">${escapeHtml(item.folder)} · ${escapeHtml(item.file_type)} · ${escapeHtml(documentStatusLabel(item.extraction_status))}</div>
+                    <div class="mvp-item-subtle">Uploaded ${escapeHtml(formatDateTime(item.created_at))}</div>
                   </button>
                 `
               )
               .join('')
-          : '<div class="mvp-empty">No documents uploaded yet.</div>';
+          : `<div class="mvp-empty">${activeFolder ? `No documents in ${escapeHtml(activeFolder)}.` : 'No documents uploaded yet.'}</div>`;
 
         list.querySelectorAll('button[data-id]').forEach((button) => {
           button.addEventListener('click', () => {
             selectedId = button.dataset.id || '';
-            loadDocuments();
+            loadDocuments({ preserveStatus: true });
           });
         });
 
         await renderPreview(selected);
         if (!preserveStatus) {
-          setStatus(status, `${items.length} documents loaded.`, 'success');
+          if (pageUrl.searchParams.get('uploaded') === '1' && selected) {
+            setStatus(status, `Document uploaded and opened in the review queue: ${selected.filename}.`, 'success');
+            pageUrl.searchParams.delete('uploaded');
+            pageUrl.searchParams.set('documentId', selected.id);
+            window.history.replaceState({}, '', `${pageUrl.pathname}${pageUrl.search ? `?${pageUrl.searchParams.toString()}` : ''}`);
+          } else {
+            setStatus(status, '', '');
+          }
         }
       } catch (error) {
+        summary.innerHTML = '';
         list.innerHTML = '<div class="mvp-empty">Unable to load documents.</div>';
         preview.innerHTML = '<div class="mvp-empty">No preview available.</div>';
         setStatus(status, error.message, 'error');
@@ -1951,30 +3056,51 @@
       formData.append('folder', document.getElementById('upload-document-folder').value);
       formData.append('file', file);
       try {
-        const documentRecord = await api('/documents/upload', { method: 'POST', formData });
+        const documentRecord = await withButtonBusy(event.submitter, 'Uploading...', async () => api('/documents/upload', { method: 'POST', formData }));
         selectedId = documentRecord.id;
-        await loadDocuments();
+        activeFolder = documentRecord.folder || activeFolder;
+        currentDocuments = [documentRecord, ...currentDocuments.filter((item) => item.id !== documentRecord.id)];
+        await loadDocuments({ preserveStatus: true, focusSelectedDocument: true });
+        setStatus(
+          status,
+          `Uploaded to ${user.workspace_name || 'workspace'}: ${documentRecord.filename}. Parsing in background...`,
+          'success',
+        );
+        startParseProgress(selectedId);
+        // Parse asynchronously so the uploaded file appears immediately even if parsing is slow.
+        (async () => {
+          try {
+            await api(`/documents/${selectedId}/parse`, { method: 'POST' });
+            stopParseProgress();
+            await loadDocuments({ preserveStatus: true, focusSelectedDocument: true });
+            setStatus(status, `Parse complete: ${documentRecord.filename}.`, 'success');
+          } catch (error) {
+            stopParseProgress();
+            setStatus(status, error.message, 'error');
+          }
+        })();
       } catch (error) {
+        stopParseProgress();
         setStatus(status, error.message, 'error');
       }
     });
 
     parseButton.addEventListener('click', async () => {
       if (!selectedId) return;
-      setEnabled(parseButton, false);
       try {
-        startParseProgress(selectedId);
-        const selectedDocument = currentDocuments.find((item) => item.id === selectedId);
-        if (selectedDocument) await renderPreview(selectedDocument);
-        const response = await api(`/documents/${selectedId}/parse`, { method: 'POST' });
-        stopParseProgress();
+        const response = await withButtonBusy(parseButton, 'Parsing...', async () => {
+          startParseProgress(selectedId);
+          const selectedDocument = currentDocuments.find((item) => item.id === selectedId);
+          if (selectedDocument) await renderPreview(selectedDocument);
+          const parseResponse = await api(`/documents/${selectedId}/parse`, { method: 'POST' });
+          stopParseProgress();
+          return parseResponse;
+        });
         setStatus(status, response.detail, 'success');
         await loadDocuments({ preserveStatus: true });
       } catch (error) {
         stopParseProgress();
         setStatus(status, error.message, 'error');
-      } finally {
-        setEnabled(parseButton, true);
       }
     });
 
@@ -1988,7 +3114,12 @@
         const index = Number(input.dataset.positionIndex || 0);
         const field = input.dataset.positionField || '';
         positions[index] ||= {};
-        positions[index][field] = input.value.trim();
+        if (field === 'quantity' || field === 'market_value_usd') {
+          const parsed = parseFormattedNumber(input.value);
+          positions[index][field] = Number.isFinite(parsed) ? parsed : null;
+        } else {
+          positions[index][field] = input.value.trim();
+        }
       });
       const treasuryInputs = Array.from(preview.querySelectorAll('[data-treasury-field]'));
       const treasury = { ...(currentReview?.treasury || {}) };
@@ -2001,10 +3132,10 @@
         .map((input) => input.dataset.reviewField)
         .filter(Boolean);
       try {
-        const response = await api(`/documents/${selectedId}/review`, {
+        const response = await withButtonBusy(saveReviewButton, 'Saving review...', async () => api(`/documents/${selectedId}/review`, {
           method: 'PATCH',
           body: { positions, treasury, resolved_fields: resolvedFields },
-        });
+        }));
         setStatus(status, `Review saved. ${response.needs_review_count} items still require attention.`, 'success');
         await loadDocuments({ preserveStatus: true });
       } catch (error) {
@@ -2012,10 +3143,10 @@
       }
     });
 
-    document.getElementById('approve-document').addEventListener('click', async () => {
+    approveButton.addEventListener('click', async () => {
       if (!selectedId) return;
       try {
-        await api(`/documents/${selectedId}/approve`, { method: 'POST' });
+        await withButtonBusy(approveButton, 'Approving...', async () => api(`/documents/${selectedId}/approve`, { method: 'POST' }));
         setStatus(status, 'Approved into portfolio — snapshot created.', 'success');
         await loadDocuments({ preserveStatus: true });
       } catch (error) {
@@ -2023,13 +3154,13 @@
       }
     });
 
-    document.getElementById('save-document-tag').addEventListener('click', async () => {
+    saveTagButton.addEventListener('click', async () => {
       if (!selectedId) return;
       try {
-        const response = await api(`/documents/${selectedId}/tag`, {
+        const response = await withButtonBusy(saveTagButton, 'Saving tag...', async () => api(`/documents/${selectedId}/tag`, {
           method: 'POST',
           body: { tag: tagInput.value.trim() || 'reviewed' },
-        });
+        }));
         setStatus(status, `Tag saved: ${response.tag || 'updated'}.`, 'success');
         await loadDocuments({ preserveStatus: true });
       } catch (error) {
@@ -2037,10 +3168,10 @@
       }
     });
 
-    document.getElementById('delete-document').addEventListener('click', async () => {
+    deleteButton.addEventListener('click', async () => {
       if (!selectedId) return;
       try {
-        const response = await api(`/documents/${selectedId}`, { method: 'DELETE' });
+        const response = await withButtonBusy(deleteButton, 'Deleting...', async () => api(`/documents/${selectedId}`, { method: 'DELETE' }));
         selectedId = '';
         setStatus(status, response.detail, 'success');
         await loadDocuments({ preserveStatus: true });
@@ -2049,18 +3180,21 @@
       }
     });
 
-    await loadDocuments();
+    syncDocumentActions(null);
+    await loadDocuments({ focusSelectedDocument: Boolean(selectedId) });
   }
 
   const initializers = {
     index: initIndex,
     login: initLogin,
     onboarding: initOnboarding,
+    settings: initSettings,
     cockpit: initCockpit,
     briefings: initBriefings,
     briefing: initBriefingDetail,
     table: initTable,
     documents: initDocuments,
+    liquidity: initLiquidity,
     overlay: initOverlay,
   };
 
@@ -2075,8 +3209,12 @@
         } else {
           console.error(error);
         }
+      }).finally(() => {
+        markPageReady();
       });
+      return;
     }
+    markPageReady();
   });
 
   window.CRBMvp = {
