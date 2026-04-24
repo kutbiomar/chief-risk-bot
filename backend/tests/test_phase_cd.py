@@ -101,6 +101,75 @@ def test_var_risk_and_cockpit_flow(client: TestClient, db_session: Session) -> N
     assert len(body["risk_register"]) >= 5
 
 
+def test_positions_bootstrap_allows_first_manual_position_without_prior_snapshot(client: TestClient, db_session: Session) -> None:
+    user = seed_user(db_session, email="positions-bootstrap@example.com")
+    login = client.post("/api/auth/login", json={"email": user.email, "password": "secret123"})
+    assert login.status_code == 200
+    csrf = login.cookies.get("__crb_csrf", "")
+    headers = {"X-CSRF-Token": csrf}
+
+    # No CSV snapshot exists yet for this workspace.
+    list_before = client.get("/api/portfolio/positions")
+    assert list_before.status_code == 200
+    assert list_before.json()["total"] == 0
+
+    create = client.post(
+        "/api/portfolio/positions",
+        json={
+            "ticker": "AAPL",
+            "name": "Apple Inc",
+            "quantity": 10,
+            "market_value_usd": 1800,
+            "position_currency": "USD",
+            "asset_class": "public_equity",
+            "geo_region": "US",
+            "sector": "Technology",
+            "market_segment": "Large Cap",
+        },
+        headers=headers,
+    )
+    assert create.status_code == 201
+
+    list_after = client.get("/api/portfolio/positions")
+    assert list_after.status_code == 200
+    assert list_after.json()["total"] == 1
+    assert list_after.json()["items"][0]["ticker"] == "AAPL"
+
+
+def test_documents_upload_is_immediately_visible_in_workspace_listing(client: TestClient, db_session: Session) -> None:
+    user = seed_user(db_session, email="documents-visibility@example.com")
+    login = client.post("/api/auth/login", json={"email": user.email, "password": "secret123"})
+    assert login.status_code == 200
+    csrf = login.cookies.get("__crb_csrf", "")
+    headers = {"X-CSRF-Token": csrf}
+
+    upload = client.post(
+        "/api/documents/upload",
+        data={"folder": "capital_calls"},
+        files={
+            "file": (
+                "capital-call.xlsx",
+                build_capital_call_xlsx(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+        headers=headers,
+    )
+    assert upload.status_code == 200
+    uploaded_id = upload.json()["id"]
+
+    listed = client.get("/api/documents")
+    assert listed.status_code == 200
+    payload = listed.json()
+    assert payload["items"]
+    assert payload["items"][0]["id"] == uploaded_id
+    assert payload["folder_counts"]["capital_calls"] >= 1
+
+    detail = client.get(f"/api/documents/{uploaded_id}")
+    assert detail.status_code == 200
+    assert detail.json()["id"] == uploaded_id
+
+
 def test_briefings_settings_api_keys_and_documents_flow(client: TestClient, db_session: Session) -> None:
     auth = bootstrap_portfolio(client, db_session, email="phasecd2@example.com")
     headers = csrf_headers(auth)
@@ -123,6 +192,7 @@ def test_briefings_settings_api_keys_and_documents_flow(client: TestClient, db_s
     briefing = client.post("/api/briefings/generate", headers=headers)
     assert briefing.status_code == 200
     briefing_id = briefing.json()["id"]
+    week_label = briefing.json()["week_label"]
     output = briefing.json()["output"]
     assert "executive_summary" in output
     assert "portfolio_risks" in output
@@ -132,7 +202,7 @@ def test_briefings_settings_api_keys_and_documents_flow(client: TestClient, db_s
     assert export.status_code in {200, status.HTTP_503_SERVICE_UNAVAILABLE}
     if export.status_code == 200:
         assert "attachment;" in export.headers["content-disposition"]
-        assert f"week-15-2026_v1" in export.headers["content-disposition"]
+        assert f"{week_label}_v1" in export.headers["content-disposition"]
         assert export.headers["content-type"].startswith("application/pdf")
         assert len(export.content) > 0
     else:
@@ -164,6 +234,12 @@ def test_briefings_settings_api_keys_and_documents_flow(client: TestClient, db_s
     assert extraction_body["positions"][0]["factor_region"] == "us"
     assert extraction_body["positions"][0]["factor_tag_source"] == "extracted"
     assert extraction_body["positions"][0]["factor_tag_confidence"] == 0.82
+
+    file_response = client.get(f"/api/documents/{document_id}/file")
+    assert file_response.status_code == 200
+    assert file_response.headers["content-type"].startswith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    assert file_response.headers["content-disposition"].startswith("inline;")
+    assert len(file_response.content) > 0
 
     parsed_document = db_session.get(Document, document_id)
     assert parsed_document is not None
