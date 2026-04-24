@@ -1,14 +1,28 @@
-# Codex Execution Log
+# Codex Log — Current Activity
 
-## Archive
+**Current status:** See `STATUS.md` (consolidated, 1-page reference)
+**Full history:** See `codex_log_archive` (phases A–J detail)
 
-Entries 0–38 (2026-04-07 to 2026-04-08) covered Phases A–D architecture review,
-schema validation, VaR design, agent orchestration, auth hardening, frontend audit,
-and demo polish. All completed. See `CODEBASE_STATUS.md` Completed table for outcomes.
+No active Codex items. Phases A–J complete (2026-04-07 to 2026-04-10).
 
 ---
 
-## Active — Phase E (MVP2)
+## Template for New Work
+
+When resuming Codex work, add entries here:
+
+```
+## 2026-04-XX
+
+### Queue Item [ID] — [Title]
+
+- Scope: [what was done]
+- Work: [key changes, file edits]
+- Verification: [test commands + results]
+- Notes: [findings, next steps]
+```
+
+Then move completed phases to `codex_log_archive` every ~10 phases.
 
 Tasks E1–E9 defined in `admin/status/MVP2_STATUS.md`.
 Log new Codex runs below as they execute.
@@ -285,11 +299,12 @@ The backend has everything needed:
 
 | # | Task | Scope | Priority | Status |
 |---|------|-------|----------|--------|
-| I1 | **Backend: liquidity API endpoint** | Port `MVP2_codebase/backend/services/liquidity.py` into the main `backend/` tree. Add `GET /api/liquidity/cashflow?months=24&scenario=base\|stress` that calls `generate_cash_flow_ladder()` and returns monthly buckets. Add `GET /api/liquidity/summary` for the 90-day snapshot (next call due, total unfunded, expected distributions). Requires a migration to ensure `capital_events` and `commitments` tables exist in the main runtime DB. | P0 | Pending |
-| I2 | **Frontend: liquidity page** (`liquidity.html`) | New page at `frontend-mvp/liquidity.html`. Sections: (1) 90-day summary KPIs (next call due, total unfunded, expected distributions, net position); (2) grouped bar chart — inflows (green) vs outflows (red) per month, 24-month horizon, using Canvas or SVG (no external chart lib — keep vanilla JS); (3) cumulative net liquidity line overlaid; (4) configurable buffer target input (default $2M) rendered as a horizontal rule on the chart; (5) stress toggle button — calls `?scenario=stress` and re-renders. Link page from the nav in `frontend-mvp/_shell.js` and from the cockpit liquidity KPI. | P0 | Pending |
-| I3 | **Cockpit: liquidity panel** | Replace the single `Liquidity (T+1)` KPI on the cockpit with a compact 3-column summary: next capital call (date + $amount), 90-day net liquidity, any buffer breach (red badge). Clicking the panel navigates to `liquidity.html`. Wire to `GET /api/liquidity/summary`. | P1 | Pending |
-| I4 | **Briefing: liquidity section** | The briefing generator (`backend/services/briefings.py`) already has a placeholder for "Liquidity snapshot: next 90 days cash flow". Wire it to call `generate_cash_flow_ladder()` and include: next call due date + amount, expected distributions in the window, net 90-day position, any buffer gap. | P1 | Pending |
-| I5 | **Demo seed: capital events** | `admin/demo/seed_demo.py` currently creates no `CapitalEvent` rows for the demo workspace. Add ~6 seed events: 2 upcoming capital calls (one within 14 days → triggers high-priority alert), 2 expected distributions, 1 management fee. These populate the liquidity chart so the demo is not all-zeros. | P0 | Pending |
+| I1 | **Backend: liquidity API endpoint** | Port `MVP2_codebase/backend/services/liquidity.py` into the main `backend/` tree. Add `GET /api/liquidity/cashflow?months=24&scenario=base\|stress` that calls `generate_cash_flow_ladder()` and returns monthly buckets. Add `GET /api/liquidity/summary` for the 90-day snapshot (next call due, total unfunded, expected distributions). Requires a migration to ensure `capital_events` and `commitments` tables exist in the main runtime DB. | P0 | Completed 2026-04-10 |
+| I2 | **Frontend: liquidity page** (`liquidity.html`) | New page at `frontend-mvp/liquidity.html`. Sections: (1) 90-day summary KPIs (next call due, total unfunded, expected distributions, net position); (2) grouped bar chart — inflows (green) vs outflows (red) per month, 24-month horizon, using Canvas or SVG (no external chart lib — keep vanilla JS); (3) cumulative net liquidity line overlaid; (4) configurable buffer target input (default $2M) rendered as a horizontal rule on the chart; (5) stress toggle button — calls `?scenario=stress` and re-renders. Link page from the nav in `frontend-mvp/_shell.js` and from the cockpit liquidity KPI. | P0 | Completed 2026-04-10 |
+| I3 | **Cockpit: liquidity panel** | Replace the single `Liquidity (T+1)` KPI on the cockpit with a compact 3-column summary: next capital call (date + $amount), 90-day net liquidity, any buffer breach (red badge). Clicking the panel navigates to `liquidity.html`. Wire to `GET /api/liquidity/summary`. | P1 | Completed 2026-04-10 |
+
+| I4 | **Briefing: liquidity section** | The briefing generator (`backend/services/briefings.py`) already has a placeholder for "Liquidity snapshot: next 90 days cash flow". Wire it to call `generate_cash_flow_ladder()` and include: next call due date + amount, expected distributions in the window, net 90-day position, any buffer gap. | P1 | Completed 2026-04-10 |
+| I5 | **Demo seed: capital events** | `admin/demo/seed_demo.py` currently creates no `CapitalEvent` rows for the demo workspace. Add ~6 seed events: 2 upcoming capital calls (one within 14 days → triggers high-priority alert), 2 expected distributions, 1 management fee. These populate the liquidity chart so the demo is not all-zeros. | P0 | Completed 2026-04-10 |
 
 ### Build order
 
@@ -308,6 +323,51 @@ I1 and I5 can be started in parallel (I5 only needs the table to exist).
 - Buffer breach: render buffer line in `var(--gold)`, shade months below buffer in `var(--ele-bg)`.
 - Stress toggle: pill button, active state uses `var(--accent)` fill.
 - Mobile: chart scrolls horizontally, KPI cards stack vertically.
+
+---
+
+## 2026-04-10
+
+### Queue Item I1-I5 Closeout
+
+- Source queue entry: `/codex-bitch phase-i`
+- Scope executed: implemented the liquidity backend/frontend slice, seeded demo private-markets data, applied the migration locally, and verified the new live endpoints on `http://localhost:8001`.
+
+### Work Performed
+
+- Added minimal private-markets models plus migration for `funds`, `commitments`, and `capital_events`, then introduced `GET /api/liquidity/summary` and `GET /api/liquidity/cashflow`.
+- Wired cockpit responses to include `portfolio_summary.liquidity_summary` and replaced the old single liquidity KPI with a clickable compact liquidity card that opens the new `liquidity.html` page.
+- Added `frontend-mvp/liquidity.html`, shell navigation, SVG-based inflow/outflow charting, cumulative net-liquidity line, stress toggle, and adjustable buffer target input.
+- Extended briefing generation/output so published briefings now include `liquidity_snapshot` and a human-readable `liquidity_commentary`.
+- Updated `admin/demo/seed_demo.py` to seed 2 funds, 2 commitments, and 6 capital events for the demo workspace; then ran the seed against the local runtime DB after `alembic upgrade head`.
+
+### Notes
+
+- Verification passed with `.venv/bin/python -m pytest backend/tests/test_liquidity.py backend/tests/test_phase_cd.py backend/tests/test_overlay.py` and `node --check frontend-mvp/_app.js`.
+- Live verification passed after restart and reseed: `/api/liquidity/summary`, `/api/liquidity/cashflow`, `/api/cockpit`, and `/api/briefings` all return liquidity data for the seeded demo workspace.
+- PDF export remains limited by missing local WeasyPrint system libraries; this queue slice does not change that.
+
+## 2026-04-10
+
+### Queue Item H2-H7 Closeout
+
+- Source queue entry: `/codex-bitch phase-h`
+- Scope executed: restarted the live backend, reseeded the demo workspace, and re-verified the Phase H cockpit/overlay/briefings/positions paths against `http://localhost:8001`.
+
+### Work Performed
+
+- Killed the stale `uvicorn backend.main:app` process that was still serving a pre-overlay import state and started a fresh backend on port `8001`.
+- Re-ran `ANTHROPIC_API_KEY='' FRED_API_KEY='' .venv/bin/python admin/demo/seed_demo.py` to rebuild the demo workspace with a clean snapshot, VaR result, risk scores, and a published briefing.
+- Logged in with the seeded demo credentials and verified that `GET /api/cockpit` now returns the expected seeded state: `$8,500,000` AUM, `15` positions, VaR payload, risk register, and non-empty `overlay_summary`.
+- Verified that `GET /api/overlay/regime` and `GET /api/overlay/aum-triangulation` return populated overlay data after restart, which clears the empty cockpit/overlay findings tied to the stale backend process.
+- Verified that `GET /api/briefings` returns the seeded published briefing and `GET /api/portfolio/positions` returns the 15-position current snapshot.
+
+### Notes
+
+- H2, H3, H4, H6, and H7 are resolved by the operational restart + reseed workflow; no code patch was required.
+- H5 remains a documentation note rather than a product bug: direct navigation to `briefings.html` still redirects to login as expected in an unauthenticated session.
+- `GET /api/documents` is empty after a clean seed because `admin/demo/seed_demo.py` does not create demo document records; this does not block the cockpit/overlay briefing demo path but the Documents screen is not pre-populated.
+- PDF export still depends on missing local WeasyPrint system libraries and continues to fail gracefully with `503`, consistent with the earlier documented caveat.
 
 ---
 
@@ -330,11 +390,11 @@ change.
 
 | # | Task | Scope | Priority | Status |
 |---|------|-------|----------|--------|
-| J1 | **Demo fixture file** | Create `frontend-mvp/_demo_fixtures.js`. Export a `DEMO_FIXTURES` map keyed by API path pattern (exact string or prefix). Cover every `api()` call made across all pages: `/auth/session`, `/cockpit`, `/portfolio/summary`, `/portfolio/positions`, `/risk/scores`, `/risk/flags`, `/overlay/factors`, `/overlay/regime`, `/overlay/aum-triangulation`, `/overlay/stress`, `/briefings`, `/briefings/{id}`, `/documents`, `/liquidity/summary`, `/liquidity/cashflow`. Data must be realistic: real-looking ticker names, plausible dollar amounts, AUM ~$8.5M (matching Whitmore Family Office), 1 priority + 1 elevated risk flag, 2 published briefings. | P0 | Pending |
-| J2 | **Demo mode interceptor in `_app.js`** | At the top of `_app.js`, after the `api()` function definition (line 216), add: (1) `window.__CRB_DEMO = localStorage.getItem('crb_demo_mode') === 'true'`; (2) wrap `api()` so that when `__CRB_DEMO` is true and the path matches a key in `DEMO_FIXTURES`, return the fixture immediately without fetching — adding a 120ms artificial delay to simulate network feel; (3) for write requests (`POST`, `PATCH`, `PUT`, `DELETE`) in demo mode, silently no-op and return `{ ok: true }` so buttons still respond. Also add a `window.__crbSetDemo(bool)` helper for the toggle to call. Load `_demo_fixtures.js` before `_app.js` in all HTML files. | P0 | Pending |
-| J3 | **Demo mode toggle UI in shell** | In `frontend-mvp/_shell.js`, add a persistent toggle pill in the top-right of the nav bar (right of the search box). Appearance: pill button labelled "Demo" with a small indicator dot — green when on, grey when off. Clicking it calls `window.__crbSetDemo(!window.__CRB_DEMO)`, writes to `localStorage`, then reloads the page so all panels re-render from fixtures. When demo mode is active: add a thin amber banner below the nav ("Demo mode — showing sample data") so it is clear to any observer. Style using `var(--ele-fg)` / `var(--ele-bg)`. | P0 | Pending |
-| J4 | **Login page bypass** | In demo mode, `login.html` should auto-fill the demo credentials and show a "Enter demo →" button that skips the real auth call and writes a fake session to `localStorage` instead. The `requireSession()` function in `_app.js` should check `__CRB_DEMO` and return the fixture user object without hitting `/auth/session`. This means the demo works even if the backend is completely offline. | P1 | Pending |
-| J5 | **Seed script: export fixture snapshot** | Add a `--export-fixtures` flag to `admin/demo/seed_demo.py`. When passed, after seeding the database, call each API endpoint with the demo session cookie and write the JSON responses to `frontend-mvp/_demo_fixtures_generated.js`. This keeps fixtures in sync with the real data model without hand-editing. The generated file is a drop-in replacement for the hand-authored `_demo_fixtures.js`. | P2 | Pending |
+| J1 | **Demo fixture file** | Create `frontend-mvp/_demo_fixtures.js`. Export a `DEMO_FIXTURES` map keyed by API path pattern (exact string or prefix). Cover every `api()` call made across all pages: `/auth/session`, `/cockpit`, `/portfolio/summary`, `/portfolio/positions`, `/risk/scores`, `/risk/flags`, `/overlay/factors`, `/overlay/regime`, `/overlay/aum-triangulation`, `/overlay/stress`, `/briefings`, `/briefings/{id}`, `/documents`, `/liquidity/summary`, `/liquidity/cashflow`. Data must be realistic: real-looking ticker names, plausible dollar amounts, AUM ~$8.5M (matching Whitmore Family Office), 1 priority + 1 elevated risk flag, 2 published briefings. | P0 | Completed 2026-04-10 |
+| J2 | **Demo mode interceptor in `_app.js`** | At the top of `_app.js`, after the `api()` function definition (line 216), add: (1) `window.__CRB_DEMO = localStorage.getItem('crb_demo_mode') === 'true'`; (2) wrap `api()` so that when `__CRB_DEMO` is true and the path matches a key in `DEMO_FIXTURES`, return the fixture immediately without fetching — adding a 120ms artificial delay to simulate network feel; (3) for write requests (`POST`, `PATCH`, `PUT`, `DELETE`) in demo mode, silently no-op and return `{ ok: true }` so buttons still respond. Also add a `window.__crbSetDemo(bool)` helper for the toggle to call. Load `_demo_fixtures.js` before `_app.js` in all HTML files. | P0 | Completed 2026-04-10 |
+| J3 | **Demo mode toggle UI in shell** | In `frontend-mvp/_shell.js`, add a persistent toggle pill in the top-right of the nav bar (right of the search box). Appearance: pill button labelled "Demo" with a small indicator dot — green when on, grey when off. Clicking it calls `window.__crbSetDemo(!window.__CRB_DEMO)`, writes to `localStorage`, then reloads the page so all panels re-render from fixtures. When demo mode is active: add a thin amber banner below the nav ("Demo mode — showing sample data") so it is clear to any observer. Style using `var(--ele-fg)` / `var(--ele-bg)`. | P0 | Completed 2026-04-10 |
+| J4 | **Login page bypass** | In demo mode, `login.html` should auto-fill the demo credentials and show a "Enter demo →" button that skips the real auth call and writes a fake session to `localStorage` instead. The `requireSession()` function in `_app.js` should check `__CRB_DEMO` and return the fixture user object without hitting `/auth/session`. This means the demo works even if the backend is completely offline. | P1 | Completed 2026-04-10 |
+| J5 | **Seed script: export fixture snapshot** | Add a `--export-fixtures` flag to `admin/demo/seed_demo.py`. When passed, after seeding the database, call each API endpoint with the demo session cookie and write the JSON responses to `frontend-mvp/_demo_fixtures_generated.js`. This keeps fixtures in sync with the real data model without hand-editing. The generated file is a drop-in replacement for the hand-authored `_demo_fixtures.js`. | P2 | Completed 2026-04-10 |
 
 ### Build order
 
@@ -351,3 +411,1233 @@ J1 + J2 + J3 + J4 stable → J5 (export script, optional)
 - The `_demo_fixtures.js` file is committed to the repo — it is not gitignored. It is static sample data, not secrets.
 - Fixtures must NOT include real customer data. All names, amounts, and tickers are illustrative (Whitmore Family Office is a fictional entity).
 - Demo mode state is `localStorage` only — never sent to the server.
+
+## 2026-04-10
+
+### Queue Item J1-J5 Closeout
+
+- Source queue entry: `/codex-bitch phase-j`
+- Scope executed: implemented an offline frontend demo mode with fixture-backed API interception, shell toggle/banner, login bypass, and a seed-script export path for regenerating fixture payloads.
+
+### Work Performed
+
+- Added `frontend-mvp/_demo_fixtures.js` with realistic fixture state for cockpit, overlay, liquidity, briefings, positions, and document review flows, including lightweight in-memory mutations so demo interactions still feel live.
+- Updated `frontend-mvp/_app.js` to intercept API/download calls when demo mode is active, route them through fixture handlers with a 120ms delay, and bypass authenticated session fetches via a demo session stored in `localStorage`.
+- Added a persistent Demo toggle + status banner in `frontend-mvp/_shell.js`, plus matching styles in `frontend-mvp/_mvp.css`.
+- Loaded `_demo_fixtures.js` before `_app.js` across every MVP HTML entrypoint and added login-page demo entry behavior that auto-fills credentials and enters the workspace without real auth.
+- Extended `admin/demo/seed_demo.py` with `--export-fixtures`, then generated `frontend-mvp/_demo_fixtures_generated.js` from a freshly seeded demo workspace.
+
+### Notes
+
+- Verification passed with `node --check frontend-mvp/_demo_fixtures.js frontend-mvp/_app.js frontend-mvp/_shell.js`.
+- Runtime sanity check passed in a mocked browser environment: demo mode enables successfully and resolves fixture-backed `/auth/session`, `/cockpit`, and `/documents` payloads.
+- The generated fixture export currently supplies override state for `_demo_fixtures.js`; it is not auto-loaded by the HTML pages by default.
+
+## 2026-04-10
+
+### Queue Item G Closeout
+
+- Source queue entry: `/codex-bitch phase-g`
+- Scope executed: re-validated the original Phase G landing blockers against the current branch, then added the missing security regression coverage so the remaining live gaps are closed in testable form.
+
+### Work Performed
+
+- Re-checked the original G1-G5 blocker set against the current implementation and confirmed they are already superseded on this branch:
+  TOTP verification is disabled rather than bypassed, document ingest uses an async pipeline, mutating cookie-auth routes already require CSRF, snapshot succession already uses the unique-current guard plus atomic demotion check, and API keys resolve directly through `user_id`.
+- Added `backend/tests/test_security_regressions.py` covering:
+  cookie-auth CSRF enforcement on representative mutating routes,
+  unauthenticated access returning `401` on protected routes,
+  cross-workspace isolation for briefings/documents plus workspace-scoped cockpit and overlay reads.
+- Re-ran the security-sensitive backend suite against auth, content, and overlay flows to verify the new assertions pass on the current code.
+
+### Notes
+
+- Verification passed with `.venv/bin/python -m pytest backend/tests/test_security_regressions.py backend/tests/test_auth.py backend/tests/test_phase_cd.py backend/tests/test_overlay.py`.
+- Phase G pre-land blockers are now cleared in one of two ways: either already fixed in code before this pass, or now covered by regression tests added in this pass.
+- The informational/non-blocking Phase G follow-ups (performance, hashing policy, audit sequencing, storage-path cleanup, etc.) remain separate engineering improvements rather than landing blockers.
+
+## 2026-04-10
+
+### Queue Item G16-G17 + Demo Design Review
+
+- Source queue entry: `/codex-bitch phase-g-followups`
+- Scope executed: close the remaining non-blocking Phase G follow-ups, then perform a visual/design pass on the MVP and refresh the queue around the remaining demo-readiness work.
+
+### Work Performed
+
+- Completed the remaining live Phase G follow-ups:
+  `backend/services/audit/logger.py` now retries workspace-local sequence collisions against the existing `uq_audit_events_workspace_sequence` uniqueness guard, and `backend/tests/test_services.py` now covers that retry path.
+- Added briefing publish-readiness metadata in `backend/services/briefings.py` and updated `backend/services/scheduler.py` so scheduled auto-publish only fires when the generated briefing passes a quality gate instead of publishing any non-empty draft.
+- Extended `backend/tests/test_services.py` with scheduled-briefing coverage for the three critical states: deterministic fallback held as draft, publish-ready briefing auto-published, and quality-gate failure held as draft.
+- Performed a design pass across the MVP surfaces and promoted the highest-signal fixes directly into the product:
+  `frontend-mvp/_shell.js` now renders a stronger demo banner,
+  `frontend-mvp/_app.js` now adds featured overview sections on Briefings and Overlay, surfaces briefing quality metadata on list/detail screens, and fixes the Documents library so folder controls actually filter the visible list while exposing summary cards,
+  `frontend-mvp/_mvp.css` adds the supporting presentation styles.
+- Refreshed `admin/status/CODEBASE_STATUS.md` so the queue now reflects the remaining “immaculate demo” work as a Phase K operational/polish tranche rather than stale Phase G review notes.
+
+### Notes
+
+- Verification passed with `.venv/bin/python -m pytest backend/tests/test_services.py backend/tests/test_security_regressions.py backend/tests/test_auth.py backend/tests/test_phase_cd.py backend/tests/test_overlay.py backend/tests/test_liquidity.py -q` and `node --check frontend-mvp/_app.js frontend-mvp/_shell.js frontend-mvp/_demo_fixtures.js`.
+- Phase G follow-ups are now fully cleared on this branch: the old G8-G18 review list has either already been resolved in current code or is now closed by the changes in this pass.
+- The remaining demo risks are operational rather than architectural: the live seeded Documents screen is still empty until demo documents are seeded, local PDF export still depends on missing WeasyPrint system libraries, and a fresh screenshot/mobile QA sweep should be run before the final demo.
+
+## 2026-04-15
+
+### Functional MVP / Supabase Cutover
+
+- Scope executed: remove the shipped offline fixture runtime, add the Supabase auth/storage/database bridge, migrate the configured Postgres database, provision the demo auth user in Supabase, reseed the real demo workspace, and verify live bearer-token auth through FastAPI.
+
+### Work Performed
+
+- Removed the frontend fixture/demo runtime path from `frontend-mvp/_app.js`, `frontend-mvp/_shell.js`, and the shipped MVP HTML entrypoints; deleted the old fixture payload files from the active frontend.
+- Added Supabase runtime configuration and validation in `backend/config.py`, normalized Postgres URLs in `backend/database.py` and `backend/migrations/env.py`, and added `psycopg` to `pyproject.toml`.
+- Added `backend/services/auth/supabase.py` for Supabase password auth, bearer-token identity resolution, and admin-side user provisioning.
+- Added `backend/services/storage.py` plus document-service updates so document payloads can move between local storage and Supabase Storage without changing higher-level business logic.
+- Added Supabase identity linkage fields on users and the corresponding migration `backend/migrations/versions/20260415_000011_supabase_identity_support.py`.
+- Updated `admin/demo/seed_demo.py` so the demo user/workspace are treated as a real seeded account and so reseeding cleans dependent records created by partial real runs.
+- Added `admin/thinking/MVP_FUNCTIONALIZATION_SPEC.md` and `admin/thinking/SUPABASE_SETUP.md` so the repo has a current MVP scope document and a concrete credential/setup guide.
+
+### Verification
+
+- `node --check frontend-mvp/_app.js`
+- `node --check frontend-mvp/_shell.js`
+- `.venv/bin/python -m pytest backend/tests/test_auth.py backend/tests/test_phase_cd.py -q`
+- `.venv/bin/python -m pytest backend/tests/test_services.py backend/tests/test_auth.py -q`
+- `.venv/bin/alembic upgrade head` against the configured Supabase/Postgres database
+- `AUTH_MODE=supabase ANTHROPIC_API_KEY='' FRED_API_KEY='' .venv/bin/python admin/demo/seed_demo.py`
+- Live auth smoke test via FastAPI:
+  - `/api/auth/login` returned `200`
+  - bearer `/api/auth/session` returned `200`
+  - resolved workspace name: `Whitmore Family Office`
+
+### Notes
+
+- The configured `.env` originally contained duplicate `DATABASE_URL` entries; this was worked around during cutover and later cleaned up so the live Supabase/Postgres target is unambiguous.
+- Supabase Auth and Supabase/Postgres are now proven reachable from the repo runtime.
+- PDF export still skips locally because WeasyPrint system libraries are not installed on this machine.
+
+### Follow-on Backend + Smoke Test Pass
+
+- Continued the live-path backend cleanup after the initial Supabase cutover:
+  `admin/demo/seed_demo.py` now respects the repo `.env` by default instead of silently forcing sqlite when the script is launched without exported shell vars.
+- Added first-upload bucket bootstrap in `backend/services/storage.py` so the configured Supabase Storage bucket is created automatically if missing.
+- Extended the demo seed to include real documents:
+  one parsed custody-statement workbook and one pending capital-call workbook, so the Documents queue is populated in the seeded demo workspace.
+- Re-ran the live seed against Supabase/Postgres with deterministic fallbacks and verified the resulting workspace over HTTP from the running app servers.
+
+### Additional Verification
+
+- Running backend server on `127.0.0.1:8001` started successfully.
+- Running static frontend/proxy server on `127.0.0.1:8000` started successfully.
+- Live smoke results:
+  - `/api/auth/login` -> `200`
+  - `/api/auth/session` with bearer token -> `200`
+  - `/api/cockpit` -> `200`
+  - `/api/liquidity/summary` -> `200`
+  - `/api/briefings` -> `200`
+  - `/api/settings` -> `200`
+  - `/api/portfolio/summary` -> `200`
+  - `/api/documents` -> `200` with `2` items
+  - `/api/documents/{id}/review` -> `200` for the parsed seeded document
+  - `/login.html`, `/cockpit.html`, `/liquidity.html`, `/briefings.html`, `/settings.html` -> `200`
+  - `/api/health` through the frontend proxy -> `200`
+
+### Supabase Auth UX + Agent Platform Spec Pass
+
+- Added a real `/api/auth/register` path in `backend/routers/auth.py` with workspace bootstrap, default workspace settings creation, and onboarding progress initialization.
+- Added `RegisterRequest` in `backend/schemas/auth.py` and added regression coverage in `backend/tests/test_auth.py` for both local and Supabase-backed registration.
+- Added `create_supabase_password_user(...)` in `backend/services/auth/supabase.py` so new production workspaces can be provisioned without treating signup as an implicit password-reset path.
+- Reworked `frontend-mvp/login.html` and `frontend-mvp/_app.js` to support:
+  - sign in
+  - create workspace
+  - forgot password
+  - session-vs-persistent auth token storage
+- Added global page-load and button loading states to reduce the initial compressed/squashed paint while shell hydration completes.
+- Reworked `frontend-mvp/onboarding.html` toward a tighter first-run flow and tightened the desktop density / copy on:
+  - `frontend-mvp/briefings.html`
+  - `frontend-mvp/settings.html`
+  - `frontend-mvp/documents.html`
+  - `frontend-mvp/liquidity.html`
+- Added `admin/thinking/CLAUDE_AGENT_PLATFORM_SPEC.md` and linked it from `admin/thinking/MVP_FUNCTIONALIZATION_SPEC.md`.
+
+### Verification
+
+- `.venv/bin/pytest backend/tests/test_auth.py`
+- `node --check frontend-mvp/_app.js`
+- `node --check frontend-mvp/_shell.js`
+- Live HTTP smoke against restarted local servers:
+  - `/api/auth/login` -> `200`
+  - bearer `/api/auth/session` -> `200`
+  - `/api/cockpit` -> `200`
+  - `/api/liquidity/summary` -> `200`
+  - `/api/briefings` -> `200`
+  - `/api/settings` -> `200`
+  - `/api/documents` -> `200`
+- Playwright browser pass after the login-session probe cleanup:
+  - login -> cockpit -> liquidity ran clean
+  - no console errors
+
+### Live Supabase Signup/Auth/Storage Verification
+
+- Confirmed the runtime is pointed at the real Supabase project and bucket from the repo `.env`:
+  - `AUTH_MODE=supabase`
+  - `SUPABASE_URL` populated
+  - `SUPABASE_ANON_KEY` populated
+  - `SUPABASE_SERVICE_ROLE_KEY` populated
+  - `SUPABASE_STORAGE_BUCKET=documents`
+- Ran a disposable end-to-end verification against the live backend on `127.0.0.1:8001`:
+  - registered a timestamped user/workspace through `/api/auth/register`
+  - authenticated the same user again through `/api/auth/login`
+  - resolved the session via bearer `/api/auth/session`
+  - verified the app DB row was created with `auth_provider=supabase`, a populated `auth_subject`, workspace settings, and onboarding progress
+  - uploaded a disposable PDF through `/api/documents/upload`
+  - verified the resulting document row stored a `supabase://documents/...` storage path
+  - read the stored object back from Supabase Storage and confirmed the bytes matched the uploaded payload
+  - confirmed the user also existed in Supabase Auth admin lookup
+- Cleaned up the disposable verification artifacts after the test:
+  - deleted the Supabase Storage object
+  - deleted the app DB user/workspace/document rows
+  - deleted the Supabase Auth user
+
+### Auth Bridge Hardening
+
+- Hardened Supabase session validation so the backend no longer collapses every validation failure into `Invalid session`:
+  - non-auth HTTP failures from Supabase now surface as `503`
+  - true invalid bearer tokens still return `401 Invalid session`
+- Added a short frontend retry on the first `/api/auth/session` lookup after sign-in / workspace creation so the flow is more resilient to transient bridge timing issues.
+- Verified after the change:
+  - `node --check frontend-mvp/_app.js`
+  - `.venv/bin/pytest backend/tests/test_auth.py -q`
+  - Playwright sign-in flow from `login.html` to `cockpit.html` with no console errors
+
+### Onboarding Document Handoff
+
+- Wired onboarding document upload to open the real Documents review queue immediately after upload + parse:
+  - `frontend-mvp/_app.js`
+    - onboarding now redirects to `documents.html?documentId=<id>&uploaded=1` after a successful optional document upload
+    - documents page now accepts `documentId` from the URL, auto-selects that record, and surfaces a success notice
+    - targeted document selection also snaps the folder filter to the uploaded document so the file is visible at first load
+- Verified with a live browser smoke using the seeded Supabase demo account:
+  - sign in at `http://localhost:8000/login.html`
+  - upload `admin/demo/test_uploads/pe_distribution_notice_may_2026.pdf` from onboarding
+  - redirect lands on `documents.html?documentId=...`
+  - uploaded file is selected in the Documents list
+  - uploaded file is loaded in the preview pane
+
+### Documents Visibility Tightening
+
+- Tightened the Documents tab so newly uploaded files are easier to spot even when filenames repeat:
+  - `frontend-mvp/_app.js`
+    - document list rows now show upload timestamps
+    - selected item now shows an `Open` pill
+    - newly uploaded / very recent items now show a `Recent` pill
+    - summary cards now include `Latest upload` with filename + timestamp
+- Verified in a live browser pass:
+  - onboarding upload redirected into Documents
+  - selected row rendered as `OPEN RECENT`
+  - summary card showed the uploaded filename and current upload time
+
+### Fresh Workspace Auth + Documents Audit
+
+- Added a temporary debug strip to `frontend-mvp/documents.html` / `frontend-mvp/_app.js` so the Documents page now exposes:
+  - current user email
+  - current workspace name + workspace id
+  - current document count
+  - active folder
+  - selected document id
+  - latest filename + upload time
+- Ran a fresh non-demo workspace browser audit on `http://localhost:8000` using a newly created Supabase-backed account:
+  - `Create workspace` -> success, lands on `onboarding.html`
+  - `Log in` -> success, lands on `onboarding.html` for an incomplete workspace
+  - `Onboarding CSV upload` -> success
+  - `Onboarding document upload` -> success, redirects to `documents.html?documentId=...`
+  - `Documents page upload` -> success, document count increments and the new row is selected
+  - `Forgot password` request form -> success message shown in the UI
+- Verified the reset-completion bug against the live backend for that same account:
+  - `/api/auth/reset-password` returned `200 Password reset`
+  - subsequent login with the new password returned `401 Invalid credentials`
+  - login with the old password still returned `200`
+- Conclusion:
+  - signup, login, onboarding, and document uploads are functioning on new non-demo accounts
+  - the broken auth flow is password reset completion under Supabase auth mode
+
+### Supabase Reset-Password Bridge Fix
+
+- Implemented Supabase-aware password reset completion:
+  - `backend/services/auth/supabase.py`
+    - added `update_supabase_password(subject, email, password)` using Supabase Admin API (`PUT /auth/v1/admin/users/{id}`)
+    - includes fallback lookup by email when local `auth_subject` is missing
+  - `backend/routers/auth.py`
+    - `reset_password()` now branches on `is_supabase_auth_enabled()`
+    - in Supabase mode, updates upstream Supabase password first, then consumes reset token/revokes sessions
+    - retains local hash-reset behavior only for local auth mode
+- Added regression tests in `backend/tests/test_auth.py`:
+  - Supabase reset success path calls upstream update and consumes token
+  - Supabase reset upstream failure returns `503` and does not consume token
+- Verification:
+  - `.venv/bin/pytest backend/tests/test_auth.py -q` -> `15 passed`
+  - in-process end-to-end auth flow (fresh account):
+    - register `200`
+    - forgot-password `200`
+    - reset-password `200`
+    - login with new password `200`
+    - login with old password `401`
+- Note:
+  - a pre-existing running backend process can still show old behavior until it is restarted with the updated code.
+
+### Post-Restart Full Flow Verification
+
+- Restarted local backend on `127.0.0.1:8001` so the patched reset-password router path is active.
+- Ran a fresh visual browser flow on `http://localhost:8000` with new non-demo account:
+  - Sign up / account creation -> success
+  - Log in -> success (lands on onboarding for incomplete workspace)
+  - Onboarding CSV upload -> success
+  - Onboarding document upload -> success (redirect + selected file visible in Documents)
+  - Password reset request UI -> success
+- Ran reset completion against the restarted backend for the same account:
+  - `/api/auth/reset-password` -> `200`
+  - `/api/auth/login` with new password -> `200`
+  - `/api/auth/login` with old password -> `401`
+- Verified the same outcome in browser:
+  - login with old password shows `Invalid credentials`
+  - login with new password succeeds and lands on onboarding
+
+### Positions + Documents Functional Review
+
+- Reviewed `Positions` and `Documents` tabs as live user flows and reproduced the main breakages:
+  - Positions tab failed for new workspaces with `Portfolio snapshot not found`, blocking first manual holding entry.
+  - Documents tab lacked true source-file viewing despite parse/review metadata being present.
+- Implemented backend fixes:
+  - `backend/routers/portfolio.py`
+    - added `_ensure_current_snapshot(...)` to bootstrap an empty current snapshot when none exists
+    - `GET /api/portfolio/positions` now returns an empty list (not 404) for fresh workspaces
+    - `POST /api/portfolio/positions` now works for first position without a prior CSV snapshot
+  - `backend/routers/documents.py`
+    - added `GET /api/documents/{document_id}/file` to stream original source files from storage (Supabase/local)
+- Implemented frontend fixes:
+  - `frontend-mvp/_app.js`
+    - Positions table now renders a clear empty-state row instead of looking broken
+    - Positions submit now reports explicit success state and uses correct create vs update messaging
+    - Documents preview now fetches authenticated source-file blobs and renders inline PDF preview
+    - Documents preview now includes source-file download action (including for PDFs)
+- Added regression coverage:
+  - `backend/tests/test_phase_cd.py::test_positions_bootstrap_allows_first_manual_position_without_prior_snapshot`
+  - extended documents flow assertion to validate `/api/documents/{id}/file` response
+- Verification:
+  - `AUTH_MODE=local .venv/bin/pytest backend/tests/test_phase_cd.py::test_positions_bootstrap_allows_first_manual_position_without_prior_snapshot backend/tests/test_phase_cd.py::test_briefings_settings_api_keys_and_documents_flow -q` -> `2 passed`
+  - Browser smoke on fresh non-demo workspace:
+    - Positions opens with `0 positions` and allows creating first row immediately
+    - Documents source preview renders a PDF iframe and source download control
+
+### Positions + Documents UX Follow-up Fix
+
+- Addressed remaining usability issues reported after the functional pass:
+  - `frontend-mvp/_app.js` Positions LHS:
+    - removed blank inline factor-edit inputs from table rows
+    - table now renders readable values (`factor_*` with fallback to core fields)
+    - empty values render as `—`
+    - create/edit messaging corrected so new rows show `Position created.`
+  - `frontend-mvp/_app.js` Documents viewing:
+    - source-file section now always exposes explicit actions:
+      - `Open in new tab`
+      - `Download source file`
+    - PDF inline iframe preview remains when available
+- Browser verification on fresh workspace:
+  - Positions first row now shows visible values on LHS
+  - Documents preview shows iframe + open/download controls
+
+### Step-back Redesign Pass (Positions + Documents)
+
+- Responded to UX concerns with a deeper structural pass:
+  - `frontend-mvp/table.html` + `frontend-mvp/_app.js`:
+    - relabeled `Ticker` to `Identifier (ticker if listed)` to remove listed-equity bias for private funds
+    - creation now auto-generates an identifier from fund name when no identifier is provided
+    - added visible `Added` and `Modified` columns in positions table
+    - added editor metadata line showing `Date added` + `Date modified`
+    - replaced confusing blank inline-edit cells on LHS with readable values + `—` fallback
+  - `backend/routers/portfolio.py` + `backend/schemas/portfolio.py`:
+    - exposed `first_seen_at` and `last_modified_at` on position responses
+    - computed `first_seen_at` from workspace history for version-tracking visibility
+- Fixed document workflow behavior that made the page look non-functional:
+  - `frontend-mvp/_app.js`:
+    - upload now updates the list immediately after file write
+    - parse is triggered asynchronously in background so slow parse does not block list visibility
+    - document action buttons are disabled until a document is selected (no more silent no-op clicks)
+    - empty preview state now gives explicit next-step guidance
+  - `frontend-mvp/documents.html`:
+    - primary button copy updated to `Upload & parse`
+- Verification:
+  - browser pass confirms positions LHS readability + date tags
+  - browser pass confirms document appears in list immediately after upload with visible source preview/open/download actions
+
+### Controlled Field Taxonomy (Positions)
+
+- Implemented controlled inputs for constrained classification fields to reduce free-text drift:
+  - `frontend-mvp/table.html`
+    - `Sector` -> dropdown
+    - `Factor asset class` -> dropdown
+    - `Factor sector` -> dropdown
+    - `Factor subsector` -> dropdown
+  - `frontend-mvp/_app.js`
+    - taxonomy normalization (`snake_case`) before API mutation payloads
+    - dynamic subsector options by selected factor sector (e.g. private equity, technology, fixed income)
+    - legacy-value fallback handling for historical records not in current option sets
+- Documents reliability tweak:
+  - changed upload behavior to update list immediately after upload, then parse asynchronously
+  - prevents the UI from appearing empty while parse is still running
+- Verification:
+  - `node --check frontend-mvp/_app.js` clean
+  - browser pass confirms dropdown option sets + dynamic subsector lists
+  - browser pass confirms immediate document list visibility after upload
+
+### Positions Language Cleanup (Factor Terminology Removed from MVP UI)
+
+- Aligned Positions UX with the MVP triage decision to remove macro/factor language from user-facing workflows:
+  - `frontend-mvp/_app.js`:
+    - removed reliance on deprecated `form-factor-*` inputs in `initTable`
+    - switched to user-facing fields only: asset class, sector, subsector, market segment, region, custodian
+    - remapped subsector dropdown logic from factor-sector wiring to portfolio sector wiring
+    - cleaned table rendering to show portfolio fields (not factor columns) with date-added/date-modified preserved
+    - kept backend compatibility by silently mapping user-facing classifications into internal `factor_*` payload fields at save time
+  - `frontend-mvp/login.html`:
+    - changed `risk factors monitored` copy to `risk signals monitored`
+- Verification:
+  - `node --check frontend-mvp/_app.js` clean
+  - `rg -n "form-factor-" frontend-mvp/_app.js frontend-mvp/table.html` returns no live UI bindings
+
+### Positions Controls Hardening + Claude Handoff (Documents Issue)
+
+- Implemented requested form-control tightening in the live MVP UI:
+  - `frontend-mvp/table.html`
+    - `Geo region` remains a constrained dropdown (no free text)
+    - `Market segment` converted from free-text input to controlled dropdown
+  - `frontend-mvp/_app.js`
+    - removed legacy dropdown-option injection (no `(Legacy)` options are appended at runtime)
+    - `ensureSelectValue(...)` now strictly selects only canonical options and otherwise falls back to `Unset`
+    - `market_segment` now persists as normalized taxonomy value from the dropdown
+    - strengthened numeric input behavior for all fields marked with `data-format="integer|decimal"`:
+      - numeric-only sanitization during typing
+      - comma-grouped formatting on blur
+      - explicit numeric input mode/pattern binding
+- Scope impact:
+  - Positions editor numeric fields (`quantity`, `market_value_usd`) now enforce numeric-only entry and comma formatting.
+  - Documents review numeric candidate fields (`quantity`, `market_value_usd`) inherit the same restrictions because they already use `data-format="decimal"` and are bound via `bindFormattedNumberInputs(preview)`.
+- Verification:
+  - `node --check frontend-mvp/_app.js` clean
+  - `rg -n "(Legacy)" frontend-mvp/_app.js` -> no runtime legacy-option path
+
+### Claude-targeted Documents Triage Note
+
+- User still reports Documents tab not reliably surfacing uploaded files for non-demo accounts.
+- Current known behavior in code:
+  - upload call triggers immediate `loadDocuments({ preserveStatus: true })`
+  - parse is asynchronous and should no longer block list refresh
+  - documents are filtered by workspace/user context from auth session
+- Suggested next debug path for Claude:
+  1. Capture live request/response sequence in browser devtools for:
+     - `POST /api/documents/upload`
+     - immediate `GET /api/documents`
+     - follow-up `GET /api/documents` after parse
+  2. Verify returned rows include the active workspace_id and that the frontend is not filtering them out by folder state.
+  3. Add temporary server-side request logging for workspace_id/user_id in `backend/routers/documents.py` list/upload endpoints to detect context mismatch.
+  4. Validate Supabase storage write success vs DB metadata write success for the same request id (catch split-write failures).
+  5. If race condition is confirmed, force optimistic insertion into the current client list before refresh.
+
+---
+
+## Phase K — Production Readiness (2026-04-17)
+
+### Background
+
+MVP is functionally complete on Supabase Auth + Postgres + Storage, verified
+end-to-end on a local runtime. Before this can be shown to or onboarded by real
+family-office CIOs, the app needs a production deployment target, hardened
+operations, compliance baseline, and a supported onboarding path. This phase
+converts "working on localhost" into "ready to invite a first paying design
+partner".
+
+Dependency order at a glance:
+
+```
+K1 (doc triage) → K2 (remove debug strip) → K13 (QA sweep)
+K3 (infra/hosting) → K4 (secrets) → K5 (domain/TLS) → K6 (CI/CD)
+K6 → K7 (migrations policy) → K8 (backups) → K9 (observability)
+K9 → K10 (alerting) → K11 (runbook)
+K12 (PDF / WeasyPrint) in parallel with K3–K6
+K14 (security review) → K15 (legal/privacy) → K16 (onboarding collateral)
+K13 + K11 + K15 gate K17 (design partner cutover)
+```
+
+### Tasks
+
+| # | Task | Scope | Priority | Status |
+|---|------|-------|----------|--------|
+| K1 | **Close Documents visibility triage** | Execute the 5-step debug plan at the end of the 2026-04-15 entry above. Confirm root cause (context mismatch vs. race vs. split-write), land the fix with regression test, and re-verify on a fresh non-demo Supabase workspace. Deliverable: a new backend test under `backend/tests/test_phase_cd.py` that reproduces the failing path against a clean workspace, plus any client-side optimistic-insert change in `frontend-mvp/_app.js`. | P0 | Pending |
+| K2 | **Remove Documents debug strip** | Delete the temporary debug strip from `frontend-mvp/documents.html` and any supporting code in `frontend-mvp/_app.js` once K1 is verified. Keep the underlying state accessible via devtools only. | P0 | Pending |
+| K3 | **Production hosting target** | Pick and stand up the production runtime. Recommended default: Supabase (DB + Auth + Storage already used) + a managed FastAPI host (Fly.io or Render) for `backend/`, plus a static host (Vercel or Netlify) for `frontend-mvp/`. Deliverables: provisioned project, documented region choice, documented resource sizing (CPU/RAM, DB tier, storage quota), and a written "why this stack" decision note in `admin/thinking/PRODUCTION_INFRA.md`. | P0 | Pending |
+| K4 | **Secrets management** | Remove all secrets from `.env` / developer machines as the source of truth. Move `SECRET_KEY`, `ANTHROPIC_API_KEY`, `FRED_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and DB URL into the host's secret store (Fly secrets / Render env vars / 1Password). Enforce `SECRET_KEY != "replace-me"` in non-dev (already validated in `backend/config.py` — confirm it runs in prod mode). Document the rotation procedure. | P0 | Pending |
+| K5 | **Custom domain + TLS** | Attach a real domain (e.g. `app.chiefriskbot.com` for frontend, `api.chiefriskbot.com` for backend). Terminate TLS at the host. Set HSTS, secure cookie flags (already in `backend/routers/auth.py` — verify `secure=True` is set when `ENV=production`), and CORS allowlist limited to the frontend origin. | P0 | Pending |
+| K6 | **CI/CD pipeline** | GitHub Actions workflow that on push to `main`: runs `pytest` + `node --check` on all shipped JS, runs `alembic upgrade --sql` as a migration dry-run, builds and deploys backend, then deploys frontend. Require green CI before deploy. Add a manual-approval gate for production promotion. Store deploy logs. | P0 | Pending |
+| K7 | **Migration safety policy** | Document and enforce: never drop/rename columns in-place, always two-step (add → backfill → switch → drop in later release). Add a pre-merge check that flags destructive migrations in `backend/migrations/versions/*`. Add a `scripts/migrate.sh` that runs `alembic upgrade head` with a timeout and exits non-zero on failure so CI can catch it. | P1 | Pending |
+| K8 | **Database backups + restore drill** | Enable Supabase PITR (or equivalent daily logical backups + WAL if self-hosted). Run one full restore drill into a scratch project. Document RTO/RPO targets. Record the drill result in `admin/thinking/PRODUCTION_INFRA.md`. | P0 | Pending |
+| K9 | **Observability: logs + metrics + tracing** | Ship structured JSON logs from FastAPI (replace default uvicorn access log), aggregate in the host's log product (Fly/Render/Supabase logs) or Grafana Cloud free tier. Instrument request latency, error rate, and DB query timing. Add a `/api/health` deep-check that verifies DB, Supabase Auth, Supabase Storage, Anthropic, and FRED connectivity. | P1 | Pending |
+| K10 | **Alerting** | Page on: 5xx rate > 1% over 5 min, `/api/health` failing for 2 consecutive probes, scheduler job failures, and audit-log write failures. Route to email + one on-call channel. Document who gets paged. | P1 | Pending |
+| K11 | **Operations runbook** | Write `admin/thinking/RUNBOOK.md`: how to restart backend, re-run migrations, reseed demo, rotate secrets, restore from backup, handle an incident, and contact Supabase/Anthropic support. Include credential locations (pointers, not values). | P1 | Pending |
+| K12 | **PDF export in production** | Decide: bundle WeasyPrint system libs in the backend container image, OR switch to a managed HTML→PDF service (e.g. Chromium-based lambda). Ship the chosen path and verify `/api/briefings/{id}/pdf` returns `200` with real bytes in the deployed environment. Remove the current graceful-503 fallback or keep it as a belt-and-braces. | P1 | Pending |
+| K13 | **Full-product QA sweep** | Run `/GSqa` against the deployed environment using two accounts: the seeded demo workspace and a brand-new Supabase-created workspace. Cover signup, onboarding CSV, onboarding document, cockpit, overlay, liquidity, briefings (generate + publish + PDF), positions CRUD, documents upload + review + source preview, settings, password reset. Log findings as K13.N items with fixes. | P0 | Pending |
+| K14 | **Security review pass** | Run `/GScso` / `/security-review` against the deployed stack. Re-verify the Phase G blockers are still closed in prod config. Add rate limiting on `/api/auth/login`, `/api/auth/register`, `/api/auth/forgot-password` (e.g. 10/min/IP). Confirm CSP header on frontend, `X-Content-Type-Options`, `Referrer-Policy`, and that Supabase storage URLs are not world-readable. | P0 | Pending |
+| K15 | **Legal + privacy baseline** | Draft Terms of Service, Privacy Policy, and a one-page data-handling summary (what's stored, where, who can see it, retention). Add a cookie/session disclosure on `login.html`. Confirm the data-processing posture for Anthropic API usage (no training on inputs) and document it. Place documents under `admin/business/legal/`. | P0 | Pending |
+| K16 | **Onboarding collateral for design partners** | Write a one-page "getting started" doc for a CIO: what to upload, what to expect, how briefings work, how to invite a teammate (if supported — otherwise flag as not-yet). Record a 3-minute Loom-style walkthrough. Place under `admin/business/onboarding/`. | P1 | Pending |
+| K17 | **Design-partner cutover checklist** | A gated checklist that must be green before the first external login: K1–K10, K13, K14, K15 complete; demo workspace reseeded on prod; on-call rota live; rollback procedure rehearsed; first-partner workspace pre-provisioned. Track in `admin/status/STATUS.md` under a new "Production readiness" section. | P0 | Pending |
+| K18 | **Pricing + billing (if monetizing at launch)** | Decide whether MVP ships free to first partners or with a paid subscription from day one. If paid: integrate Stripe Billing, gate access on subscription status, add a `billing.html` shell page. If free: document the grace period and when billing turns on. | P2 | Pending |
+| K19 | **Support channel** | Stand up a support inbox (e.g. `support@chiefriskbot.com`) with an auto-ack, and a lightweight in-app "Contact support" link in `_shell.js`. Document SLA expectations for design partners. | P2 | Pending |
+| K20 | **Claude Agent Platform migration (scoped)** | Scope-only: review `admin/thinking/CLAUDE_AGENT_PLATFORM_SPEC.md` against the deployed system and produce a go/no-go decision for migrating the current briefing/extraction pipeline onto Claude Managed Agents before or after first partner. Do not implement in this phase unless gated decision says "before". | P2 | Pending |
+
+### Build order
+
+```
+Week 1: K1 → K2 → K3 → K4 → K5
+Week 2: K6 → K7 → K8 → K12 (parallel) → K9 → K10 → K11
+Week 3: K13 → K14 → K15 → K16
+Week 4: K17 checklist review → first design partner cutover
+K18 / K19 / K20 as P2 follow-ups unless partner requires them earlier
+```
+
+### Exit criteria
+
+- A real user can sign up on the production domain, complete onboarding, upload
+  a document, generate a briefing, download a PDF, and log back in a day later
+  with no intervention from the team.
+- A database restore drill has been executed end-to-end.
+- On-call alerting has fired at least once in a rehearsal and routed correctly.
+- Security, legal, and QA sign-offs are recorded in `STATUS.md`.
+
+## 2026-04-17
+
+### Queue Item K1-K17 Implementation Pass
+
+- Source queue entry: `implement release plan K1-K17`
+- Scope executed: implemented in-repo production-readiness code and artifacts for the Phase K plan (documents reliability/UX, auth hardening, observability, CI/CD, deployment configs, migration safety checks, legal/onboarding docs, and production checklist tracking).
+
+### Work Performed
+
+- K1/K2:
+  - Removed temporary Documents debug strip from `frontend-mvp/documents.html` and related JS bindings.
+  - Fixed Documents visibility focus behavior in `frontend-mvp/_app.js` so uploaded/targeted docs force folder focus and remain visible.
+  - Added backend regression `test_documents_upload_is_immediately_visible_in_workspace_listing`.
+  - Stabilized document listing order in `backend/routers/documents.py`.
+- K6/K7:
+  - Added `.github/workflows/ci-cd.yml` (tests, JS checks, migration dry-run, staged/prod deploy jobs).
+  - Added `scripts/check_destructive_migrations.py` and `scripts/migrate.sh`.
+- K9/K14:
+  - Added request-level structured JSON logging + request/DB timing metrics (`backend/services/observability.py`, `backend/main.py`, `backend/database.py`).
+  - Expanded `/api/health` to deep dependency checks + metrics (`backend/routers/health.py`, `backend/schemas/health.py`).
+  - Added auth rate limiting with `429` + `Retry-After` on login/register/forgot-password (`backend/routers/auth.py`, `backend/services/rate_limit.py`) and regression tests in `backend/tests/test_auth.py`.
+  - Added frontend security headers/CSP via `frontend-mvp/_headers`.
+- K3/K5/K12:
+  - Added deployment/runtime artifacts: `Dockerfile` (WeasyPrint system libs), `fly.toml`, `frontend-mvp/wrangler.toml`.
+  - Added production CORS hardening checks in `backend/config.py`.
+- K11/K15/K16/K17:
+  - Added `admin/thinking/PRODUCTION_INFRA.md` and `admin/thinking/RUNBOOK.md`.
+  - Added legal docs under `admin/business/legal/` and onboarding collateral under `admin/business/onboarding/`.
+  - Added login legal/cookie disclosure (`frontend-mvp/login.html`) and static legal page (`frontend-mvp/legal.html`).
+  - Added production-readiness tracking section to `admin/status/STATUS.md`.
+  - Added QA/security tracking docs: `admin/status/K13_QA_SWEEP.md`, `admin/status/K14_SECURITY_REVIEW.md`.
+
+### Notes
+
+- External, environment-scoped actions still required for full launch gating:
+  - actual Fly + Cloudflare provisioning and secret population
+  - DNS cutover
+  - Supabase backup restore drill execution
+  - deployed-environment QA/security sign-off
+
+---
+
+## Phase K — Execution Queue (2026-04-21)
+
+### Context
+
+K1–K17 code scaffolding is landed. All remaining gates are environment-scoped
+(provisioning, DNS, secrets, deployed verification). Decisions locked:
+
+- **Domain**: chiefriskbot.com (purchased). App = `app.chiefriskbot.com`, API = `api.chiefriskbot.com`.
+- **Hosting**: Fly.io (backend) + Cloudflare Pages (frontend) + Supabase (DB/Auth/Storage). Locked.
+- **Supabase tier**: Free tier, single project (dev = prod for now). PITR deferred until Pro tier is enabled. K8 downgraded to logical backup via `pg_dump` on schedule until then.
+- **Design partner**: none named; product will be used to onboard first design partner + incoming CTO. No hard cutover date.
+- **Billing**: free for design partners. K18 stays P2.
+- **Alerting**: email only for v1. Slack deferred. K10 simplified accordingly.
+- **Execution model**: Claude/Codex installs and runs CLI tooling (flyctl, wrangler, supabase CLI) locally. User provides credentials (Fly token, Cloudflare API token, Supabase service role key, domain registrar access) via the user checklist.
+
+### Execution order
+
+```
+EX1  Domain + registrar access captured         (blocks EX5, EX6)
+EX2  Fly app provisioned                        (blocks EX4, EX5)
+EX3  Cloudflare Pages project provisioned       (blocks EX4, EX6)
+EX4  Secrets populated in Fly + Cloudflare + GH (blocks EX7)
+EX5  DNS records: api.* -> Fly, app.* -> Pages  (blocks EX7)
+EX6  TLS/HSTS verified on both hosts            (blocks EX7)
+EX7  First deploy via CI/CD to prod             (blocks EX8..EX12)
+EX8  Supabase prod verification + backups       (parallel with EX9)
+EX9  /api/health deep check green in prod       (parallel with EX8)
+EX10 K13 QA sweep against deployed env          (blocks EX13)
+EX11 K14 security review against deployed env   (blocks EX13)
+EX12 K12 PDF export verified in container       (blocks EX13)
+EX13 K17 cutover checklist signed, STATUS.md flipped to "production live"
+```
+
+### Tasks (detailed)
+
+#### EX1 — Capture domain + registrar state
+- **Scope**: record where `chiefriskbot.com` is registered, DNS host (registrar DNS vs. Cloudflare DNS), and whether nameservers are already pointing at Cloudflare.
+- **Files**: `admin/thinking/RUNBOOK.md` (append "Domain + DNS" section with registrar, login location, nameserver target, renewal date).
+- **User inputs required**: registrar name, account login location (1Password entry), current nameservers.
+- **Verify**: `dig NS chiefriskbot.com` matches expectation; WHOIS shows >30 days to expiry.
+- **Owner**: user supplies inputs, Claude writes runbook.
+
+#### EX2 — Provision Fly.io backend app
+- **Scope**: create Fly app `chiefriskbot-api` in ord (or closest region), attach 1x shared-cpu-1x/512MB, set up Fly Postgres? NO — Supabase is the DB. App uses external Supabase connection string.
+- **Commands** (Claude will run, user authenticates first via `fly auth login`):
+  - `flyctl launch --no-deploy --name chiefriskbot-api --region ord --copy-config` (uses existing `fly.toml`)
+  - `flyctl ips allocate-v4` and `flyctl ips allocate-v6` for the app
+  - `flyctl volumes create data --region ord --size 1` only if we end up needing local scratch (current `Dockerfile` does not require it — **skip unless verified**)
+- **Outputs**: Fly app name, allocated IPv4/IPv6, app URL (`chiefriskbot-api.fly.dev`).
+- **Verify**: `flyctl status -a chiefriskbot-api` returns `pending` with config loaded; `fly.toml` committed.
+- **Owner**: Claude runs commands, user provides `FLY_API_TOKEN` and `fly auth login` interactively.
+
+#### EX3 — Provision Cloudflare Pages project
+- **Scope**: create Pages project `chiefriskbot-app` pointed at `frontend-mvp/` directory, build command `none` (static), output dir `.`.
+- **Commands** (via `wrangler`):
+  - `wrangler pages project create chiefriskbot-app --production-branch main`
+  - Connect GitHub repo OR use direct upload via CI (prefer direct upload to keep frontend and backend deploy atomic).
+  - Apply `frontend-mvp/_headers` and existing `wrangler.toml`.
+- **Outputs**: Pages project name, default `*.pages.dev` URL.
+- **Verify**: `wrangler pages project list` shows the project; a manual `wrangler pages deploy frontend-mvp --project-name chiefriskbot-app` yields 200 on the pages.dev URL.
+- **Owner**: Claude runs, user provides `CLOUDFLARE_API_TOKEN` (scopes: Pages:Edit, DNS:Edit, Zone:Read) and `CLOUDFLARE_ACCOUNT_ID`.
+
+#### EX4 — Populate secrets in Fly, Cloudflare, and GitHub Actions
+- **Fly secrets** (set via `flyctl secrets set -a chiefriskbot-api KEY=VAL`):
+  - `SECRET_KEY` (generate: `python -c "import secrets; print(secrets.token_urlsafe(64))"`)
+  - `ANTHROPIC_API_KEY` (user-provided, prod key, billing enabled)
+  - `FRED_API_KEY` (user-provided)
+  - `SUPABASE_URL`
+  - `SUPABASE_ANON_KEY`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `SUPABASE_JWT_SECRET`
+  - `DATABASE_URL` (Supabase pooled connection string, `?sslmode=require`)
+  - `AUTH_MODE=supabase`
+  - `ENV=production`
+  - `ALLOWED_ORIGINS=https://app.chiefriskbot.com`
+  - `SUPPORT_EMAIL=support@chiefriskbot.com`
+- **Cloudflare Pages env vars** (production scope):
+  - `API_BASE_URL=https://api.chiefriskbot.com`
+- **GitHub repo secrets** (for `.github/workflows/ci-cd.yml`):
+  - `FLY_API_TOKEN`
+  - `CLOUDFLARE_API_TOKEN`
+  - `CLOUDFLARE_ACCOUNT_ID`
+  - `SUPABASE_DB_URL` (used only for `alembic upgrade --sql` dry-run in CI)
+- **Verify**:
+  - `flyctl secrets list -a chiefriskbot-api` shows all keys, no plaintext leaked in logs.
+  - `wrangler pages secret list --project-name chiefriskbot-app` shows env vars.
+  - GH Actions secrets visible under repo settings (no values after save).
+  - Unit check: `backend/config.py` enforces `SECRET_KEY != "replace-me"` when `ENV=production` — add assertion test if missing.
+- **Owner**: user drops secret values into a scratch file locally; Claude reads it, runs the `secrets set` commands, then deletes scratch file. Never commit.
+
+#### EX5 — DNS: attach api.chiefriskbot.com and app.chiefriskbot.com
+- **Assumption**: nameservers already at Cloudflare (or will be moved). If registrar still holds DNS, move to Cloudflare as step 0 of this task.
+- **Commands**:
+  - Add Cloudflare zone for `chiefriskbot.com` if not present.
+  - `api.chiefriskbot.com` → CNAME → `chiefriskbot-api.fly.dev` (proxied OFF — Fly terminates TLS; using Cloudflare proxy with Fly requires extra cert work, defer).
+  - `app.chiefriskbot.com` → CNAME → `chiefriskbot-app.pages.dev` (proxied ON).
+  - In Fly: `flyctl certs create -a chiefriskbot-api api.chiefriskbot.com`.
+  - In Cloudflare Pages: add `app.chiefriskbot.com` as a custom domain under the project.
+- **Verify**:
+  - `dig api.chiefriskbot.com` resolves to Fly edge.
+  - `curl -I https://api.chiefriskbot.com/api/health` returns `200`, valid cert.
+  - `curl -I https://app.chiefriskbot.com/login.html` returns `200`, valid cert.
+- **Owner**: Claude via `wrangler` + `flyctl`.
+
+#### EX6 — TLS, HSTS, CORS verification
+- **Scope**: confirm prod-mode headers from `backend/main.py` middleware:
+  - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
+  - `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`
+  - CORS `Access-Control-Allow-Origin: https://app.chiefriskbot.com` only
+- **Scope**: confirm `frontend-mvp/_headers` applied on Pages (CSP, etc.)
+- **Scope**: confirm `backend/routers/auth.py` session cookie has `Secure; HttpOnly; SameSite=Lax` in prod.
+- **Verify**:
+  - `curl -I` headers against both hosts
+  - `securityheaders.com` scan → A grade
+  - Attempt CORS from `https://example.com` → browser should block
+
+#### EX7 — First green CI/CD deploy to production
+- **Scope**: trigger `.github/workflows/ci-cd.yml` on `main`. Confirm pipeline stages: pytest → node syntax checks → `alembic upgrade --sql` dry run → `scripts/check_destructive_migrations.py` → build+deploy backend to Fly → deploy frontend to Cloudflare Pages → post-deploy smoke check on `/api/health`.
+- **Verify**:
+  - GH Actions run is green end-to-end.
+  - Production smoke script hits: `/api/health`, `/login.html`, `/api/auth/register` (disposable account), cleanup.
+- **Owner**: Claude pushes, monitors, iterates on any CI failure.
+
+#### EX8 — Supabase prod verification + backups (free-tier fallback)
+- **Scope**: confirm Supabase Auth, Storage bucket `documents`, and Postgres migrations are all aligned with prod config.
+- **Since Pro/PITR is not enabled**:
+  - Stand up a scheduled logical backup. Options:
+    1. GitHub Actions cron (`.github/workflows/backup.yml`): daily `pg_dump` against `SUPABASE_DB_URL`, uploaded to a private Cloudflare R2 bucket (or GH Actions artifact with 30-day retention as temporary).
+    2. Fly cron machine with `pg_dump` → R2.
+  - **Recommendation**: option 1, GH Actions + R2, written this week. Note in `PRODUCTION_INFRA.md` that upgrading to Pro replaces this.
+- **Deliverables**:
+  - `.github/workflows/backup.yml`
+  - R2 bucket + access key pair
+  - Updated `admin/thinking/PRODUCTION_INFRA.md` backup section
+- **Verify**: one successful dry run + one successful restore drill into a scratch Supabase project or local Postgres. Record RTO/RPO (free tier RPO ≈ 24h).
+- **Owner**: Claude implements, user provides R2 credentials.
+
+#### EX9 — /api/health deep check green in prod
+- **Scope**: verify `backend/routers/health.py` deep check returns `200` with all dependencies green: DB, Supabase Auth, Supabase Storage, Anthropic, FRED.
+- **Verify**: `curl https://api.chiefriskbot.com/api/health` returns 200 JSON with each dependency `ok`. Failure modes for missing API keys logged but do not cascade to a 500.
+- **Owner**: Claude.
+
+#### EX10 — K13 QA sweep against deployed environment
+- **Scope**: run `/GSqa` and `scripts/qa_sweep.sh` against `https://app.chiefriskbot.com`. Two accounts:
+  1. Reseeded demo workspace (`admin/demo/seed_demo.py` against prod DB once)
+  2. Fresh-signup workspace
+- **Coverage**: signup, onboarding CSV, onboarding document, cockpit, liquidity, briefings generate + publish + PDF, positions CRUD, documents upload/review/source preview, settings, password reset.
+- **Deliverables**: findings logged as `K13.N` in `admin/status/K13_QA_SWEEP.md` with fix PRs. All P0 closed.
+- **Owner**: Claude runs sweep, triages, fixes, re-runs.
+
+#### EX11 — K14 security review against deployed stack
+- **Scope**: run `/GScso` / `/security-review` against prod. Specifically verify:
+  - Storage bucket `documents` is private; signed URL expiry ≤ 5 min on download path.
+  - CORS allowlist only `https://app.chiefriskbot.com`.
+  - Rate limiting works at app layer under simulated burst (10 RPS on `/api/auth/login`).
+  - CSP headers on Pages served as expected.
+  - No auth tokens in logs (grep deployed log output for `Bearer` leaks).
+- **Deliverables**: `admin/status/K14_SECURITY_REVIEW.md` updated with evidence + sign-off.
+- **Owner**: Claude.
+
+#### EX12 — K12 PDF export verified in deployed container
+- **Scope**: trigger `/api/briefings/{id}/pdf` against prod. Confirm WeasyPrint system libs from `Dockerfile` produce real bytes, not 503 fallback.
+- **Verify**: PDF downloads, opens, renders fonts per `frontend-design-ideal/DESIGN.md` (Fraunces, Inter Tight, JetBrains Mono). Flip K12 gate to Complete.
+- **Owner**: Claude.
+
+#### EX13 — K17 cutover checklist + STATUS.md flip
+- **Scope**: close the K17 table. Conditions:
+  - EX1..EX12 all green.
+  - On-call rota documented (user + CTO once onboarded).
+  - Rollback procedure rehearsed: `flyctl releases rollback` + Pages deployment rollback step recorded in `RUNBOOK.md`.
+  - First-partner workspace pre-provisioned.
+- **Deliverables**:
+  - `admin/status/STATUS.md` flipped: "Production live on chiefriskbot.com, accepting design-partner signups".
+  - Append a 2026-04-21+ entry summarizing EX1–EX13 outcomes.
+- **Owner**: Claude writes, user signs off.
+
+### Deferred (tracked, not active)
+
+- **K8 PITR upgrade**: activate when moving to Supabase Pro. Re-draft backup workflow to rely on PITR.
+- **K10 Slack alerting**: add Slack webhook leg after email leg is proven in prod.
+- **K18 Stripe billing**: when partners convert to paid.
+- **K19 Support channel hardening**: first pass is `support@chiefriskbot.com` auto-ack; richer tooling later.
+- **K20 Claude Agent Platform**: re-evaluate post first-partner.
+
+### Dependencies on user (see admin/status/USER_CHECKLIST.md)
+
+Blocking items that Claude cannot complete alone: domain registrar login, Fly/Cloudflare/GitHub credentials, R2 bucket creation, production API keys (Anthropic, FRED), support inbox setup. Full list in the user checklist.
+
+---
+
+## Phase L — Editorial Redesign + Cross-Cutting Briefing (2026-04-24)
+
+### Context
+
+The `briefing.html` prototype landed an editorial theme (centered Fraunces hero,
+reading-width prose column, eyebrow caps, scroll-reveal sections, floating TOC)
+that the user wants extended across the entire frontend. Inspiration reference:
+https://themahjong.guide — editorial, essay-style, scroll-driven, not dashboard.
+
+Palette and fonts unchanged. Locked in `frontend-design-ideal/DESIGN.md`:
+cream `#fff8f6`, navy `#1B2B5E`, Fraunces / Inter Tight / JetBrains Mono.
+
+### Decisions locked (do not re-open)
+
+- **Nav structure** — two sections:
+  - **Primary (Analysis)**: Home · Assets Overview · Risk Cockpit · Liquidity · Scenarios
+  - **Operations**: Documents · Positions · Access · Settings
+  - **Top-right**: workspace switcher + avatar menu (profile, sign out)
+- **Briefings is NOT a nav item.** The briefing engine becomes cross-cutting —
+  a drawer/panel openable from any page via a global "Generate briefing" button.
+  Historical briefing detail view (`briefing.html`) stays as a readable archive
+  reachable from the drawer's history tab.
+- **Home dashboard** scales back to:
+  - One horizontal row of key metrics (no graphs)
+  - A prominent "Today's briefing" block underneath (comprehensive version)
+- **Login + onboarding** must be ported to the editorial voice too.
+- **Archive, do not delete** the current frontend. Move to `frontend-mvp-archive/`
+  so the old UI remains reference-available.
+
+### Execution order
+
+```
+L1  Archive current frontend + scaffold new tree      (blocks L2..L11)
+L2  Editorial design system (promote .essay-* to _mvp.css)  (blocks L3..L11)
+L3  Global nav shell (two-section primary + ops)      (blocks L4..L11)
+L4  Home dashboard (one-line metrics + daily briefing)  (parallel L5..L8)
+L5  Assets Overview page                              (new; merges parts of cockpit)
+L6  Risk Cockpit page (editorial port of cockpit.html)
+L7  Liquidity page (editorial port of liquidity.html)
+L8  Scenarios page (editorial port of overlay.html)
+L9  Operations pages: Documents, Positions, Access, Settings (editorial port)
+L10 Briefing drawer (cross-cutting trigger, scope-aware)  (blocks L11)
+L11 Login + Onboarding editorial refresh
+L12 Backend: scope-aware briefing generation endpoint
+```
+
+### Tasks (detailed)
+
+#### L1 — Archive old frontend + scaffold new tree
+- **Scope**: `git mv frontend-mvp frontend-mvp-archive`. Create fresh `frontend-mvp/`
+  with `_shell.css`, `_shell.js`, `_mvp.css`, `_app.js` copied over as starting point.
+  Update `.claude/serve.js` ROOTS if needed. Update deploy config (`wrangler.toml`,
+  CI) that references the old path.
+- **Verify**: `node .claude/serve.js` serves new tree; old archive still readable.
+- **Owner**: Codex.
+
+#### L2 — Editorial design system in `_mvp.css`
+- **Scope**: promote scoped `.essay-*` rules from `briefing.html` (see `<style>`
+  block) into `_mvp.css` as a first-class namespace. Add:
+  - `.essay-hero`, `.essay-hero h1`, `.essay-meta`, `.essay-actions`
+  - `.essay-layout` (3-col grid w/ TOC), `.essay-body`, `.essay-toc`
+  - `.essay-section`, `.essay-eyebrow`, `.essay-heading`, `.essay-deck`, `.essay-prose`
+  - `.essay-metric-row` (NEW: horizontal one-line metric strip for home)
+  - `.essay-risk*`, `.essay-recs` (already in prototype)
+  - `.essay-figure` (NEW: inline diagram container at reading width)
+  - Responsive collapse < 900px (TOC hides, single column)
+- **Delete** inline `<style>` from `briefing.html` after promotion.
+- **Verify**: `briefing.html` renders identically with inline styles removed.
+- **Owner**: Codex.
+
+#### L3 — Global nav shell
+- **Scope**: rewrite nav rendered by `_shell.js` (Codex: check whether nav is
+  dynamic in `_shell.js` or static in each HTML — follow the existing pattern).
+  New nav:
+  - Thin top bar, cream bg, 56px tall, 1px hairline bottom border
+  - Left: wordmark "ChiefRiskBot" in Fraunces
+  - Center: primary links (Home · Assets · Risk · Liquidity · Scenarios) in
+    Inter Tight 14px, 0.04em letter-spacing, active link underlined in navy
+  - Right: "Generate briefing" button (navy pill, small) + avatar menu
+  - Second row (only on ops pages): sub-nav (Documents · Positions · Access ·
+    Settings) as a light secondary bar below main nav
+- **Retire**: top-level "Briefings" nav entry.
+- **Verify**: nav on every page, active highlight works, tab order sane.
+- **Owner**: Codex.
+
+#### L4 — Home dashboard (`index.html`)
+- **Scope**: replace current home with editorial layout:
+  - **Hero**: eyebrow "Today · <date>", headline "Good morning, <name>."
+    (Fraunces 56px), one-line deck pulled from today's briefing summary.
+  - **Metric strip** (`.essay-metric-row`): 5 tiles in one horizontal line,
+    no borders, JetBrains Mono numerics:
+    1. **AUM** — total
+    2. **Day P&L** — $ and % (sign-colored via navy tints, no red/green)
+    3. **Cash** — absolute + % of AUM
+    4. **Top concentration** — largest single position as % of AUM
+    5. **Active alerts** — count, badge if > 0
+  - **Today's briefing**: full comprehensive briefing inline in editorial style.
+    Covers: asset movements + valuation changes, risk view + updates,
+    liquidity status. Fresh daily (cache until positions change).
+  - No graphs, no cards, no dashboard chrome.
+- **Backend dep**: L12 provides `POST /api/briefings/generate?scope=daily`.
+- **Verify**: logged-in home shows metric strip + daily briefing; no graphs;
+  mobile collapses metrics to 2x3 stacked grid.
+- **Owner**: Codex.
+
+#### L5 — Assets Overview page (`assets.html`, NEW)
+- **Scope**: new page, editorial layout. Sections:
+  1. **Aggregation** — total AUM, split by asset class (text + inline figure)
+  2. **Slicing** — toggleable view: by sector, region, custodian, segment.
+     Reading-width tables, not charts.
+  3. **Filters** — pill-row filters above slicing.
+  4. **Projections** — forward view: cash flows, maturity ladder, upcoming
+     capital calls. Text summary + small inline figure if needed.
+- **Data**: reuse `/api/portfolio/positions` + aggregate client-side, or add
+  `/api/portfolio/aggregate?by=<dim>` if perf demands (decide in L5).
+- **Verify**: slicing dimension toggles update tables without page reload.
+- **Owner**: Codex.
+
+#### L6 — Risk Cockpit (`cockpit.html` → editorial)
+- **Scope**: port current `cockpit.html` content into editorial layout. Sections:
+  1. **Regime** — current indicator + trigger conditions (essay form)
+  2. **Factor exposures** — 8 proxy basket table at reading width
+  3. **Live calculations** — note metrics update daily + last-updated timestamp
+  4. **Stress scenarios** — preview top 3, link to Scenarios page
+  5. **Alerts** — active risk alerts as dismissible editorial callouts
+- **Keep**: auto-refresh every 60s (silent, no flash).
+- **Retire**: card/dashboard chrome.
+- **Owner**: Codex.
+
+#### L7 — Liquidity view (`liquidity.html` → editorial)
+- **Scope**: editorial port. Sections:
+  1. **Cash position** (headline + deck + figure)
+  2. **Cash flow ladder** (inline figure, reading width)
+  3. **Quarterly gate schedule** (table)
+  4. **Stress-test drawdown** (essay paragraph)
+- **Owner**: Codex.
+
+#### L8 — Scenarios tool (`overlay.html` → `scenarios.html`, editorial)
+- **Scope**: rename file, editorial port. Sections:
+  1. **Scenario library** — 6 built-in stress scenarios as editorial cards
+  2. **Impact projection** — selected scenario's $ impact, reading width
+  3. **Custom scenario builder** — if present in overlay.html, keep as form
+     at reading width; else defer
+  4. **Run overlay** triggers `POST /api/overlay/run`, results inline
+- **Owner**: Codex.
+
+#### L9 — Operations pages (editorial port)
+- **Scope**: port `documents.html`, `table.html` → `positions.html`,
+  `settings.html`, and create/port `access.html` for access controls.
+  These are **denser** than analysis pages — utility-focused:
+  - Keep tables/forms functional, don't hide density behind prose.
+  - Apply editorial nav, eyebrow caps on sections, Fraunces headlines.
+  - No scroll-reveal on these pages (tools, not reads).
+- **Rename**: `table.html` → `positions.html`, update all internal links.
+- **Owner**: Codex.
+
+#### L10 — Briefing drawer (cross-cutting trigger)
+- **Scope**: global "Generate briefing" button in nav opens right-side drawer
+  (~520px wide desktop, full-screen mobile). Three states:
+  1. **Idle**: "Generate briefing for this page" CTA + scope preview
+     (e.g., on Risk Cockpit: "Scope: Risk factors, regime, alerts")
+  2. **Generating**: progress indicator, agent-by-agent status
+  3. **Ready**: editorial briefing rendered inside drawer; "Save as briefing"
+     button persists + redirects to `briefing.html?id=<id>` for full read.
+  - **History tab** lists prior briefings — replaces retired `briefings.html`
+    as the discovery surface.
+- **Page-scope logic**: drawer reads `document.body.dataset.page` → sends
+  corresponding scope to `POST /api/briefings/generate?scope=<scope>`.
+  Scopes: `daily` (home), `assets`, `risk`, `liquidity`, `scenarios`, `full`.
+- **Owner**: Codex.
+
+#### L11 — Login + Onboarding editorial refresh
+- **Scope**:
+  - `login.html`: center-aligned editorial layout. Fraunces headline as a
+    section, not a card. Input fields become underline-only (no box), Inter
+    Tight, generous vertical spacing. Buttons unchanged (navy pill). "Sign in
+    / Create workspace / Reset password" tabs become text links.
+  - `onboarding.html`: each step becomes a full-screen editorial section with
+    eyebrow "Step N of M", Fraunces headline, one task per screen, scroll-
+    reveal between steps. Remove dashboard-style progress chrome.
+- **Verify**: login + full onboarding end-to-end on new UI, no regressions.
+  Demo account still works.
+- **Owner**: Codex.
+
+#### L12 — Backend: scope-aware briefing generation
+- **Scope**: extend `POST /api/briefings/generate` to accept
+  `?scope=<daily|assets|risk|liquidity|scenarios|full>`. Default `full`
+  (current behavior, no breaking change).
+  - `daily`: comprehensive briefing covering asset movements + valuation +
+    risk view + liquidity. Used by home dashboard.
+  - Narrower scopes return same `BriefingResponse` shape, only relevant
+    sections populated; others empty arrays/strings.
+  - Extend `generate_briefing()` in `backend/services/briefings.py` to accept
+    `scope: str = "full"`, route prompt construction accordingly.
+  - Add schema field `scope: str` to `BriefingResponse` so frontend renders
+    the right section set.
+- **Files**:
+  - `backend/routers/briefings.py`
+  - `backend/services/briefings.py`
+  - `backend/schemas/content.py`
+  - `backend/tests/test_phase_cd.py` (scope tests)
+- **Verify**: all existing briefing tests pass; new scope tests cover
+  `daily`, `risk`, `assets` minimum.
+- **Owner**: Codex.
+
+### Out of scope (Phase L)
+
+- Any **new** analytical features (L5 projections is port-only, not new math).
+- Changing color palette or font stack (locked in `DESIGN.md`).
+- Mobile native app shell.
+- Dark mode.
+- Replacing FastAPI briefing engine with a different LLM or chain.
+
+### Acceptance criteria (Phase L closed)
+
+1. `frontend-mvp-archive/` exists with old UI preserved and serveable.
+2. New `frontend-mvp/` renders all routes without JS errors in preview.
+3. Every analysis page uses `.essay-*` namespace; no legacy `.mvp-card` chrome
+   on Home / Assets / Risk / Liquidity / Scenarios.
+4. Global "Generate briefing" button works on every page, scope-aware.
+5. Login + onboarding pass the existing QA suite (`scripts/qa_sweep.sh`).
+6. Backend test suite green, including new scope tests.
+7. `admin/status/STATUS.md` updated with a Phase L entry summarizing the port.
+
+### Notes for executor
+
+- Prototype reference: current `frontend-mvp/briefing.html` + `_app.js:2119`
+  (the `initBriefingDetail` render block) show the intended visual rhythm.
+- The prototype uses an inline `<style>` block — L2 promotes that to `_mvp.css`
+  before any other port begins, so all subsequent pages share the same rules.
+- Do not introduce new dependencies (no Tailwind, no component libs). Keep
+  vanilla HTML + CSS + vanilla JS.
+- Scroll-reveal via `IntersectionObserver` is already in the prototype; reuse
+  that helper, don't rewrite it.
+
+
+---
+
+## Operating Instructions (2026-04-24) — Sequencing & CI Discipline
+
+Added after review of the CI/deploy push sequence on 2026-04-24. These rules
+are **binding** on the active executor until STATUS.md flips to
+"production live."
+
+### 1. Worktree audit before EX8
+
+Before starting EX8 (Supabase verification + backups), do a **single
+reviewed reconciliation pass** over the current MVP2 worktree:
+
+- Enumerate every modified and untracked file (`git status`) and, for each,
+  decide one of: commit (with rationale), discard, or defer to a tracked
+  follow-up task in this log.
+- No more "minimum files to pass CI" pushes. main should reflect a coherent
+  state, not the residue of whack-a-mole CI fixes.
+- Deliverable: one commit (or a small coherent series) that brings main in
+  line with local intent, plus a short note appended to this log under a
+  `Worktree reconciliation (YYYY-MM-DD)` heading listing what was kept,
+  dropped, or deferred.
+
+### 2. Phase L is blocked until EX13 sign-off
+
+Phase L (editorial redesign) remains in this log for planning but is
+**not active work**. Do not:
+
+- archive `frontend-mvp/` or scaffold `frontend-mvp-archive/`
+- port any page to the `.essay-*` namespace
+- change the global nav shell
+- touch `_mvp.css`, `_shell.js`, or `_app.js` for redesign purposes
+- add the briefing drawer or scope-aware briefing endpoint
+
+Exception: bug fixes to the existing frontend that are required for
+EX10 (K13 QA sweep) or EX11 (K14 security review) are allowed. Those are
+fixes, not the Phase L port.
+
+Phase L unblocks only when STATUS.md is flipped to "production live on
+chiefriskbot.com" per EX13.
+
+### 3. CI failure protocol — static-import audit first
+
+When a CI run fails on a missing module, missing attribute, schema field,
+or similar import/config gap, do **not** patch one file and repush. Instead:
+
+1. Run a full static-import audit: walk `backend/main.py` and
+   `backend/routers/__init__.py` imports, and for each imported symbol
+   confirm the target module/attribute exists on the branch being pushed.
+2. Do the same for any Pydantic `Settings`/schema fields referenced by
+   code on the import path (e.g., `settings.supabase_url`,
+   `SettingsResponse.reporting_currency`).
+3. Land all gaps in one commit, then push.
+
+This replaces the pattern seen on 2026-04-24 where six sequential pushes
+each added one missing module (positions routes, document storage,
+liquidity router, supabase config, reporting_currency field, workspace
+model field). One audit would have caught the set.
+
+### 4. Scope lock
+
+While EX1–EX13 is active, do not append new phases to this log without
+first closing out or explicitly deferring the current phase. New ideas go
+into a `Parking lot (YYYY-MM-DD)` section, not a new `Phase X` heading.
+
+---
+
+## CI Diagnostic & Reconciliation Punch List (2026-04-24)
+
+Static-import + test-run audit of origin/main vs local MVP2 HEAD vs working
+worktree. Run this before EX8. This section replaces the guesswork that drove
+the six-push whack-a-mole earlier today.
+
+### State snapshot
+
+| Layer | Result |
+|---|---|
+| Static import graph on `origin/main` (walked `backend/main.py` → every `from backend.*` import, recursively) | **closed**, no missing modules, no missing top-level names |
+| `pytest backend/tests -q` against `origin/main` tree using `.venv` | **36 passed, 1 failed** — `test_briefings_settings_api_keys_and_documents_flow` (AttributeError: `WorkspaceSetting.reporting_currency`) |
+| `pytest backend/tests -q` against local `HEAD` (MVP2, includes unpushed `800a3f6`) | **37 passed, 0 failed** |
+| `pytest backend/tests -q` against working worktree (includes untracked) | **56 passed, 0 failed** |
+
+### Immediate CI path
+
+Only one unpushed commit is needed to turn origin/main green: `800a3f6 fix: add
+workspace reporting currency model field`. After that push, validate should be
+green. This unblocks EX7 end-to-end.
+
+Do not add anything else to that push. Do not reach into the dirty worktree for it.
+
+### Landmine — do not stumble into it
+
+The current working tree has **modified-but-committed-at-HEAD** files that do
+NOT reference the untracked modules, and **modified-on-disk-only** versions
+that DO reference them. Specifically:
+
+On-disk versions reference these untracked modules:
+
+- `backend/main.py` (modified)            → `backend.services.observability`
+- `backend/database.py` (modified)        → `backend.services.observability`
+- `backend/routers/health.py` (modified)  → `backend.services.observability`
+- `backend/routers/auth.py` (modified)    → `backend.services.auth.supabase`, `backend.services.rate_limit`
+- `backend/tests/test_auth.py` (modified) → `backend.services.rate_limit`
+
+Untracked dependencies that those imports require:
+
+- `backend/services/observability.py`
+- `backend/services/rate_limit.py`
+- `backend/services/auth/supabase.py`
+- `backend/migrations/versions/20260415_000011_supabase_identity_support.py`
+- `backend/tests/test_liquidity.py`
+- `backend/tests/test_security_regressions.py`
+
+If any of the on-disk modified files above is committed and pushed **without
+also staging the untracked dependencies in the same commit**, CI will fail
+again with the same "No module named …" class of error that drove the six
+earlier pushes. This is the root cause of the whack-a-mole.
+
+### Required action — worktree reconciliation commit (do this before EX8)
+
+One commit (or a tight series), reviewed, covering the entire graph:
+
+**Backend core (commit together):**
+- `backend/main.py`
+- `backend/database.py`
+- `backend/routers/auth.py`
+- `backend/routers/cockpit.py`
+- `backend/routers/health.py`
+- `backend/schemas/auth.py`
+- `backend/schemas/health.py`
+- `backend/services/audit/logger.py`
+- `backend/services/briefings.py`
+- `backend/services/scheduler.py`
+- `backend/migrations/env.py`
+- `backend/services/auth/supabase.py`  (new)
+- `backend/services/observability.py`  (new)
+- `backend/services/rate_limit.py`     (new)
+- `backend/migrations/versions/20260415_000011_supabase_identity_support.py` (new)
+
+**Tests (commit together with backend):**
+- `backend/tests/conftest.py`
+- `backend/tests/test_auth.py`
+- `backend/tests/test_health.py`
+- `backend/tests/test_services.py`
+- `backend/tests/test_liquidity.py`         (new)
+- `backend/tests/test_security_regressions.py` (new)
+
+**Frontend (separate commit, but still part of reconciliation):**
+- `frontend-mvp/_mvp.css`, `_shell.js`
+- `frontend-mvp/briefing.html`, `briefings.html`, `cockpit.html`, `documents.html`, `index.html`, `login.html`, `onboarding.html`, `overlay.html`, `table.html`
+- `frontend-mvp/legal.html`  (new — referenced by `login.html`, `_app.js`, `_shell.js`)
+- `frontend-mvp/settings.html` (new — referenced by `login.html`, `_app.js`, `_shell.js`)
+
+**Config / infra (separate commit):**
+- `.claude/serve.js`, `.claude/settings.local.json`
+- `.env.example`, `.gitignore`
+- `pyproject.toml`
+- `admin/demo/seed_demo.py`
+- `scripts/migrate.sh` (new), `scripts/qa_sweep.sh` (new)
+- `ops/alerts/grafana-alerts.yaml` (new)
+
+**Admin / docs (separate commit):**
+- Every modified file under `admin/` plus the untracked docs under
+  `admin/business/legal/`, `admin/business/onboarding/`,
+  `admin/thinking/AUTH_ONBOARDING_DOCUMENTS_TRIAGE_PLAN.md`,
+  `CLAUDE_AGENT_PLATFORM_SPEC.md`, `MVP_FUNCTIONALIZATION_SPEC.md`,
+  `MVP_SIMPLIFIED_COCKPIT_SPEC.md`, `PRODUCTION_INFRA.md`, `RUNBOOK.md`,
+  `SUPABASE_SETUP.md`.
+- Plus the new status files already tracked as untracked:
+  `admin/status/K13_QA_SWEEP.md`, `K14_SECURITY_REVIEW.md`, `STATUS.md`,
+  `USER_CHECKLIST.md`, `codex_log_archive/`.
+
+**Do NOT commit:**
+- `backend/runtime/chiefriskbot.db.bak-2026-04-24T0919` (local SQLite backup)
+- `admin/demo/test_uploads/*.pdf` unless size is reviewed — these are test
+  binaries; decide whether to track or `.gitignore`.
+- `frontend-mvp/.gstack-qa/*.png` — QA screenshots, should be gitignored.
+
+### Pre-push verification (must be green before any push)
+
+Run, in order:
+
+```
+"/Users/omarkutbi/Documents/Claude/Projects/Chief risk bot/.venv/bin/python" -m pytest backend/tests -q
+node --check frontend-mvp/_app.js
+node --check frontend-mvp/_shell.js
+```
+
+All three must pass. If pytest is < 56 passed, something in the commit set is
+inconsistent and you are about to repeat the whack-a-mole.
+
+Additionally, before each push to main, run this static import audit from the
+project root:
+
+```
+python3 - <<'PY'
+import ast, os
+issues = []
+for root, _, files in os.walk('backend'):
+    if '__pycache__' in root or 'migrations' in root: continue
+    for f in files:
+        if not f.endswith('.py'): continue
+        p = os.path.join(root, f)
+        try: tree = ast.parse(open(p).read())
+        except SyntaxError as e:
+            issues.append(f'SYNTAX {p}: {e}'); continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                mod = node.module or ''
+                if not mod.startswith('backend.'): continue
+                p1 = mod.replace('.', '/') + '.py'
+                p2 = mod.replace('.', '/') + '/__init__.py'
+                if not (os.path.exists(p1) or os.path.exists(p2)):
+                    issues.append(f'MISSING {p}:{node.lineno} -> {mod}')
+for i in issues: print(i)
+print('issues:', len(issues))
+PY
+```
+
+`issues: 0` is required.
+
+### Summary for the executor
+
+1. Push `800a3f6` first. CI should go green. EX7 closes.
+2. Do the reconciliation commit(s) described above in one reviewed pass.
+   Backend + its new deps together, not one-file-per-push.
+3. Re-run pytest + node checks + static import audit before every push.
+4. Only then proceed to EX8.
+
+---
+
+## Worktree reconciliation (2026-04-24)
+
+### Kept / staged plan
+
+- Pushed `800a3f6 fix: add workspace reporting currency model field` to
+  `origin/main` as the isolated CI unblocker. The clean detached worktree check
+  passed `37 passed` plus `node --check frontend-mvp/_app.js` and
+  `node --check frontend-mvp/_shell.js`.
+- Backend core and tests are being reconciled as one graph so imports of
+  `backend.services.observability`, `backend.services.rate_limit`, and
+  `backend.services.auth.supabase` land with their new modules and regression
+  tests.
+- Frontend MVP pages are being reconciled separately from backend runtime code.
+- Config / infra changes are being reconciled separately from application code.
+- Admin, status, legal, onboarding, and thinking docs are being reconciled as a
+  docs/status commit, including this note.
+- `admin/demo/test_uploads/*.pdf` were size-reviewed before inclusion; each
+  generated PDF is 4 KB and is paired with the local generator and README.
+
+### Dropped / ignored
+
+- `backend/runtime/chiefriskbot.db.bak-2026-04-24T0919` remains local-only and is
+  ignored by `backend/runtime/*.db.bak-*`.
+- `frontend-mvp/.gstack-qa/*.png` remains local-only and is ignored by
+  `frontend-mvp/.gstack-qa/`.
+
+### Deferred
+
+- EX8 remains blocked until these reconciliation commits are validated and
+  pushed, then Supabase backup/R2 setup can proceed.

@@ -1,0 +1,148 @@
+# ChiefRiskBot — Current Status
+
+_Last updated: 2026-04-21_  
+_Status: K1–K17 code landed. Moving into Phase K **execution** (EX1–EX13): external provisioning on Fly + Cloudflare Pages + Supabase, DNS cutover to chiefriskbot.com, deployed QA/security sign-off. Detailed execution queue in `codex_log` under "Phase K — Execution Queue (2026-04-21)"._
+
+---
+
+## TL;DR
+
+✅ **Product surface:** MVP nav is narrowed to onboarding, cockpit, liquidity, briefings, positions, documents, and settings.  
+✅ **Frontend runtime:** offline fixture/demo mode has been removed from the shipped MVP path.  
+✅ **Backend foundation:** Supabase auth bridge, Supabase storage abstraction, and Postgres migration path are in place.  
+✅ **Live verification:** Supabase Postgres migrations ran successfully, the demo auth user/workspace were reseeded, and bearer-token session auth resolved correctly through FastAPI.
+
+---
+
+## What is this
+
+AI-powered risk briefing platform for family office CIOs.
+FastAPI + vanilla HTML/JS frontend + market data + LLM briefing pipeline.
+
+**Tech stack:**
+- Framework: FastAPI + uvicorn
+- ORM: SQLAlchemy 2.0 + Alembic
+- DB: SQLite (local fallback) or Postgres/Supabase Postgres
+- Frontend: vanilla HTML/JS (no frameworks)
+- Market data: yfinance + FRED API
+- AI: Anthropic Claude API
+- Auth: local session auth plus Supabase Auth bridge
+- Scheduler: APScheduler
+
+---
+
+## Current focus
+
+- Verify the revised Supabase-backed auth/onboarding flow end to end
+- Continue replacing MVP demo assumptions with real production-path behavior
+- Keep overlay/internal diagnostics out of the primary MVP flow
+- Document the agent-platform migration path for the current schema and services
+- Triage remaining Documents/Positions UX gaps in non-demo workspaces
+
+## Reference docs
+
+| Path | Purpose |
+|------|---------|
+| `admin/thinking/MVP_FUNCTIONALIZATION_SPEC.md` | Current source of truth for MVP scope, demo-account policy, and deployment options |
+| `admin/thinking/SUPABASE_SETUP.md` | Supabase credential placement, bucket setup, bring-up steps |
+| `admin/thinking/CLAUDE_AGENT_PLATFORM_SPEC.md` | Current spec for moving the agentic system onto Claude Managed Agents |
+| `admin/thinking/ARCHITECTURE.md` | Deeper architecture reference |
+| `admin/demo/seed_demo.py` | Demo workspace reseed tooling |
+
+## Historical note
+
+The repo previously added an offline fixture-backed demo mode. That path is being retired in favor of one real seeded demo account using the same auth and data flows as normal workspaces.
+
+Earlier phase-by-phase details remain in `codex_log` and `MVP2_STATUS.md`.
+
+## Latest verification
+
+- `node --check frontend-mvp/_app.js`
+- `node --check frontend-mvp/_shell.js`
+- `.venv/bin/python -m pytest backend/tests/test_auth.py backend/tests/test_phase_cd.py -q`
+- `.venv/bin/python -m pytest backend/tests/test_services.py backend/tests/test_auth.py -q`
+- `.venv/bin/alembic upgrade head` against the configured Supabase/Postgres database
+- `AUTH_MODE=supabase .venv/bin/python admin/demo/seed_demo.py` with deterministic fallbacks
+- Live auth smoke test:
+  - `/api/auth/login` -> `200`
+  - bearer `/api/auth/session` -> `200`
+  - workspace resolved as `Whitmore Family Office`
+- Live API smoke test on the running server:
+  - `/api/cockpit` -> `200`
+  - `/api/liquidity/summary` -> `200`
+  - `/api/briefings` -> `200`
+  - `/api/settings` -> `200`
+  - `/api/portfolio/summary` -> `200`
+  - `/api/documents` -> `200` with `2` seeded documents
+  - `/api/documents/{id}/review` -> `200` for the parsed seeded document
+- Frontend proxy/static smoke test on the running server:
+  - `/login.html` -> `200`
+  - `/cockpit.html` -> `200`
+  - `/liquidity.html` -> `200`
+  - `/briefings.html` -> `200`
+  - `/settings.html` -> `200`
+  - `/api/health` via frontend proxy -> `200`
+- Focused auth/backend verification after the latest functional pass:
+  - `.venv/bin/pytest backend/tests/test_auth.py` -> `13 passed`
+  - `node --check frontend-mvp/_app.js` -> clean
+  - `node --check frontend-mvp/_shell.js` -> clean
+  - Playwright browser pass against restarted local servers -> no console/page errors on login -> cockpit -> liquidity
+  - Live disposable Supabase verification:
+    - `/api/auth/register` against real Supabase Auth -> `200`
+    - `/api/auth/login` against real Supabase Auth -> `200`
+    - bearer `/api/auth/session` -> `200`
+    - `/api/documents/upload` stored the file at a `supabase://documents/...` path
+    - storage readback from Supabase matched the uploaded payload byte-for-byte
+    - disposable auth user, DB rows, and storage object were cleaned up successfully
+- Fresh-workspace browser audit on April 15, 2026:
+  - Create workspace -> `onboarding.html` works
+  - Login for an incomplete workspace correctly lands on `onboarding.html` rather than `cockpit.html`
+  - Onboarding CSV import works
+  - Onboarding document upload works and redirects into `documents.html`
+  - Documents page upload works for the same non-demo workspace and increments document count
+  - Password reset request UI works (`/api/auth/forgot-password` accepted)
+  - Password reset completion in Supabase mode was triaged and fixed in code:
+    - `/api/auth/reset-password` now updates the upstream Supabase Auth credential before consuming the reset token
+    - verified in-process with fresh account flow: reset `200`, new password login `200`, old password login `401`
+  - Temporary Documents debug strip added to surface current email, workspace, document count, selected record, and latest upload
+- Post-restart verification on April 16, 2026:
+  - local backend restarted with patched reset-password bridge
+  - full visual flow pass on fresh non-demo workspace: signup, login, onboarding CSV, onboarding document upload, reset request
+  - reset completion validated against live backend and browser:
+    - reset endpoint `200`
+    - old password login `401`
+    - new password login `200`
+- Positions language cleanup on April 16, 2026:
+  - removed user-facing `factor_*` terminology from Positions UI bindings and table columns
+  - Positions editor now uses only portfolio terms (asset class, sector, subsector, segment, region, custodian)
+  - internal `factor_*` payload mapping retained for backend compatibility
+  - `node --check frontend-mvp/_app.js` clean after refactor
+
+## Known remaining gap
+
+- External production provisioning remains to be executed (Fly app, Cloudflare Pages project, DNS cutover on chiefriskbot.com).
+- Supabase is on free tier for now; PITR drill deferred until Pro is enabled. Interim: scheduled `pg_dump` to R2 via GH Actions (EX8).
+- Alert routing is email-only for v1; Slack leg deferred.
+- User-side unblockers (domain registrar access, Fly/Cloudflare/GH tokens, prod API keys, R2 bucket, support inbox) tracked in `admin/status/USER_CHECKLIST.md`.
+
+## Production readiness (K17 gate)
+
+| Gate | Status | Evidence |
+|---|---|---|
+| K1 Documents visibility triage | In progress | frontend `documents` focus/visibility fix + backend visibility regression test added |
+| K2 Remove debug strip | Complete | `frontend-mvp/documents.html` debug strip removed |
+| K3 Hosting target (Fly + Cloudflare) | In progress | `fly.toml`, `Dockerfile`, Cloudflare headers/wrangler config added |
+| K4 Secrets management | In progress | docs + CI wiring added; secret population in host stores pending |
+| K5 Domain/TLS/security headers/CORS | In progress | backend security headers + production CORS validation + frontend `_headers` added |
+| K6 CI/CD pipeline | Complete (repo) | `.github/workflows/ci-cd.yml` with staged + production jobs and migration dry-run |
+| K7 Migration safety policy | Complete (repo) | `scripts/check_destructive_migrations.py` + `scripts/migrate.sh` |
+| K8 Backup + restore drill | Pending execution | policy/log scaffold in `admin/thinking/PRODUCTION_INFRA.md` |
+| K9 Observability | Complete (repo) | structured request logs + DB timing metrics + expanded `/api/health` |
+| K10 Alerting | In progress | thresholds documented; provider-side alert routing pending |
+| K11 Runbook | Complete (repo) | `admin/thinking/RUNBOOK.md` |
+| K12 Production PDF export | In progress | WeasyPrint libs containerized in `Dockerfile`; deployed verification pending |
+| K13 Full QA sweep | In progress | `scripts/qa_sweep.sh`; deployed-environment pass pending |
+| K14 Security review pass | In progress | auth rate limiting + headers/CSP wiring added; full deployed review pending |
+| K15 Legal/privacy baseline | Complete (repo) | `admin/business/legal/*` + login disclosure |
+| K16 Design partner onboarding collateral | Complete (repo) | `admin/business/onboarding/*` |
+| K17 Cutover checklist | In progress | this section established; final sign-off pending external validations |

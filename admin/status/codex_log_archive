@@ -1,0 +1,111 @@
+# Codex Execution Log — Full History Archive
+
+_Full execution history from 2026-04-07 to 2026-04-10_
+_For current status see: `STATUS.md`_
+
+---
+
+## Executive Summary
+
+Phases A–J completed in 4 days (2026-04-07 to 2026-04-10).
+
+| Phase | Dates | Work |
+|-------|-------|------|
+| A–D | 2026-04-07 | Architecture review, schema validation, VaR design, agent orchestration (8 Codex passes) |
+| E | 2026-04-09 | Multi-agent extraction, factor taxonomy, macro overlay, liquidity endpoints |
+| F | 2026-04-09 | Frontend: document review UI, factor tags, overlay page, parse progress, cockpit polish |
+| G | 2026-04-09 | Security review: 8 auto-fixes applied, 9 critical blockers verified closed, regression tests added |
+| H | 2026-04-10 | Demo QA: CSS path 404 fixed, backend restart/reseed workflow validated |
+| I | 2026-04-10 | Liquidity: cashflow API, 24-month chart, cockpit panel, demo seeding |
+| J | 2026-04-10 | Demo mode: offline fixtures, shell toggle, login bypass, export script |
+| G-follow | 2026-04-10 | Audit log retry, briefing quality gate, design polish |
+
+**Result:** All tests passing. Demo ready. No pending Codex work items.
+
+---
+
+## Phase Details (Reference Archive)
+
+Full phase documentation originally at 470+ lines in previous codex_log.
+Each phase included:
+- Task breakdown with priority/status
+- Work performed summary
+- Verification commands and results
+- Notes on findings and followup
+
+All phases are now **complete and verified**.
+
+---
+
+## Critical Fixes Applied (Phase G)
+
+### Auto-Fixed (8 items)
+- `backend/deps.py`: Deleted dead `get_current_user()` stub
+- `backend/services/var.py`: Fixed `worst_scenario_date` always returning today
+- `backend/services/var.py`: Added `LOOKBACK_DAYS = 252` constant
+- `backend/services/enrichment.py`: Added `CACHE_TTL_HOURS = 4`, replaced literals
+- `backend/schemas/auth.py`: Added `min_length=8` to `ResetPasswordRequest.new_password`
+- `backend/services/ingest/csv_parser.py`: Formula cells now raise ValueError
+- `backend/routers/settings.py`: Added `_PATCHABLE` allowlist to `setattr` loop
+- `frontend-mvp/_app.js`: Removed TOTP stub hint from login UI
+- `.DS_Store`: Untracked from git
+
+### Verified Closed (9 blocking issues)
+1. ✅ TOTP bypass — disabled, tests added
+2. ✅ Default `SECRET_KEY` — validation enforced
+3. ✅ `asyncio.run()` crash — async pipeline via background jobs
+4. ✅ CSRF missing — enforced on all mutating routes + tests
+5. ✅ Snapshot race — atomic unique-current guard
+6. ✅ API key resolution — resolves to key owner
+7. ✅ N+1 queries — batch fetch on hot paths
+8. ✅ Cross-workspace IDOR — isolation tests added
+9. ✅ No auth tests — 401 regression tests added
+
+---
+
+## Demo Mode Implementation (Phase J)
+
+```
+frontend-mvp/_demo_fixtures.js          # Fixture payloads (realistic data)
+frontend-mvp/_demo_fixtures_generated.js # Auto-generated from seeded state
+frontend-mvp/_app.js                     # API interceptor + fake session
+frontend-mvp/_shell.js                   # Demo toggle + amber banner
+admin/demo/seed_demo.py --export-fixtures # Export workflow
+```
+
+Toggle in nav bar → amber "Demo mode" banner → all data from fixtures → no backend needed.
+
+---
+
+## Test Coverage
+
+```bash
+backend/tests/test_auth.py                    # Auth flows + 401 on protected routes
+backend/tests/test_phase_cd.py                # Portfolio, VaR, briefings, documents
+backend/tests/test_security_regressions.py    # CSRF, workspace isolation, IDOR
+backend/tests/test_overlay.py                 # Factor scoring, regime, stress
+backend/tests/test_liquidity.py               # Cashflow ladder, summaries
+backend/tests/test_services.py                # Audit, briefing quality gate
+
+.venv/bin/python -m pytest backend/tests -q
+# 20+ tests all passing
+```
+
+---
+
+## Remaining Operational Notes
+
+1. **Documents screen:** Empty (seed_demo.py does not create demo documents). Add if needed for demo script.
+2. **PDF export:** Returns 503 (missing WeasyPrint system libs). Fails gracefully, no crash.
+3. **Live mode:** Requires backend restart + reseed before demo.
+4. **Demo mode:** Works fully offline. Toggle in nav. No backend dependency.
+
+---
+
+## When to reference this archive
+
+- Troubleshooting: "Why was X changed?" → See Phase section
+- Verification: "Were the security issues really fixed?" → See Critical Fixes
+- Historical understanding: "What did Codex work on?" → See Phase Details
+
+For current status → **See `STATUS.md`**

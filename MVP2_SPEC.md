@@ -266,73 +266,43 @@ The core "aha" feature.
 
 ### 6. Risk Analysis
 
-Risk analysis now operates in two layers: the **Macro Overlay** (daily, forward-looking,
-factor-driven) and the **VaR Engine** (daily, statistical, calibrated by the overlay).
+The active MVP should present risk in a form a family-office operator can read at a glance.
+The cockpit should answer:
 
----
+- What is the portfolio worth?
+- How much could it lose on a bad normal day?
+- What is driving that downside right now?
+- Which risks need attention this week?
 
-#### 6a. Macro Risk Overlay (New)
+The user-facing MVP risk surface is therefore intentionally simpler than the underlying
+analytics stack. The UI leads with a plain-English downside read, then supporting detail.
 
-The overlay runs every trading day at market close. It converts public market signals
-into risk scores for every factor node in the taxonomy, then propagates those scores
-across the portfolio using each holding's factor exposure weights.
+#### 6a. MVP Risk Read
 
-**Factor Taxonomy (four dimensions, hierarchical):**
-- Asset Class: PE, VC, Private Credit, Real Estate, Infrastructure, Public Equity, Fixed Income, Commodities, Cash
-- Sector + Subsector: Energy (Upstream / Midstream / Downstream / Renewables:Solar / Renewables:Wind) · Technology · Healthcare · Industrials · Consumer · Financials · Real Assets
-- Market Segment: Large Cap · Mid Cap · Small Cap / Early Stage · Emerging Markets · Frontier
-- Country / Region: US · Western Europe · GCC · China · India · SEA · LatAm
+**Cockpit risk card:**
+- Headline number: 1-day VaR at 95% confidence
+- Plain-English framing: "On a bad normal day, the portfolio could lose about $X"
+- Simple visual comparison: VaR 95% vs VaR 99% vs worst modeled day
+- Top downside drivers: up to 3 positions or sleeves contributing most to current risk
+- Supporting metadata: computed time, modeled coverage, lookback window
 
-**Signal sources (all already in stack):**
-- Equity indices via yfinance: XLE (energy), TAN (solar), FAN (wind), AMJ (midstream), VNQ (real estate), MSCI EM, SOX (semis), S&P 500, Russell 2000
-- Macro via FRED: 10Y Treasury yield, Fed Funds rate, IG/HY credit spreads, DXY
-- Commodities via yfinance: WTI (CL=F), Brent (BZ=F), Natural Gas, Copper (HG=F), Gold (GC=F)
-- Sentiment: LLM agent (claude-sonnet-4-6) processes daily financial headlines per sector, produces directional modifier ±10%
+**Active risk register:**
+- Priority, elevated, and watch flags
+- Short descriptions written for operators, not quants
+- Filterable by severity
 
-**Factor score:** 0–100 (higher = more risk). Derived from rolling 90-day z-score of
-proxy index. Sentiment score is a modifier layered on top, not a primary signal.
+**Concentration remains visible via:**
+- Holdings mix by asset class / sector / geography
+- Look-through concentration alerts
+- Manager and sector concentration flags in the register and briefing
 
-**AUM Triangulation View:**
-A pivot table updated daily. Shows for each factor: AUM exposed ($), % of portfolio,
-current risk score, direction (improving / stable / deteriorating). This is the primary
-risk dashboard for the CIO — one view that answers "where is my capital and how risky
-is it *right now*?"
-
-| Factor | AUM Exposed | % Portfolio | Risk Score | Direction |
-|---|---|---|---|---|
-| Energy — Renewables | $82M | 16.4% | 71 | ↓ deteriorating |
-| US Large Cap Equity | $145M | 29% | 42 | → stable |
-| Real Estate — Commercial | $61M | 12.2% | 68 | ↓ deteriorating |
-| Private Credit — US | $47M | 9.4% | 61 | → stable |
-| ... | | | | |
-
-**Overlay alerts:**
-- Factor score > 75 with > 10% AUM exposure → Amber alert on dashboard
-- Factor score > 85 with > 5% AUM exposure → Red alert + push notification
-- Portfolio composite score moves > 10 points intraday → "Market conditions changed materially"
-- Risk regime switches (see §6b) → Immediate notification + VaR recompute
-
----
-
-#### 6b. VaR Engine (Enhanced)
-
-**Risk Regime Detection:**
-VIX and credit spreads determine the VaR methodology in use:
-
-| VIX | Credit Spread | Regime | VaR Window |
-|---|---|---|---|
-| < 18 | IG < 150bps | Normal | Historical 90-day |
-| 18–28 | IG 150–250bps | Stress | Historical 30-day, recent data 2× weighted |
-| > 28 | IG > 250bps | Crisis | GFC scenario floor — statistical VaR overridden |
-
-Regime is displayed on the dashboard at all times. Regime changes are logged and
-surfaced in the brief ("Risk model operating in Stress regime since Tuesday").
+#### 6b. VaR Engine
 
 **Public Holdings VaR:**
 - Historical simulation VaR: 1-day at 95% and 99% confidence
 - Data: daily price returns from yfinance
 - Portfolio VaR accounts for cross-asset correlations (covariance matrix, 90-day rolling)
-- Factor attribution: each holding's VaR contribution decomposed by factor exposure
+- Position attribution: each holding's VaR contribution decomposed into current downside drivers
 
 **Private Holdings VaR — Proxy Basket Method:**
 Each private fund/holding is mapped to a proxy basket of public instruments. The basket's
@@ -354,9 +324,6 @@ Example proxy baskets:
 - US Solar Infrastructure → 70% TAN + 20% ICLN + 10% 10Y yield sensitivity
 - US Buyout (generalist) → 60% S&P 500 + 25% Russell 2000 + 15% HY credit spread
 
-When a factor score spikes, proxy basket volatility for all holdings tagged to that
-factor is widened dynamically before VaR computation.
-
 All private VaR numbers are labelled: *"Estimated — proxy basket method. Actual losses
 may differ."* Label is non-removable.
 
@@ -374,12 +341,24 @@ may differ."* Label is non-removable.
 Each scenario's estimated dollar impact is recomputed daily against current holdings.
 Output: "Under 2022 Rate Shock, estimated portfolio decline: −$47M (−9.4%)."
 
-**Risk Decomposition (carried over, enhanced):**
-- Top 5 contributors to total portfolio VaR (by factor)
+**Risk Decomposition:**
+- Top 5 contributors to total portfolio VaR (by holding / sleeve)
 - Concentration score: Herfindahl index on sector, geo, and manager
 - Manager concentration: % of NAV with any single GP
 - Vintage year clustering alert: if > 30% of PE/VC commitments share a 2-year vintage window
 - Fund lifecycle flags: PE fund > 7 years old with < 1× DPI flagged for review
+
+#### 6c. Internal Analytics Layer (Not Primary MVP UI)
+
+The platform may still compute factor scores, sentiment modifiers, and regime logic behind
+the scenes to improve private-market risk estimates and briefing quality. Those mechanics are
+supporting infrastructure, not the main MVP user experience.
+
+This means:
+- No Macro Overlay page in the primary MVP flow
+- No AUM triangulation in the MVP cockpit
+- No factor-score tables in the main cockpit
+- No regime jargon in the primary user-facing dashboard unless it materially changes the call to action
 
 ### 7. Automated Weekly Briefing
 
@@ -420,7 +399,7 @@ Generated every Monday at configurable time (default 7am local).
 **Output:** Structured JSON matched to data model, reconciliation flags, human review queue items
 **Failure mode:** Mark document as "needs_review", notify uploader, never silently drop data
 
-### Macro Overlay Agent
+### Internal Risk Signals Agent
 
 **Trigger:** Daily at market close (5pm ET) via Celery beat; also on-demand
 **Runtime:** ~90 seconds
@@ -429,23 +408,22 @@ Generated every Monday at configurable time (default 7am local).
 - Signal Collector: fetches yfinance + FRED data for all tracked tickers
 - Sentiment Agent: processes past 24h financial headlines per portfolio sector
 - Factor Scorer: computes z-scores + weighted factor scores
-- Regime Detector: evaluates VIX + credit spreads → sets risk regime
-- Propagation Engine: maps factor scores → portfolio positions → AUM triangulation table
+- Regime Detector: evaluates VIX + credit spreads for internal methodology switching
+- Propagation Engine: maps factor scores into private-market proxy estimates and scenario context
 - Alert Generator: checks thresholds, queues notifications
 
-**Output:** Daily `FactorScore` rows, updated `AUM Triangulation` view, regime flag,
-alert notifications if thresholds breached
+**Output:** Daily `FactorScore` rows, internal risk context, regime flag, alert notifications if thresholds breached
 **Failure mode:** If market data fetch fails, carry forward previous day's scores with
-a staleness flag. Never silently drop — surface "Risk data as of [date]" on dashboard.
+a staleness flag. Never silently drop — surface dated risk data in admin/internal diagnostics.
 
 ### Risk Analyst Agent
 
-**Trigger:** After Macro Overlay Agent completes; also on new holdings data or manual refresh
-**Tools:** Factor scores (from overlay), proxy basket definitions, yfinance price history,
+**Trigger:** After internal risk signals refresh; also on new holdings data or manual refresh
+**Tools:** factor scores (internal), proxy basket definitions, yfinance price history,
 Herfindahl calculator, VaR engine, stress scenario definitions
 **Output:** VaR result object (public + private + total), stress scenario impacts,
-concentration flags, risk decomposition by factor
-**Runs:** Daily (post-overlay) + on demand
+concentration flags, risk decomposition by holding / sleeve
+**Runs:** Daily + on demand
 
 ### Briefing Generator Agent
 
@@ -499,34 +477,21 @@ This is non-negotiable for compliance and for "why did this number change?"
 
 ## Build Order
 
-1. **Data model + migrations** — schema first: include FactorScore, AssetFactorExposure,
-   ProxyBasket, StressScenario tables, and factor tag columns on holdings from day one
-2. **Table editor** — manual entry, proves the outputs are useful without ingestion;
-   factor tags editable inline (fallback when extraction isn't running yet)
+1. **Data model + migrations** — schema first: funds, commitments, capital events, holdings, documents, briefings
+2. **Table editor** — manual entry so the product is useful before ingestion is perfect
 3. **Cash flow ladder** — the "aha" feature, buildable on manually-entered data
-4. **Holdings aggregation view** — asset class / geo / sector pivots;
-   factor tag columns are already in schema so this view is overlay-ready from the start
-5. **Proxy basket definitions** — seed the DB with 8–10 baskets covering common fund types;
-   no code needed yet, just the config
-6. **Signal collection + factor scoring** — yfinance + FRED daily fetch, z-score computation,
-   factor score storage; no UI yet — verify scores in DB directly
-7. **Public VaR** — historical simulation using existing price data; prove the VaR engine
-   works on public positions before touching private
-8. **Private proxy VaR** — wire factor scores → proxy basket volatility → illiquidity scalar;
-   label everything "Estimated"
-9. **AUM Triangulation view** — the daily factor risk dashboard; this is the overlay's UI;
-   show AUM, %, score, direction per factor row
-10. **Regime detection** — VIX + credit spread classifier; switch VaR window automatically;
-    surface regime label on dashboard
-11. **Stress scenarios** — 5 core scenarios as config; daily recomputation against holdings;
-    show estimated portfolio impact in $
-12. **Document upload + ingestion pipeline** — classification + extraction; Risk Officer Agent
-    populates factor tags automatically at ingestion time
-13. **Reconciliation layer** — diff view, accept/override flow
-14. **Sentiment agent** — LLM news processing per sector; ±10% modifier on factor scores;
-    lowest priority because it's additive not foundational
-15. **Briefing generator** — last; by now the data layer is clean and the overlay is live
-16. **Onboarding flow** — polish once core is working
+4. **Holdings aggregation view** — asset class / geo / sector pivots with concentration callouts
+5. **Public VaR** — historical simulation using existing price data; prove the risk engine on public positions
+6. **Private proxy VaR** — proxy basket volatility + illiquidity scalar; label everything "Estimated"
+7. **Simplified cockpit** — portfolio value, downside read, liquidity summary, active risk register
+8. **Stress scenarios** — core scenarios as config; recomputation against holdings; show estimated impact in $
+9. **Document upload + ingestion pipeline** — classification + extraction
+10. **Reconciliation layer** — diff view, accept/override flow
+11. **Briefing generator** — once the data layer is clean and the core outputs are stable
+12. **Onboarding flow** — polish once core is working
+
+Internal analytics such as factor scoring, sentiment, and regime detection can continue in parallel
+as supporting infrastructure, but they are not required to ship the simplified MVP UX.
 
 ---
 
