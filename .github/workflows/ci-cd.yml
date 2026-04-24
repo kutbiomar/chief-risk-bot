@@ -75,7 +75,7 @@ jobs:
         run: docker build -t chiefriskbot-api:${{ github.sha }} .
 
   deploy_staging:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     needs: [build_backend]
     environment: staging
@@ -102,7 +102,7 @@ jobs:
           npx wrangler pages deploy frontend-mvp --project-name "$CLOUDFLARE_PAGES_PROJECT" --branch staging
 
   deploy_production:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     needs: [deploy_staging]
     environment: production
