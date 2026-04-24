@@ -1,0 +1,57 @@
+apiVersion: 1
+groups:
+  - name: chiefriskbot-production
+    interval: 1m
+    rules:
+      - uid: crb_5xx_rate
+        title: ChiefRiskBot 5xx rate high
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A > 0.01
+        for: 5m
+      - uid: crb_health_fail
+        title: ChiefRiskBot health endpoint failing
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: avg_over_time(chiefriskbot_health_failures[2m])
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A >= 1
+        for: 2m
+      - uid: crb_scheduler_failure
+        title: ChiefRiskBot scheduler failures
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: increase(chiefriskbot_scheduler_failures_total[10m])
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A > 0
+        for: 1m
+      - uid: crb_audit_failure
+        title: ChiefRiskBot audit write failures
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: increase(chiefriskbot_audit_write_failures_total[10m])
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A > 0
+        for: 1m

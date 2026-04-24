@@ -12,6 +12,9 @@ __pycache__/
 *.pyo
 *.db
 backend/runtime/storage/
+backend/runtime/*.db.bak-*
 uploads/
 frontend-design-ideal/.gstack/
+frontend-mvp/.gstack-qa/
 .gstack/
+admin/scratch*

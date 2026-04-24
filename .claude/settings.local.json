@@ -93,7 +93,10 @@
       "Skill(GSgstack)",
       "Skill(GSgstack:*)",
       "Skill(office-hours)",
-      "Skill(office-hours:*)"
+      "Skill(office-hours:*)",
+      "Skill(browse)",
+      "Skill(browse:*)",
+      "WebFetch(domain:themahjong.guide)"
     ]
   }
 }
