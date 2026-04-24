@@ -13,7 +13,7 @@
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
 </head>
-<body data-page="documents">
+<body data-page="documents" class="mvp-app-loading">
   <div class="app" id="app-root">
     <main>
       <div class="mvp-page">
@@ -24,6 +24,7 @@
           </div>
         </div>
         <div id="documents-status" class="mvp-notice" hidden data-global-status></div>
+        <div id="documents-summary" class="mvp-grid cards-4"></div>
         <div class="mvp-grid sidebar">
           <aside class="mvp-card">
             <div class="mvp-card-header">
@@ -56,11 +57,21 @@
                   </div>
                   <div class="mvp-field">
                     <label for="upload-document-file">File</label>
-                    <input id="upload-document-file" type="file" accept=".pdf,.docx,.xlsx"/>
+                    <div class="mvp-dropzone" data-file-dropzone data-input-id="upload-document-file">
+                      <input id="upload-document-file" type="file" accept=".pdf,.docx,.xlsx"/>
+                      <div class="mvp-dropzone-copy">
+                        <span class="ms">upload</span>
+                        <div>
+                          <div class="mvp-dropzone-title">Drop document here</div>
+                          <div class="mvp-dropzone-meta">or click to browse `.pdf`, `.docx`, or `.xlsx`</div>
+                        </div>
+                      </div>
+                      <div class="mvp-dropzone-selected" data-file-selected>No file selected</div>
+                    </div>
                   </div>
                 </div>
                 <div class="mvp-form-actions" style="justify-content:flex-start">
-                  <button class="btn primary" type="submit"><span class="ms">upload</span>Upload</button>
+                  <button class="btn primary" type="submit"><span class="ms">upload</span>Upload &amp; parse</button>
                   <button id="parse-document" class="btn" type="button"><span class="ms">analytics</span>Parse</button>
                   <button id="save-document-review" class="btn" type="button"><span class="ms">fact_check</span>Save review</button>
                   <button id="approve-document" class="btn" type="button"><span class="ms">task_alt</span>Approve into portfolio</button>
@@ -81,7 +92,7 @@
             <div class="mvp-card-header">
               <div>
                 <div class="uplabel">Preview</div>
-                <h3>Extraction</h3>
+                <h3>Review queue</h3>
               </div>
             </div>
             <div class="mvp-card-body mvp-doc-preview" id="document-preview"></div>

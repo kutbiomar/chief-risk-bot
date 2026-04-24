@@ -5,8 +5,9 @@
       items: [
         { href: 'onboarding.html', icon: 'rocket_launch', label: 'Onboarding' },
         { href: 'cockpit.html', icon: 'dashboard', label: 'Risk Cockpit' },
-        { href: 'overlay.html', icon: 'monitoring', label: 'Overlay' },
+        { href: 'liquidity.html', icon: 'waterfall_chart', label: 'Liquidity' },
         { href: 'briefings.html', icon: 'description', label: 'Briefings' },
+        { href: 'settings.html', icon: 'tune', label: 'Settings' },
       ],
     },
     {

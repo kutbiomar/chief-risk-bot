@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Overlay — ChiefRiskBot</title>
+  <title>Internal Risk Signals — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -13,14 +13,14 @@
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
 </head>
-<body data-page="overlay">
+<body data-page="overlay" class="mvp-app-loading">
   <div class="app" id="app-root">
     <main>
       <div class="mvp-page">
         <div class="mvp-hero">
           <div>
-            <h1>Macro overlay</h1>
-            <p>Daily factor scoring, regime detection, AUM triangulation, and portfolio stress coverage in one place.</p>
+            <h1>Internal risk signals</h1>
+            <p>This page is retained for internal diagnostics and model review. It is not part of the primary MVP user flow.</p>
           </div>
           <div class="mvp-actions">
             <button id="overlay-refresh" class="btn"><span class="ms">refresh</span>Refresh</button>
@@ -28,6 +28,7 @@
           </div>
         </div>
         <div id="overlay-status" class="mvp-notice" hidden data-global-status></div>
+        <div id="overlay-feature"></div>
         <div id="overlay-kpis" class="mvp-grid cards-4"></div>
         <div class="mvp-grid two">
           <section class="mvp-card">
@@ -43,7 +44,7 @@
             <div class="mvp-card-header">
               <div>
                 <div class="uplabel">Exposure</div>
-                <h2>AUM triangulation</h2>
+                <h2>Exposure map</h2>
               </div>
             </div>
             <div class="mvp-card-body" id="overlay-triangulation-panel"></div>
@@ -53,7 +54,7 @@
           <div class="mvp-card-header">
             <div>
               <div class="uplabel">Factors</div>
-              <h2>Daily factor scoring</h2>
+              <h2>Factor diagnostics</h2>
             </div>
           </div>
           <div class="mvp-card-body" id="overlay-factors-panel"></div>

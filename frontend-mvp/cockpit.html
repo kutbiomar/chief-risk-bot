@@ -13,23 +13,21 @@
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
 </head>
-<body data-page="cockpit">
+<body data-page="cockpit" class="mvp-app-loading">
   <div class="app" id="app-root">
     <main>
       <div class="mvp-page">
         <div class="mvp-hero">
           <div>
             <h1>Risk cockpit</h1>
-            <p>Your portfolio's current risk picture - VaR, concentration, and the active risk register.</p>
+            <p>A simpler read of portfolio value, downside, liquidity, and the few risks that need action now.</p>
           </div>
           <div class="mvp-actions">
             <button id="refresh-cockpit" class="btn"><span class="ms">refresh</span>Refresh</button>
-            <button id="refresh-overlay" class="btn"><span class="ms">orbit</span>Refresh overlay</button>
             <button id="rerun-risk" class="btn primary"><span class="ms">playlist_add_check</span>Re-run risk</button>
           </div>
         </div>
         <div id="cockpit-status" class="mvp-notice" hidden data-global-status></div>
-        <div id="cockpit-overlay-alerts-top"></div>
         <div id="cockpit-kpis" class="mvp-grid cards-4"></div>
         <div class="mvp-grid two">
           <section class="mvp-card mvp-cockpit-card">
@@ -51,42 +49,17 @@
           <section class="mvp-card mvp-cockpit-card">
             <div class="mvp-card-header">
               <div>
-                <div class="uplabel">VaR</div>
-                <h2>Top contributors</h2>
-              </div>
-              <div class="mvp-seg" id="cockpit-var-toggles">
-                <button type="button" data-metric="var_1d_99">VaR 99%</button>
-                <button type="button" data-metric="var_1d_95" class="is-active">VaR 95%</button>
-                <button type="button" data-metric="cvar_1d_95">CVaR</button>
-                <button type="button" data-metric="max_drawdown_1y">Max DD</button>
+                <div class="uplabel">Risk</div>
+                <h2>Risk at a glance</h2>
               </div>
             </div>
             <div class="mvp-card-body">
               <div id="cockpit-var-summary" class="mvp-var-summary"></div>
-              <div id="cockpit-var-stats" class="mvp-var-stats"></div>
-              <div class="mvp-list" id="cockpit-contribs"></div>
+              <div id="cockpit-var-visual" class="mvp-var-visual"></div>
+              <div class="mvp-list" id="cockpit-var-drivers"></div>
             </div>
           </section>
         </div>
-        <section class="mvp-card mvp-cockpit-card">
-          <div class="mvp-card-header">
-            <div>
-              <div class="uplabel">Overlay</div>
-              <h2>AUM triangulation</h2>
-            </div>
-            <div class="mvp-actions">
-              <a href="overlay.html" class="btn">View full overlay</a>
-              <div id="cockpit-overlay-regime" class="mvp-overlay-regime"></div>
-            </div>
-          </div>
-          <div class="mvp-card-body">
-            <div id="cockpit-overlay-summary" class="mvp-overlay-summary"></div>
-            <div class="mvp-grid two">
-              <div id="cockpit-overlay-factors" class="mvp-overlay-table"></div>
-              <div id="cockpit-overlay-stress" class="mvp-overlay-stress"></div>
-            </div>
-          </div>
-        </section>
         <section class="mvp-card mvp-cockpit-card">
           <div class="mvp-card-header">
             <div>

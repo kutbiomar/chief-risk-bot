@@ -6,30 +6,207 @@
   <title>Briefing Detail — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
   <link rel="stylesheet" href="/_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
+  <style>
+    /* Editorial prototype — scoped to briefing page only */
+    body[data-page="briefing"] .mvp-page { max-width: none; padding: 0; }
+    body[data-page="briefing"] main { background: #fff8f6; }
+
+    .essay-hero {
+      padding: 120px 24px 72px;
+      text-align: center;
+      border-bottom: 1px solid rgba(27,43,94,0.08);
+    }
+    .essay-hero .essay-meta {
+      font-family: 'Inter Tight', sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(27,43,94,0.6);
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+    .essay-hero h1 {
+      font-family: 'Fraunces', serif;
+      font-weight: 400;
+      font-size: clamp(40px, 6vw, 72px);
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      color: #1B2B5E;
+      max-width: 900px;
+      margin: 0 auto 24px;
+    }
+    .essay-hero .essay-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 32px;
+    }
+
+    .essay-layout {
+      display: grid;
+      grid-template-columns: 1fr min(680px, 90vw) 1fr;
+      column-gap: 48px;
+      padding: 72px 24px 160px;
+    }
+    .essay-toc {
+      grid-column: 3;
+      align-self: start;
+      position: sticky;
+      top: 100px;
+      font-family: 'Inter Tight', sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      max-width: 200px;
+    }
+    .essay-toc-label {
+      color: rgba(27,43,94,0.4);
+      margin-bottom: 16px;
+    }
+    .essay-toc a {
+      display: block;
+      padding: 8px 0;
+      color: rgba(27,43,94,0.55);
+      text-decoration: none;
+      border-left: 1px solid rgba(27,43,94,0.1);
+      padding-left: 14px;
+      transition: color 160ms ease, border-color 160ms ease;
+    }
+    .essay-toc a:hover, .essay-toc a.active {
+      color: #1B2B5E;
+      border-left-color: #1B2B5E;
+    }
+
+    .essay-body { grid-column: 2; }
+    .essay-section {
+      margin: 0 0 96px;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 600ms ease, transform 600ms ease;
+    }
+    .essay-section.is-visible { opacity: 1; transform: none; }
+    .essay-section:last-child { margin-bottom: 0; }
+
+    .essay-eyebrow {
+      font-family: 'Inter Tight', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(27,43,94,0.55);
+      margin-bottom: 12px;
+    }
+    .essay-heading {
+      font-family: 'Fraunces', serif;
+      font-weight: 400;
+      font-size: 36px;
+      line-height: 1.15;
+      letter-spacing: -0.015em;
+      color: #1B2B5E;
+      margin: 0 0 20px;
+    }
+    .essay-deck {
+      font-family: 'Fraunces', serif;
+      font-weight: 400;
+      font-size: 22px;
+      line-height: 1.45;
+      color: #1B2B5E;
+      margin: 0 0 32px;
+    }
+    .essay-prose {
+      font-family: 'Inter Tight', sans-serif;
+      font-size: 17px;
+      line-height: 1.72;
+      color: #2b2b2b;
+    }
+    .essay-prose p { margin: 0 0 20px; }
+
+    .essay-risk { padding: 24px 0; border-top: 1px solid rgba(27,43,94,0.1); }
+    .essay-risk:first-child { border-top: 0; }
+    .essay-risk-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+    .essay-risk-title {
+      font-family: 'Fraunces', serif;
+      font-size: 22px;
+      color: #1B2B5E;
+    }
+    .essay-risk-sev {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border: 1px solid rgba(27,43,94,0.2);
+      border-radius: 2px;
+      color: #1B2B5E;
+      white-space: nowrap;
+    }
+    .essay-risk-finding { font-family: 'Inter Tight', sans-serif; font-size: 16px; line-height: 1.65; color: #2b2b2b; margin-bottom: 6px; }
+    .essay-risk-implication { font-family: 'Inter Tight', sans-serif; font-size: 14px; line-height: 1.6; color: rgba(43,43,43,0.7); font-style: italic; }
+
+    .essay-recs { list-style: none; padding: 0; margin: 0; counter-reset: rec; }
+    .essay-recs li {
+      counter-increment: rec;
+      padding: 20px 0 20px 56px;
+      border-top: 1px solid rgba(27,43,94,0.1);
+      font-family: 'Inter Tight', sans-serif;
+      font-size: 17px;
+      line-height: 1.65;
+      color: #2b2b2b;
+      position: relative;
+    }
+    .essay-recs li:first-child { border-top: 0; }
+    .essay-recs li::before {
+      content: counter(rec, decimal-leading-zero);
+      position: absolute;
+      left: 0;
+      top: 22px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: rgba(27,43,94,0.45);
+    }
+
+    @media (max-width: 900px) {
+      .essay-layout { grid-template-columns: 1fr; padding: 48px 24px 96px; }
+      .essay-toc { display: none; }
+      .essay-body { grid-column: 1; }
+      .essay-hero { padding: 64px 24px 48px; }
+    }
+  </style>
 </head>
-<body data-page="briefing">
+<body data-page="briefing" class="mvp-app-loading">
   <div class="app" id="app-root">
     <main>
       <div class="mvp-page">
-        <div class="mvp-hero">
-          <div>
-            <div id="briefing-meta" class="mvp-metadata"></div>
-            <h1 id="briefing-title">Briefing detail</h1>
-          </div>
-          <div class="mvp-actions">
+        <header class="essay-hero">
+          <div id="briefing-meta" class="essay-meta"></div>
+          <h1 id="briefing-title">Briefing</h1>
+          <div class="essay-actions">
             <a class="btn" href="briefings.html"><span class="ms">arrow_back</span>Back</a>
             <button id="publish-briefing" class="btn"><span class="ms">publish</span>Publish</button>
             <button id="export-briefing" class="btn primary"><span class="ms">file_download</span>Export</button>
           </div>
-        </div>
+        </header>
         <div id="briefing-status" class="mvp-notice" hidden data-global-status></div>
-        <div id="briefing-body" class="mvp-grid"></div>
+        <div class="essay-layout">
+          <aside class="essay-toc" id="briefing-toc" aria-label="Sections"></aside>
+          <article class="essay-body" id="briefing-body"></article>
+        </div>
       </div>
     </main>
   </div>

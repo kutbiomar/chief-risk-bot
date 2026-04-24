@@ -13,7 +13,7 @@
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
 </head>
-<body data-page="briefings">
+<body data-page="briefings" class="mvp-app-loading">
   <div class="app" id="app-root">
     <main>
       <div class="mvp-page">
@@ -27,10 +27,14 @@
           </div>
         </div>
         <div id="briefings-status" class="mvp-notice" hidden data-global-status></div>
+        <div class="mvp-grid two" style="align-items:start">
+          <div id="briefings-overview"></div>
+          <div id="briefings-rail"></div>
+        </div>
         <div class="mvp-actions">
           <button id="toggle-drafts" class="btn" type="button">Show drafts</button>
         </div>
-        <div id="briefings-list" class="mvp-grid two"></div>
+        <div id="briefings-list" class="mvp-grid two mvp-briefings-list"></div>
       </div>
     </main>
   </div>

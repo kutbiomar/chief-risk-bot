@@ -13,7 +13,7 @@
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
 </head>
-<body data-page="table">
+<body data-page="table" class="mvp-app-loading">
   <div class="app" id="app-root">
     <main>
       <div class="mvp-page">
@@ -41,16 +41,16 @@
                 <table class="mvp-table is-clickable">
                   <thead>
                     <tr>
-                      <th>Ticker</th>
+                      <th>Identifier</th>
                       <th>Name</th>
-                      <th>Factor Asset</th>
-                      <th>Factor Sector</th>
+                      <th>Asset Class</th>
+                      <th>Sector</th>
                       <th>Subsector</th>
                       <th>Market Segment</th>
-                      <th>Country</th>
                       <th>Region</th>
-                      <th>Tag Source</th>
-                      <th>Confidence</th>
+                      <th>Custodian</th>
+                      <th>Added</th>
+                      <th>Modified</th>
                     </tr>
                   </thead>
                   <tbody id="positions-body"></tbody>
@@ -69,8 +69,9 @@
               <form id="position-form" class="mvp-form">
                 <div class="mvp-form-grid">
                   <div class="mvp-field">
-                    <label for="form-ticker">Ticker</label>
-                    <input id="form-ticker" required/>
+                    <label for="form-ticker">Identifier (ticker if listed)</label>
+                    <input id="form-ticker" placeholder="MSFT, BXPE, OAKFUND, CASHCHF"/>
+                    <div class="mvp-item-subtle">For private funds, use an internal identifier if no exchange ticker exists.</div>
                   </div>
                   <div class="mvp-field">
                     <label for="form-name">Name</label>
@@ -78,11 +79,11 @@
                   </div>
                   <div class="mvp-field">
                     <label for="form-quantity">Quantity</label>
-                    <input id="form-quantity" type="number" step="0.01" required/>
+                    <input id="form-quantity" type="text" inputmode="decimal" data-format="decimal" required/>
                   </div>
                   <div class="mvp-field">
                     <label for="form-market-value">Market value USD</label>
-                    <input id="form-market-value" type="number" step="0.01" required/>
+                    <input id="form-market-value" type="text" inputmode="decimal" data-format="decimal" required/>
                   </div>
                   <div class="mvp-field">
                     <label for="form-asset-class">Asset class</label>
@@ -98,62 +99,72 @@
                   </div>
                   <div class="mvp-field">
                     <label for="form-region">Geo region</label>
-                    <input id="form-region"/>
+                    <select id="form-region">
+                      <option value="">Unset</option>
+                      <option value="global">Global</option>
+                      <option value="north_america">North America</option>
+                      <option value="latin_america">Latin America</option>
+                      <option value="europe">Europe</option>
+                      <option value="middle_east_africa">Middle East &amp; Africa</option>
+                      <option value="asia_pacific">Asia Pacific</option>
+                      <option value="switzerland">Switzerland</option>
+                    </select>
                   </div>
                   <div class="mvp-field">
                     <label for="form-sector">Sector</label>
-                    <input id="form-sector"/>
+                    <select id="form-sector">
+                      <option value="">Unset</option>
+                      <option value="technology">Technology</option>
+                      <option value="financials">Financials</option>
+                      <option value="healthcare">Healthcare</option>
+                      <option value="industrials">Industrials</option>
+                      <option value="consumer_discretionary">Consumer Discretionary</option>
+                      <option value="consumer_staples">Consumer Staples</option>
+                      <option value="energy">Energy</option>
+                      <option value="materials">Materials</option>
+                      <option value="utilities">Utilities</option>
+                      <option value="real_estate">Real Estate</option>
+                      <option value="private_equity">Private Equity</option>
+                      <option value="fixed_income">Fixed Income</option>
+                      <option value="cash">Cash</option>
+                      <option value="alternatives">Alternatives</option>
+                      <option value="multi_sector">Multi Sector</option>
+                    </select>
+                  </div>
+                  <div class="mvp-field">
+                    <label for="form-subsector">Subsector</label>
+                    <select id="form-subsector">
+                      <option value="">Unset</option>
+                    </select>
                   </div>
                   <div class="mvp-field">
                     <label for="form-segment">Market segment</label>
-                    <input id="form-segment"/>
+                    <select id="form-segment">
+                      <option value="">Unset</option>
+                      <option value="large_cap">Large Cap</option>
+                      <option value="mid_cap">Mid Cap</option>
+                      <option value="small_cap">Small Cap</option>
+                      <option value="fund">Fund</option>
+                      <option value="etf">ETF</option>
+                      <option value="reit">REIT</option>
+                      <option value="private_fund">Private Fund</option>
+                      <option value="private_credit">Private Credit</option>
+                      <option value="venture">Venture</option>
+                      <option value="infrastructure">Infrastructure</option>
+                      <option value="operating_cash">Operating Cash</option>
+                      <option value="money_market">Money Market</option>
+                    </select>
                   </div>
                   <div class="mvp-field">
                     <label for="form-custodian">Custodian</label>
                     <input id="form-custodian"/>
-                  </div>
-                  <div class="mvp-field">
-                    <label for="form-factor-asset-class">Factor asset class</label>
-                    <input id="form-factor-asset-class"/>
-                  </div>
-                  <div class="mvp-field">
-                    <label for="form-factor-sector">Factor sector</label>
-                    <input id="form-factor-sector"/>
-                  </div>
-                  <div class="mvp-field">
-                    <label for="form-factor-subsector">Factor subsector</label>
-                    <input id="form-factor-subsector"/>
-                  </div>
-                  <div class="mvp-field">
-                    <label for="form-factor-market-segment">Factor market segment</label>
-                    <input id="form-factor-market-segment"/>
-                  </div>
-                  <div class="mvp-field">
-                    <label for="form-factor-country">Factor country</label>
-                    <input id="form-factor-country"/>
-                  </div>
-                  <div class="mvp-field">
-                    <label for="form-factor-region">Factor region</label>
-                    <input id="form-factor-region"/>
-                  </div>
-                  <div class="mvp-field">
-                    <label for="form-factor-tag-source">Tag source</label>
-                    <select id="form-factor-tag-source">
-                      <option value="">Unset</option>
-                      <option value="manual">manual</option>
-                      <option value="extracted">extracted</option>
-                      <option value="inferred">inferred</option>
-                    </select>
-                  </div>
-                  <div class="mvp-field">
-                    <label for="form-factor-tag-confidence">Tag confidence</label>
-                    <input id="form-factor-tag-confidence" type="number" min="0" max="1" step="0.01"/>
                   </div>
                 </div>
                 <div class="mvp-field">
                   <label for="form-notes">Notes</label>
                   <textarea id="form-notes" rows="4"></textarea>
                 </div>
+                <div id="position-version-meta" class="mvp-item-subtle" style="margin-top:4px"></div>
                 <div class="mvp-form-actions">
                   <button id="delete-position" class="btn" type="button" disabled><span class="ms">delete</span>Delete</button>
                   <button class="btn primary" type="submit"><span class="ms">save</span>Save</button>
