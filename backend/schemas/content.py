@@ -29,6 +29,7 @@ class SettingsResponse(BaseModel):
     briefing_auto_publish: bool
     briefing_send_pdf: bool
     briefing_include_audit_footer: bool
+    reporting_currency: str
     ai_model: str
     ai_risk_tone: str
     ai_custom_instructions: Optional[str] = None
@@ -42,6 +43,7 @@ class SettingsPatchRequest(BaseModel):
     briefing_auto_publish: Optional[bool] = None
     briefing_send_pdf: Optional[bool] = None
     briefing_include_audit_footer: Optional[bool] = None
+    reporting_currency: Optional[str] = None
     ai_model: Optional[str] = None
     ai_risk_tone: Optional[str] = None
     ai_custom_instructions: Optional[str] = None

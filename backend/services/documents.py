@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from pathlib import Path
@@ -12,7 +11,7 @@ from sqlalchemy.orm import Session
 from backend.constants import ASSET_CLASS_ALIASES
 from backend.models.content import Document, ExtractionArtifact, ExtractionResult
 from backend.models.portfolio import PortfolioSnapshot, Position
-from backend.paths import STORAGE_ROOT
+from backend.services.storage import read_document, store_document
 from backend.services.ingest.pipeline import run_document_pipeline
 
 DOCUMENT_LIMIT_BYTES = 50 * 1024 * 1024
@@ -119,12 +118,6 @@ def _looks_like_ticker(value: str | None) -> bool:
     return bool(re.fullmatch(r"[A-Z0-9.\-]{1,12}", value.upper()))
 
 
-def _ensure_storage_path(workspace_id: str, sha256: str, extension: str) -> Path:
-    root = STORAGE_ROOT / "documents" / workspace_id
-    root.mkdir(parents=True, exist_ok=True)
-    return root / f"{sha256[:16]}{extension}"
-
-
 def _is_pdf_encrypted(payload: bytes) -> bool:
     return b"/Encrypt" in payload[:4096] or b"/Encrypt" in payload
 
@@ -144,20 +137,22 @@ def validate_document_upload(filename: str, payload: bytes) -> tuple[str, str, s
     if extension not in DOCUMENT_TYPES:
         raise ValueError("Only PDF, DOCX, and XLSX files are accepted")
     if len(payload) > DOCUMENT_LIMIT_BYTES:
-        raise ValueError("Document exceeds the 50MB demo limit")
+        raise ValueError("Document exceeds the 50MB upload limit")
     if ".." in normalized or "/" in normalized or "\\" in normalized:
         raise ValueError("Filename contains invalid traversal semantics")
     if extension == ".pdf" and _is_pdf_encrypted(payload):
-        raise ValueError("Encrypted PDF files are not supported in demo mode")
+        raise ValueError("Encrypted PDF files are not supported")
     _validate_magic_bytes(extension, payload)
     return normalized, DOCUMENT_TYPES[extension], extension
 
 
 def create_document(db: Session, *, workspace_id: str, uploaded_by: str, filename: str, payload: bytes, folder: str) -> Document:
     normalized, file_type, extension = validate_document_upload(filename, payload)
-    digest = hashlib.sha256(payload).hexdigest()
-    storage_path = _ensure_storage_path(workspace_id, digest, extension)
-    storage_path.write_bytes(payload)
+    digest, storage_path = store_document(
+        workspace_id=workspace_id,
+        payload=payload,
+        extension=extension,
+    )
     document = Document(
         workspace_id=workspace_id,
         uploaded_by=uploaded_by,
@@ -165,7 +160,7 @@ def create_document(db: Session, *, workspace_id: str, uploaded_by: str, filenam
         file_type=file_type,
         file_size_bytes=len(payload),
         sha256=digest,
-        storage_path=str(storage_path),
+        storage_path=storage_path,
         folder=folder,
         malware_scan_status="clean",
         extraction_status="pending",
@@ -431,7 +426,7 @@ def update_document_review(
 
 
 async def parse_document(db: Session, document: Document) -> ExtractionResult:
-    payload = Path(document.storage_path).read_bytes()
+    payload = read_document(document.storage_path)
     try:
         pipeline = await run_document_pipeline(
             filename=document.filename,

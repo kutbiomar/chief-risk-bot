@@ -64,6 +64,9 @@ class PositionResponse(BaseModel):
     factor_tag_confidence: Optional[float] = None
     custodian: Optional[str] = None
     notes: Optional[str] = None
+    created_at: datetime
+    first_seen_at: Optional[datetime] = None
+    last_modified_at: Optional[datetime] = None
 
 
 class PositionListResponse(BaseModel):

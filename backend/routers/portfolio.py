@@ -45,6 +45,29 @@ def _resolve_snapshot(db: Session, workspace_id: str, snapshot_id: Optional[str]
     return snapshot
 
 
+def _ensure_current_snapshot(db: Session, workspace_id: str, user_id: str) -> PortfolioSnapshot:
+    snapshot = db.scalar(
+        select(PortfolioSnapshot).where(
+            PortfolioSnapshot.workspace_id == workspace_id,
+            PortfolioSnapshot.is_current.is_(True),
+        )
+    )
+    if snapshot is not None:
+        return snapshot
+    snapshot = PortfolioSnapshot(
+        id=str(uuid4()),
+        workspace_id=workspace_id,
+        uploaded_by=user_id,
+        source="manual_init",
+        position_count=0,
+        total_aum_usd=0.0,
+        is_current=True,
+    )
+    db.add(snapshot)
+    db.flush()
+    return snapshot
+
+
 @router.get("/snapshot", response_model=SnapshotResponse)
 def get_current_snapshot(
     snapshot_id: Optional[str] = Query(default=None),
@@ -85,10 +108,24 @@ def list_positions(
     db: Session = Depends(get_db),
 ) -> PositionListResponse:
     _, user = auth
-    snapshot = _resolve_snapshot(db, user.workspace_id, snapshot_id)
+    snapshot = _resolve_snapshot(db, user.workspace_id, snapshot_id) if snapshot_id else _ensure_current_snapshot(db, user.workspace_id, user.id)
     positions = db.scalars(
         select(Position).where(Position.snapshot_id == snapshot.id).order_by(Position.market_value_usd.desc())
     ).all()
+    history_rows = db.scalars(
+        select(Position).where(Position.workspace_id == user.workspace_id)
+    ).all()
+    first_seen_map: dict[tuple[str, str, str, str], object] = {}
+    for row in history_rows:
+        key = (
+            str(row.ticker or "").strip().upper(),
+            str(row.name or "").strip().lower(),
+            str(row.asset_class or "").strip().lower(),
+            str(row.custodian or "").strip().lower(),
+        )
+        current_first = first_seen_map.get(key)
+        if current_first is None or row.created_at < current_first:
+            first_seen_map[key] = row.created_at
     items = [
         PositionResponse(
             id=position.id,
@@ -111,6 +148,14 @@ def list_positions(
             factor_tag_confidence=position.factor_tag_confidence,
             custodian=position.custodian,
             notes=position.notes,
+            created_at=position.created_at,
+            first_seen_at=first_seen_map.get((
+                str(position.ticker or "").strip().upper(),
+                str(position.name or "").strip().lower(),
+                str(position.asset_class or "").strip().lower(),
+                str(position.custodian or "").strip().lower(),
+            )),
+            last_modified_at=position.created_at,
         )
         for position in positions
     ]
@@ -228,7 +273,7 @@ def create_position(
     db: Session = Depends(get_db),
 ) -> PositionMutationResponse:
     _, user = auth
-    current = _resolve_snapshot(db, user.workspace_id, None)
+    current = _ensure_current_snapshot(db, user.workspace_id, user.id)
     new_snapshot, _ = _materialize_successor_snapshot(db, current, user.id, source="manual_edit")
 
     # Derive market_value_usd from price if not provided

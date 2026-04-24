@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,7 @@ from backend.services.documents import (
     parse_document,
     update_document_review,
 )
+from backend.services.storage import read_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -82,7 +83,9 @@ def list_documents(
 ) -> DocumentListResponse:
     _, user = auth
     items = db.scalars(
-        select(Document).where(Document.workspace_id == user.workspace_id, Document.deleted_at.is_(None)).order_by(Document.created_at.desc())
+        select(Document)
+        .where(Document.workspace_id == user.workspace_id, Document.deleted_at.is_(None))
+        .order_by(Document.created_at.desc(), Document.id.desc())
     ).all()
     folder_counts: dict[str, int] = {}
     for item in items:
@@ -104,6 +107,30 @@ def get_document(
     if document is None or document.workspace_id != user.workspace_id or document.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     return _serialize(document)
+
+
+@router.get("/{document_id}/file")
+def get_document_file(
+    document_id: str,
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    _, user = auth
+    document = db.get(Document, document_id)
+    if document is None or document.workspace_id != user.workspace_id or document.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    try:
+        payload = read_document(document.storage_path)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    media_type = {
+        "pdf": "application/pdf",
+        "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }.get(document.file_type, "application/octet-stream")
+    response = Response(content=payload, media_type=media_type)
+    response.headers["Content-Disposition"] = f'inline; filename="{document.filename}"'
+    return response
 
 
 @router.post(

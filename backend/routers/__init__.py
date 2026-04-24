@@ -4,6 +4,7 @@ from backend.routers.cockpit import router as cockpit_router
 from backend.routers.documents import router as documents_router
 from backend.routers.health import router as health_router
 from backend.routers.ingest import router as ingest_router
+from backend.routers.liquidity import router as liquidity_router
 from backend.routers.market import router as market_router
 from backend.routers.onboarding import router as onboarding_router
 from backend.routers.overlay import router as overlay_router
@@ -19,6 +20,7 @@ __all__ = [
     "documents_router",
     "health_router",
     "ingest_router",
+    "liquidity_router",
     "market_router",
     "onboarding_router",
     "overlay_router",
