@@ -10,6 +10,30 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RegisterRequest(BaseModel):
+    workspace_name: str
+    display_name: str
+    email: str
+    password: str
+    timezone: str = "UTC"
+    reporting_currency: str = "CHF"
+
+    @field_validator("workspace_name", "display_name", "email", "timezone", "reporting_currency")
+    @classmethod
+    def required_string(cls, value: str) -> str:
+        text = str(value or "").strip()
+        if not text:
+            raise ValueError("Field is required")
+        return text
+
+    @field_validator("password")
+    @classmethod
+    def register_password_min_length(cls, value: str) -> str:
+        if len(value) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        return value
+
+
 class ForgotPasswordRequest(BaseModel):
     email: str
 
@@ -48,6 +72,7 @@ class LoginResponse(BaseModel):
     requires_totp: bool = False
     session_challenge: Optional[str] = None
     user: Optional[UserResponse] = None
+    access_token: Optional[str] = None
 
 
 class ForgotPasswordResponse(BaseModel):

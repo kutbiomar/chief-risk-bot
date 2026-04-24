@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
 from typing import Callable
@@ -124,12 +125,21 @@ def run_workspace_briefing_cycle(
 
         detail = "Scheduled briefing run completed"
         if settings.briefing_auto_publish:
-            if briefing.model == "deterministic-demo-briefing":
-                detail = "Scheduled briefing generated but not auto-published because deterministic fallback was used"
-            else:
+            quality_gate = {}
+            try:
+                quality_gate = json.loads(briefing.output_json).get("quality_gate", {})
+            except Exception:
+                logger.warning("Unable to parse briefing quality gate for scheduled publish check", exc_info=True)
+            if quality_gate.get("publish_ready", briefing.model != "deterministic-demo-briefing"):
                 briefing.status = "published"
                 briefing.published_at = utc_now()
                 briefing.published_by = owner.id if owner is not None else None
+            else:
+                reasons = quality_gate.get("blocking_messages") or ["Briefing quality checks did not pass"]
+                detail = (
+                    "Scheduled briefing generated but not auto-published because quality gate failed: "
+                    + "; ".join(reasons)
+                )
 
         exported_path = None
         if settings.briefing_send_pdf:

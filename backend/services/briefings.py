@@ -5,6 +5,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -15,9 +16,19 @@ from backend.models.content import BriefingRun
 from backend.models.portfolio import PortfolioSnapshot, Position
 from backend.paths import STORAGE_ROOT
 from backend.services.auth.session import utc_now
+from backend.services.liquidity import get_liquidity_summary
 from backend.services.portfolio import summarize_positions
 
 logger = logging.getLogger(__name__)
+
+QUALITY_GATE_LABELS = {
+    "deterministic_fallback": "Deterministic fallback was used",
+    "insufficient_agent_coverage": "Too few risk agents completed successfully",
+    "thin_risk_content": "Generated risk coverage is too thin",
+    "thin_recommendations": "Generated recommendations are incomplete",
+    "low_var_coverage": "VaR model coverage is below the preferred threshold",
+    "missing_liquidity_context": "Liquidity context is missing from the briefing payload",
+}
 
 
 def _is_test_runtime() -> bool:
@@ -67,6 +78,7 @@ def _build_briefing_payload(
     flags: list[RiskFlag],
     var_result: VarResult | None,
     macro: MacroCache | None,
+    liquidity_summary: dict | None,
 ) -> dict:
     macro_payload = json.loads(macro.payload_json) if macro else {}
 
@@ -128,6 +140,7 @@ def _build_briefing_payload(
         "risk_flags": flags_summary,
         "var": var_section,
         "macro": macro_payload,
+        "liquidity": liquidity_summary or {},
     }
 
 
@@ -206,6 +219,58 @@ def _generate_briefing_deterministic(payload: dict) -> dict:
     }
 
 
+def _quality_message(reason: str) -> str:
+    return QUALITY_GATE_LABELS.get(reason, reason.replace("_", " "))
+
+
+def assess_briefing_quality(
+    output: dict[str, Any],
+    *,
+    model_used: str,
+    scores: list[RiskScore],
+    var_result: VarResult,
+    liquidity_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    succeeded_agents = sum(1 for score in scores if score.status == "succeeded")
+    risk_count = len(output.get("portfolio_risks") or [])
+    recommendation_count = len(output.get("recommendations") or [])
+    coverage_pct = float(var_result.model_coverage_pct or 0.0)
+
+    blocking_reasons: list[str] = []
+    warnings: list[str] = []
+
+    if model_used == "deterministic-demo-briefing":
+        blocking_reasons.append("deterministic_fallback")
+    if succeeded_agents < 4:
+        blocking_reasons.append("insufficient_agent_coverage")
+    if risk_count < 2:
+        blocking_reasons.append("thin_risk_content")
+    if recommendation_count < 2:
+        blocking_reasons.append("thin_recommendations")
+    if coverage_pct < 60.0:
+        warnings.append("low_var_coverage")
+    if not liquidity_summary:
+        warnings.append("missing_liquidity_context")
+
+    score = max(0, 100 - len(blocking_reasons) * 25 - len(warnings) * 10)
+    publish_ready = not blocking_reasons
+
+    return {
+        "publish_ready": publish_ready,
+        "score": score,
+        "summary": "Publish ready" if publish_ready else "Manual review required",
+        "blocking_reasons": blocking_reasons,
+        "blocking_messages": [_quality_message(reason) for reason in blocking_reasons],
+        "warnings": warnings,
+        "warning_messages": [_quality_message(reason) for reason in warnings],
+        "agent_success_count": succeeded_agents,
+        "expected_agent_count": len(scores),
+        "risk_item_count": risk_count,
+        "recommendation_count": recommendation_count,
+        "var_model_coverage_pct": round(coverage_pct, 1),
+    }
+
+
 def generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id: str | None) -> BriefingRun:
     settings = get_settings()
     positions = db.scalars(select(Position).where(Position.snapshot_id == snapshot.id)).all()
@@ -225,6 +290,7 @@ def generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id: str | N
         .order_by(MacroCache.fetched_at.desc())
         .first()
     )
+    liquidity_summary = get_liquidity_summary(snapshot.workspace_id, db)
     now = utc_now()
     current_version = (
         db.scalar(
@@ -237,7 +303,7 @@ def generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id: str | N
     )
 
     payload = _build_briefing_payload(
-        snapshot, list(positions), summary, list(scores), list(flags), var_result, macro
+        snapshot, list(positions), summary, list(scores), list(flags), var_result, macro, liquidity_summary
     )
 
     model_used = "deterministic-demo-briefing"
@@ -294,6 +360,24 @@ def generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id: str | N
             f"({var_result.var_1d_95 / max(float(snapshot.total_aum_usd), 1) * 100:.2f}% of AUM) "
             f"on a ${snapshot.total_aum_usd:,.0f} portfolio."
         )
+    if liquidity_summary:
+        next_due = liquidity_summary.get("next_call_due_date") or "no scheduled call"
+        next_amount = float(liquidity_summary.get("next_call_amount_usd") or 0.0)
+        output["liquidity_snapshot"] = liquidity_summary
+        output["liquidity_commentary"] = (
+            f"Next capital call: {next_due}"
+            f"{f' for ${next_amount:,.0f}' if next_amount else ''}. "
+            f"Expected 90-day distributions: ${float(liquidity_summary.get('expected_distributions_usd') or 0.0):,.0f}. "
+            f"Net 90-day liquidity: ${float(liquidity_summary.get('net_liquidity_usd') or 0.0):,.0f}. "
+            f"{'Buffer breach projected.' if liquidity_summary.get('buffer_breach') else 'Buffer remains intact.'}"
+        )
+    output["quality_gate"] = assess_briefing_quality(
+        output,
+        model_used=model_used,
+        scores=list(scores),
+        var_result=var_result,
+        liquidity_summary=liquidity_summary,
+    )
 
     briefing = BriefingRun(
         workspace_id=snapshot.workspace_id,
@@ -468,6 +552,8 @@ _PDF_HTML_TEMPLATE = """<!DOCTYPE html>
 
 {var_block}
 
+{liquidity_block}
+
 <h2>Portfolio Risks</h2>
 {risks_html}
 
@@ -506,6 +592,15 @@ def _render_briefing_html(briefing: BriefingRun) -> str:
   <div style="margin-top: 6pt">{var_commentary}</div>
 </div>"""
 
+    liquidity_commentary = body.get("liquidity_commentary", "")
+    liquidity_block = ""
+    if liquidity_commentary:
+        liquidity_block = f"""<h2>Liquidity Snapshot</h2>
+<div class="var-box">
+  <div class="label">Next 90 Days Cash Flow</div>
+  <div style="margin-top: 6pt">{liquidity_commentary}</div>
+</div>"""
+
     risks_html_parts = []
     for risk in body.get("portfolio_risks", []):
         sev = risk.get("severity", "watch")
@@ -539,6 +634,7 @@ def _render_briefing_html(briefing: BriefingRun) -> str:
         executive_summary=body.get("executive_summary", ""),
         market_context=body.get("market_context", ""),
         var_block=var_block,
+        liquidity_block=liquidity_block,
         risks_html="\n".join(risks_html_parts),
         recommendations_html=recommendations_html,
         caveats_html=caveats_html,

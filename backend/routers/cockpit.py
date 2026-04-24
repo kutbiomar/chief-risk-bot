@@ -14,6 +14,7 @@ from backend.schemas.analytics import CockpitResponse, OverlayFactorSummary, Ove
 from backend.services.overlay.alert_engine import compute_overlay_alerts
 from backend.services.overlay import ensure_overlay_state
 from backend.services.overlay.stress_scenarios import compute_stress_scenarios
+from backend.services.liquidity import get_liquidity_summary
 from backend.services.portfolio import summarize_positions
 from backend.services.var import compute_var_for_snapshot
 
@@ -54,6 +55,7 @@ def get_cockpit(
         }
         for item in overlay_alerts
     ]
+    portfolio_summary["liquidity_summary"] = get_liquidity_summary(user.workspace_id, db)
     return CockpitResponse(
         snapshot_id=snapshot.id,
         portfolio_summary=portfolio_summary,
