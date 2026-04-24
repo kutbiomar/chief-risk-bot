@@ -33,14 +33,25 @@ Static review on branch `MVP2` (commit `22e5cb3`):
 | Auth token scoping (workspace isolation) | ✓ pass | `test_auth` — 13 passed |
 | Supabase storage bucket is private | ✓ confirmed | no public flag on `documents` bucket |
 
-## Production verification (pending deployed env)
+## Production health verification — 2026-04-24
 
-Status: **Pending** — blocked on `DEPLOY_ENABLED=true`.
+Live at `https://chief-risk-bot.fly.dev`. All 5 dependency components `ok` (see K13_QA_SWEEP.md for full response).
 
-Required before launch:
+`GET /api/health` → `200`, `status: ok`, `environment: production`.
 
-1. Confirm storage bucket remains private and object URLs are not public by default.
-2. Confirm CORS allowlist only includes production frontend origin(s) (not `*`).
-3. Confirm rate-limit behavior at edge + app layer under load.
-4. Re-run Phase G regression checks on deployed stack.
-5. Capture final sign-off and attach test evidence.
+## Production verification (partial — pending demo seed)
+
+| Check | Status | Notes |
+|---|---|---|
+| Storage bucket private | ✓ confirmed | Supabase `documents` bucket has no public flag |
+| HSTS on live app | ✓ confirmed | Fly enforces HTTPS + `force_https = true` in `fly.toml` |
+| CORS origin enforcement | pending | Needs live browser test after demo user seed |
+| Rate-limit behavior on prod | pending | Needs auth endpoints exercised on live stack |
+| Phase G regression checks on deployed | pending | Needs demo user seed |
+
+Remaining steps after `seed_demo.py` runs via Fly console:
+
+1. Confirm CORS allowlist only includes production frontend origin(s) (not `*`).
+2. Confirm rate-limit behavior at edge + app layer (10 rapid login attempts → 429).
+3. Re-run Phase G regression checks on deployed stack.
+4. Capture final sign-off.

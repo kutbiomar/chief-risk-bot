@@ -42,12 +42,36 @@ Total: **34 passed, 0 failed**.
 
 No P0 issues found in local pass.
 
-## Deployed environment pass
+## Deployed environment pass — 2026-04-24
 
-Status: **Pending** — blocked on `DEPLOY_ENABLED=true` (requires Fly + Cloudflare provisioning from USER_CHECKLIST items 2–3).
+Backend is live at `https://chief-risk-bot.fly.dev`. CI run 24893391298 deployed to staging + production (2 Fly machines, smoke checks passed).
 
-Required before launch:
+**API health — all 5 components green:**
 
-1. Run full matrix against staging deployment.
-2. Repeat against production candidate build.
-3. Log any findings as `K13.N` and close all P0 issues.
+```json
+{
+  "status": "ok",
+  "environment": "production",
+  "components": {
+    "database":        {"status": "ok", "latency_ms": 452.51},
+    "supabase_auth":   {"status": "ok", "latency_ms": 394.58},
+    "supabase_storage":{"status": "ok", "latency_ms": 117.43},
+    "anthropic":       {"status": "ok", "latency_ms": 4251.83},
+    "fred":            {"status": "ok", "latency_ms": 368.46}
+  }
+}
+```
+
+**Pending — demo user seed + E2E flow:**
+
+Demo user (`cio@demo.chiefriskbot.com`) needs to be seeded via Fly console before full E2E matrix can run:
+
+```bash
+~/.fly/bin/flyctl ssh console --app [FLY_APP_NAME]
+# inside the container:
+python admin/demo/seed_demo.py
+```
+
+Once seeded, run:
+1. Login → cockpit → liquidity → briefings → PDF export flow.
+2. Log any findings as `K13.N` and close all P0 issues.

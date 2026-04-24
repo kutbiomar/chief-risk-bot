@@ -1,7 +1,7 @@
 # ChiefRiskBot — Current Status
 
 _Last updated: 2026-04-24_  
-_Status: **EX1–EX12 code-complete. Pending DEPLOY\_ENABLED=true.** CI/CD pipeline green (run 24893391298). Deploy jobs gated on Fly + Cloudflare provisioning (USER\_CHECKLIST items 2–3). Once provisioned: flip `DEPLOY_ENABLED` repo var → staging + production deploy automatically. Final EX13 cutover sign-off after deployed smoke tests pass._
+_Status: **PRODUCTION BACKEND LIVE.** `https://chief-risk-bot.fly.dev` — all 5 health components green (DB, Supabase auth, Supabase storage, Anthropic, FRED). Frontend on Cloudflare Pages. One remaining step before full EX13 sign-off: seed demo user via `flyctl ssh console` and run deployed E2E flow._
 
 ---
 
@@ -33,15 +33,23 @@ FastAPI + vanilla HTML/JS frontend + market data + LLM briefing pipeline.
 
 ## Current focus
 
-**One action unblocks everything:** complete USER_CHECKLIST items 2 (Fly token), 3 (Cloudflare token + account ID), then flip the `DEPLOY_ENABLED` repo variable to `true`. CI/CD will deploy to staging then production automatically on the next push.
+Production backend is live. **One remaining action before full launch sign-off:**
 
-Post-deploy checklist:
-- [ ] Smoke-test `/api/health` on staging → all components `ok`
-- [ ] Smoke-test PDF export in deployed container (`GET /api/briefings/{id}/export/pdf`)
-- [ ] Confirm CORS origin = `chiefriskbot.com` only (not `*`)
-- [ ] Confirm Supabase storage bucket is private
-- [ ] Flip K13/K14 deployed verification to complete
-- [ ] Update this file: `_Status: PRODUCTION LIVE_`
+```bash
+~/.fly/bin/flyctl ssh console --app [FLY_APP_NAME]
+# inside container:
+python admin/demo/seed_demo.py
+```
+
+Then run the deployed E2E flow (login → cockpit → PDF export) and close K13/K14.
+
+Post-seed checklist:
+- [ ] Login as `cio@demo.chiefriskbot.com` / `DemoPass2026!` on production
+- [ ] Cockpit, liquidity, briefings load with real data
+- [ ] PDF export → `200` (WeasyPrint in container)
+- [ ] Confirm CORS origin = production frontend only
+- [ ] 10 rapid login attempts → `429 Too Many Requests`
+- [ ] Update K13_QA_SWEEP.md and K14_SECURITY_REVIEW.md with deployed evidence
 
 ## Reference docs
 
@@ -141,7 +149,7 @@ Earlier phase-by-phase details remain in `codex_log` and `MVP2_STATUS.md`.
 | K6 CI/CD pipeline | Complete (repo) | `.github/workflows/ci-cd.yml` with staged + production jobs and migration dry-run |
 | K7 Migration safety policy | Complete (repo) | `scripts/check_destructive_migrations.py` + `scripts/migrate.sh` |
 | K8 Backup + restore drill | Pending execution | policy/log scaffold in `admin/thinking/PRODUCTION_INFRA.md` |
-| K9 Observability | Complete (repo) | structured request logs + DB timing metrics + expanded `/api/health` |
+| K9 Observability | Complete | `/api/health` confirmed live: all 5 components ok on production (2026-04-24) |
 | K10 Alerting | In progress | thresholds documented; provider-side alert routing pending |
 | K11 Runbook | Complete (repo) | `admin/thinking/RUNBOOK.md` |
 | K12 Production PDF export | In progress | WeasyPrint in `pyproject.toml` + system libs in `Dockerfile`; 503 fallback test passes; deployed container verify pending |
