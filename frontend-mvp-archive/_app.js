@@ -621,6 +621,23 @@
     }
   }
 
+  function updateShellUser(user) {
+    const initials = String(user.display_name || user.email || 'CR')
+      .split(/\s+/)
+      .map((part) => part[0] || '')
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+    const avatar = document.getElementById('mvp-user-avatar');
+    const name = document.getElementById('mvp-user-name');
+    const role = document.getElementById('mvp-user-role');
+    const workspace = document.getElementById('mvp-workspace-name');
+    if (avatar) avatar.textContent = initials || 'CR';
+    if (name) name.textContent = user.display_name || user.email;
+    if (role) role.textContent = `${user.role} · ${user.email}`;
+    if (workspace) workspace.textContent = user.workspace_name || 'ChiefRiskBot';
+  }
+
   async function requireSession(activePage, crumbs) {
     let user;
     try {
@@ -638,8 +655,7 @@
 
     if (window.CRBMvpShell) {
       window.CRBMvpShell.mount(activePage, crumbs);
-      window.CRBMvpShell.updateUser(user);
-
+      updateShellUser(user);
       const logout = document.getElementById('mvp-logout');
       if (logout) {
         logout.addEventListener('click', async () => {
@@ -648,42 +664,10 @@
               await api('/auth/logout', { method: 'POST' });
             }
           } catch {
-            // ignore
+            // ignore logout cleanup errors
           }
           clearAuthState();
           window.location.href = 'login.html';
-        });
-      }
-
-      // Expose api for drawer history loader
-      window.CRBApi = api;
-
-      // Wire generate briefing button in drawer
-      const genBtn = document.getElementById('crb-drawer-generate-btn');
-      if (genBtn) {
-        genBtn.addEventListener('click', async () => {
-          const scope = genBtn.dataset.scope || 'full';
-          genBtn.disabled = true;
-          const progress = document.getElementById('crb-drawer-progress');
-          const result = document.getElementById('crb-drawer-result');
-          if (progress) { progress.hidden = false; progress.textContent = 'Generating briefing…'; }
-          if (result) result.hidden = true;
-          try {
-            const data = await api(`/briefings/generate?scope=${encodeURIComponent(scope)}`, { method: 'POST' });
-            if (progress) progress.hidden = true;
-            if (result) {
-              result.hidden = false;
-              result.innerHTML = `
-                <div style="margin-top:20px;padding:16px;background:rgba(232,241,234,.4);border-radius:4px;font-family:'Inter Tight',sans-serif;font-size:13px;color:#3F7A4F;">
-                  <strong>Briefing ready.</strong><br>
-                  <a href="briefing.html?id=${encodeURIComponent(data.id || '')}" style="color:#1B2B5E;text-decoration:underline;margin-top:8px;display:inline-block;">Open full briefing →</a>
-                </div>`;
-            }
-          } catch (err) {
-            if (progress) { progress.hidden = false; progress.textContent = `Error: ${err.message || 'Could not generate briefing.'}`; }
-          } finally {
-            genBtn.disabled = false;
-          }
         });
       }
     }
@@ -794,291 +778,14 @@
     return 'onboarding.html';
   }
 
-  // ── Shared rendering helpers ─────────────────────────────────────────────
-
-  function initScrollReveal(bodyEl) {
-    if (!bodyEl) return;
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-visible'); observer.unobserve(e.target); } });
-    }, { threshold: 0.10 });
-    bodyEl.querySelectorAll('.essay-section:not(.is-visible)').forEach((el) => observer.observe(el));
-  }
-
-  function renderBriefingBody(bodyEl, output, tocEl) {
-    if (!bodyEl) return;
-    const sections = [
-      output.executive_summary && {
-        id: 'summary', eyebrow: 'Executive Summary', heading: 'The week in one breath',
-        html: `<div class="essay-prose"><p class="essay-deck">${escapeHtml(output.executive_summary)}</p></div>`,
-      },
-      output.market_context && {
-        id: 'context', eyebrow: 'Market Context', heading: 'What the tape is saying',
-        html: `<div class="essay-prose"><p>${escapeHtml(output.market_context).replace(/\n\n+/g, '</p><p>')}</p></div>`,
-      },
-      (output.portfolio_risks || []).length && {
-        id: 'risks', eyebrow: 'Portfolio Risks', heading: 'Where the exposure sits',
-        html: (output.portfolio_risks || []).map((item) => `
-          <div class="essay-risk">
-            <div class="essay-risk-head">
-              <div class="essay-risk-title">${escapeHtml(item.risk_area)}</div>
-              <div class="essay-risk-sev">${escapeHtml(item.severity)}</div>
-            </div>
-            <div class="essay-risk-finding">${escapeHtml(item.finding)}</div>
-            ${item.implication ? `<div class="essay-risk-implication">${escapeHtml(item.implication)}</div>` : ''}
-          </div>`).join(''),
-      },
-      (output.recommendations || []).length && {
-        id: 'recs', eyebrow: 'Recommendations', heading: 'What to do next',
-        html: `<ol class="essay-recs">${(output.recommendations || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ol>`,
-      },
-    ].filter(Boolean);
-
-    bodyEl.innerHTML = sections.map((s) => `
-      <section class="essay-section" id="home-sec-${s.id}">
-        <div class="essay-eyebrow">${s.eyebrow}</div>
-        <h2 class="essay-heading">${s.heading}</h2>
-        ${s.html}
-      </section>`).join('');
-
-    if (tocEl) {
-      tocEl.innerHTML = '<div class="essay-toc-label">Today\'s briefing</div>'
-        + sections.map((s) => `<a href="#home-sec-${s.id}">${s.eyebrow}</a>`).join('');
-    }
-
-    initScrollReveal(bodyEl);
-  }
-
-  function renderCompositionDonut(containerEl, buckets, palette) {
-    if (!containerEl || !buckets || !buckets.length) return;
-    const size = 200;
-    const r = 70;
-    const cx = size / 2;
-    const cy = size / 2;
-    const tau = 2 * Math.PI;
-    let cursor = -Math.PI / 2;
-
-    function arc(startAngle, endAngle, radius) {
-      const x1 = cx + radius * Math.cos(startAngle);
-      const y1 = cy + radius * Math.sin(startAngle);
-      const x2 = cx + radius * Math.cos(endAngle);
-      const y2 = cy + radius * Math.sin(endAngle);
-      const large = (endAngle - startAngle) > Math.PI ? 1 : 0;
-      return `M ${x1} ${y1} A ${radius} ${radius} 0 ${large} 1 ${x2} ${y2}`;
-    }
-
-    const total = buckets.reduce((s, b) => s + (b.total_value || b.pct_of_portfolio || 0), 0);
-    const paths = buckets.map((b, i) => {
-      const share = total > 0 ? (b.total_value || b.pct_of_portfolio || 0) / total : 0;
-      const sweep = share * tau;
-      const startAngle = cursor;
-      cursor += sweep;
-      const color = palette[i % palette.length];
-      return `<path d="${arc(startAngle, cursor, r)}" fill="none" stroke="${color}" stroke-width="28" opacity="0.9"/>`;
-    }).join('');
-
-    const legend = buckets.slice(0, 6).map((b, i) => {
-      const label = titleCase(b.label || b.asset_class || '');
-      const pct = formatNumber(b.pct_of_portfolio || 0, 1);
-      return `<div class="mvp-cockpit-legend-item"><span class="mvp-cockpit-legend-dot" style="background:${palette[i % palette.length]}"></span><span>${escapeHtml(label)}</span><span class="mvp-cockpit-legend-pct">${pct}%</span></div>`;
-    }).join('');
-
-    containerEl.innerHTML = `
-      <div class="mvp-cockpit-donut-wrap">
-        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true">${paths}</svg>
-        <div class="mvp-cockpit-legend">${legend}</div>
-      </div>`;
-  }
-
   async function initIndex() {
-    const user = await requireSession('index', ['Home']);
-    if (!user) return;
-
-    // Check onboarding completion — redirect if not done
+    applyWorkspaceSettings(loadStoredSettings() || { reporting_currency: DEFAULT_CURRENCY });
     try {
-      const state = await api('/onboarding/state');
-      if (!state.is_complete) { window.location.href = 'onboarding.html'; return; }
-    } catch { /* proceed */ }
-
-    // Personalise headline
-    const name = user.display_name ? user.display_name.split(' ')[0] : null;
-    const headline = document.getElementById('home-headline');
-    if (headline && name) headline.textContent = `Good morning, ${name}.`;
-
-    const eyebrow = document.getElementById('home-eyebrow');
-    if (eyebrow) {
-      const d = new Date();
-      eyebrow.textContent = `Today · ${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
-    }
-
-    // Load cockpit + liquidity data in parallel for the metric strip
-    const [cockpitData, liquidityData] = await Promise.allSettled([
-      api('/cockpit'),
-      api('/liquidity/summary'),
-    ]);
-
-    if (cockpitData.status === 'fulfilled') {
-      const body = cockpitData.value;
-      const ps = body?.portfolio_summary || {};
-
-      const aum = document.getElementById('home-aum');
-      if (aum) aum.textContent = formatCurrency(ps.total_value || 0);
-
-      const conc = document.getElementById('home-concentration');
-      const concSub = document.getElementById('home-concentration-sub');
-      const buckets = (ps.asset_class || []).sort((a, b) => b.pct_of_portfolio - a.pct_of_portfolio);
-      if (buckets.length && conc) {
-        conc.textContent = `${formatNumber(buckets[0].pct_of_portfolio || 0, 1)}%`;
-        if (concSub) concSub.textContent = titleCase(buckets[0].label || buckets[0].asset_class || '');
-      }
-
-      const varEl = document.getElementById('home-var');
-      const varSub = document.getElementById('home-var-sub');
-      if (body?.var_result && varEl) {
-        varEl.textContent = formatCurrency(body.var_result.var_95 || 0);
-        if (varSub) varSub.textContent = '95% confidence, 1-day';
-      }
-
-      const alertsEl = document.getElementById('home-alerts');
-      const alertsSub = document.getElementById('home-alerts-sub');
-      const flags = body?.risk_flags || [];
-      const priorityCount = flags.filter((f) => f.severity === 'priority').length;
-      if (alertsEl) {
-        alertsEl.textContent = flags.length;
-        alertsEl.classList.toggle('essay-metric-badge', priorityCount > 0);
-      }
-      if (alertsSub) alertsSub.textContent = priorityCount > 0 ? `${priorityCount} priority` : 'No priority alerts';
-    }
-
-    if (liquidityData.status === 'fulfilled') {
-      const liq = liquidityData.value;
-      const cashEl = document.getElementById('home-cash');
-      const cashSub = document.getElementById('home-cash-sub');
-      if (cashEl) {
-        cashEl.textContent = formatCurrency(liq?.cash_balance || 0);
-        if (cashSub) {
-          const pct = liq?.cash_pct_of_portfolio;
-          cashSub.textContent = pct != null ? `${formatNumber(pct, 1)}% of AUM` : '';
-        }
-      }
-    }
-
-    // Load latest briefing for the daily section
-    const briefingBody = document.getElementById('home-briefing-body');
-    const deck = document.getElementById('home-deck');
-    try {
-      const result = await api('/briefings?limit=1');
-      const items = result.items || result.briefings || result || [];
-      const latest = items[0];
-      if (latest) {
-        const output = latest.output || {};
-        if (deck) deck.textContent = output.executive_summary || '';
-        if (briefingBody) renderBriefingBody(briefingBody, output, document.getElementById('home-toc'));
-      } else {
-        if (briefingBody) briefingBody.innerHTML = `
-          <div class="essay-section is-visible">
-            <div class="essay-eyebrow">Today's briefing</div>
-            <div class="essay-heading">No briefing yet.</div>
-            <p class="essay-prose"><p>Generate your first briefing using the button in the nav bar.</p></p>
-          </div>`;
-      }
+      await getSession();
+      window.location.href = await resolveAuthenticatedLanding();
     } catch {
-      if (briefingBody) briefingBody.innerHTML = `<div class="essay-section is-visible"><div class="essay-eyebrow">Today's briefing</div><p class="essay-prose"><p>Could not load briefing data.</p></p></div>`;
+      window.location.href = 'login.html';
     }
-
-    markPageReady();
-  }
-
-  async function initAssets() {
-    const user = await requireSession('assets', ['Assets Overview']);
-    if (!user) return;
-
-    const statusEl = document.getElementById('assets-status');
-    const asOf = document.getElementById('assets-as-of');
-
-    let cockpitBody = null;
-    try {
-      cockpitBody = await api('/cockpit');
-      if (asOf) asOf.textContent = `as of ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-    } catch (err) {
-      setStatus(statusEl, err.message, 'error');
-      markPageReady();
-      return;
-    }
-
-    const ps = cockpitBody?.portfolio_summary || {};
-    const kpis = document.getElementById('assets-kpis');
-    if (kpis) {
-      kpis.innerHTML = [
-        { label: 'Total AUM', value: formatCurrency(ps.total_value || 0), meta: `${formatNumber(ps.position_count || 0, 0)} positions` },
-        { label: 'Public Equity', value: formatCurrency(ps.public_equity_value || 0), meta: formatPct(ps.public_equity_pct || 0) },
-        { label: 'Private / Alternatives', value: formatCurrency(ps.private_value || 0), meta: formatPct(ps.private_pct || 0) },
-        { label: 'Cash & Fixed Income', value: formatCurrency(ps.cash_fi_value || 0), meta: formatPct(ps.cash_fi_pct || 0) },
-      ].map((k) => `
-        <div class="mvp-kpi">
-          <div class="uplabel">${escapeHtml(k.label)}</div>
-          <div class="value">${escapeHtml(k.value)}</div>
-          <div class="meta">${escapeHtml(k.meta)}</div>
-        </div>`).join('');
-    }
-
-    // Composition donut (reuse cockpit renderer helper)
-    const compositionChart = document.getElementById('assets-composition-chart');
-    const compositionPalette = ['#1B2B5E', '#72594c', '#C9A449', '#006972', '#d3c3bc', '#8f6f9d'];
-    if (compositionChart && ps.asset_class) renderCompositionDonut(compositionChart, ps.asset_class, compositionPalette);
-
-    // Slicing tables
-    const sliceToggles = document.getElementById('assets-slice-toggles');
-    const sliceTitle = document.getElementById('assets-slice-title');
-    const sliceTable = document.getElementById('assets-slice-table');
-    const dimTitles = { asset_class: 'By Asset Class', sector: 'By Sector', geo_region: 'By Region', custodian: 'By Custodian' };
-    let activeDimension = 'asset_class';
-
-    function renderSliceTable(dimension) {
-      const buckets = ps[dimension] || [];
-      if (!sliceTable) return;
-      if (!buckets.length) { sliceTable.innerHTML = '<p style="color:var(--ink-mute);font-size:13px">No data for this dimension.</p>'; return; }
-      sliceTable.innerHTML = `
-        <table class="essay-table">
-          <thead><tr><th>Category</th><th class="num">Market Value</th><th class="num">% of AUM</th><th class="num">Positions</th></tr></thead>
-          <tbody>${buckets.map((b) => `
-            <tr>
-              <td>${escapeHtml(titleCase(b.label || b.asset_class || b.sector || b.geo_region || b.custodian || ''))}</td>
-              <td class="num">${escapeHtml(formatCurrency(b.total_value || 0))}</td>
-              <td class="num">${escapeHtml(formatNumber(b.pct_of_portfolio || 0, 1))}%</td>
-              <td class="num">${escapeHtml(formatNumber(b.position_count || 0, 0))}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>`;
-    }
-
-    if (sliceToggles) {
-      sliceToggles.querySelectorAll('.essay-pill').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          activeDimension = btn.dataset.dimension;
-          sliceToggles.querySelectorAll('.essay-pill').forEach((b) => b.classList.toggle('active', b === btn));
-          if (sliceTitle) sliceTitle.textContent = dimTitles[activeDimension] || 'Composition';
-          renderSliceTable(activeDimension);
-        });
-      });
-    }
-    renderSliceTable(activeDimension);
-
-    // Projections — use liquidity data
-    const projSummary = document.getElementById('assets-proj-summary');
-    try {
-      const liq = await api('/liquidity/summary');
-      if (projSummary) {
-        const cashBal = formatCurrency(liq?.cash_balance || 0);
-        const next90 = formatCurrency(Math.abs(liq?.net_90d || 0));
-        projSummary.textContent = `Current cash position is ${cashBal}. Net cash flow over the next 90 days is projected at ${next90}. Detailed cash flow ladder available on the Liquidity page.`;
-      }
-    } catch {
-      if (projSummary) projSummary.textContent = 'Liquidity projection data unavailable. Visit the Liquidity page for cash flow detail.';
-    }
-
-    // Scroll reveal
-    initScrollReveal(document.getElementById('assets-section-agg')?.closest('.essay-body'));
-    markPageReady();
   }
 
   async function initLogin() {
@@ -3483,17 +3190,12 @@
     onboarding: initOnboarding,
     settings: initSettings,
     cockpit: initCockpit,
-    assets: initAssets,
     briefings: initBriefings,
     briefing: initBriefingDetail,
     table: initTable,
     documents: initDocuments,
     liquidity: initLiquidity,
     overlay: initOverlay,
-    access: async () => {
-      const user = await requireSession('access', ['Access']);
-      if (user) markPageReady();
-    },
   };
 
   document.addEventListener('DOMContentLoaded', () => {

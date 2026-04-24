@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Risk Cockpit — ChiefRiskBot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="/_shell.css"/>
+  <link rel="stylesheet" href="_mvp.css"/>
+  <script src="_shell.js" defer></script>
+  <script src="_app.js" defer></script>
+</head>
+<body data-page="cockpit" class="mvp-app-loading">
+  <div class="app" id="app-root">
+    <main>
+      <div class="mvp-page">
+        <div class="mvp-hero">
+          <div>
+            <h1>Risk cockpit</h1>
+            <p>A simpler read of portfolio value, downside, liquidity, and the few risks that need action now.</p>
+          </div>
+          <div class="mvp-actions">
+            <button id="refresh-cockpit" class="btn"><span class="ms">refresh</span>Refresh</button>
+            <button id="rerun-risk" class="btn primary"><span class="ms">playlist_add_check</span>Re-run risk</button>
+          </div>
+        </div>
+        <div id="cockpit-status" class="mvp-notice" hidden data-global-status></div>
+        <div id="cockpit-kpis" class="mvp-grid cards-4"></div>
+        <div class="mvp-grid two">
+          <section class="mvp-card mvp-cockpit-card">
+            <div class="mvp-card-header">
+              <div>
+                <div class="uplabel">Composition</div>
+                <h2 id="cockpit-composition-title">Asset class mix</h2>
+              </div>
+              <div class="mvp-seg" id="cockpit-composition-toggles">
+                <button type="button" data-dimension="asset_class" class="is-active">Asset Class</button>
+                <button type="button" data-dimension="sector">Sector</button>
+                <button type="button" data-dimension="geo_region">Geography</button>
+              </div>
+            </div>
+            <div class="mvp-card-body">
+              <div id="cockpit-composition" class="mvp-cockpit-composition"></div>
+            </div>
+          </section>
+          <section class="mvp-card mvp-cockpit-card">
+            <div class="mvp-card-header">
+              <div>
+                <div class="uplabel">Risk</div>
+                <h2>Risk at a glance</h2>
+              </div>
+            </div>
+            <div class="mvp-card-body">
+              <div id="cockpit-var-summary" class="mvp-var-summary"></div>
+              <div id="cockpit-var-visual" class="mvp-var-visual"></div>
+              <div class="mvp-list" id="cockpit-var-drivers"></div>
+            </div>
+          </section>
+        </div>
+        <section class="mvp-card mvp-cockpit-card">
+          <div class="mvp-card-header">
+            <div>
+              <div class="uplabel">Register</div>
+              <h2>Active risks</h2>
+            </div>
+            <div class="mvp-risk-controls" id="cockpit-risk-filters">
+              <button type="button" data-severity="all" class="is-active">All</button>
+              <button type="button" data-severity="priority">Priority</button>
+              <button type="button" data-severity="elevated">Elevated</button>
+              <button type="button" data-severity="watch">Watch</button>
+            </div>
+          </div>
+          <div class="mvp-card-body" style="padding:0">
+            <div class="mvp-table-wrap">
+              <table class="mvp-table mvp-risk-table">
+                <thead>
+                  <tr>
+                    <th style="width: 40px;"></th>
+                    <th>Risk Source</th>
+                    <th>Assessment</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody id="cockpit-register"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

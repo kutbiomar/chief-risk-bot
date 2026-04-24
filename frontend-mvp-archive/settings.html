@@ -6,9 +6,9 @@
   <title>Settings — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
-  <link rel="stylesheet" href="_shell.css"/>
+  <link rel="stylesheet" href="/_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
@@ -16,14 +16,15 @@
 <body data-page="settings" class="mvp-app-loading">
   <div class="app" id="app-root">
     <main>
-      <div class="essay-hero compact" style="text-align:left;padding-left:max(32px,5vw);padding-right:max(32px,5vw)">
-        <div class="essay-meta" style="justify-content:flex-start"><span>Operations</span></div>
-        <h1 style="text-align:left;margin-left:0;font-size:clamp(28px,4vw,40px)">Settings</h1>
-        <p class="essay-deck-hero" style="margin-left:0;font-size:16px">Workspace defaults for reporting, briefing cadence, and AI output.</p>
-      </div>
-      <div style="padding:0 max(32px,5vw) 64px">
+      <div class="mvp-page">
+        <div class="mvp-hero">
+          <div>
+            <h1>Settings</h1>
+            <p>Workspace defaults for reporting, briefing cadence, and AI output.</p>
+          </div>
+        </div>
         <div id="settings-status" class="mvp-notice" hidden data-global-status></div>
-        <div id="settings-overview" class="mvp-grid cards-3" style="margin-bottom:20px"></div>
+        <div id="settings-overview" class="mvp-grid cards-3"></div>
         <form id="settings-form" class="mvp-form">
           <div class="mvp-grid two">
             <section class="mvp-card mvp-settings-card">
@@ -131,7 +132,7 @@
             <button class="btn primary" type="submit"><span class="ms">save</span>Save settings</button>
           </div>
         </form>
-      </div><!-- /padding wrapper -->
+      </div>
     </main>
   </div>
 </body>

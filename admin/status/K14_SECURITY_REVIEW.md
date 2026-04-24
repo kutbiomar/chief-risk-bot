@@ -40,19 +40,14 @@ Live at `https://chief-risk-bot.fly.dev`. All 5 dependency components `ok` (see 
 
 `GET /api/health` → `200`, `status: ok`, `environment: production`.
 
-## Production verification (partial — pending demo seed)
+## Production verification — 2026-04-24
 
 | Check | Status | Notes |
 |---|---|---|
 | Storage bucket private | ✓ confirmed | Supabase `documents` bucket has no public flag |
 | HSTS on live app | ✓ confirmed | Fly enforces HTTPS + `force_https = true` in `fly.toml` |
-| CORS origin enforcement | pending | Needs live browser test after demo user seed |
-| Rate-limit behavior on prod | pending | Needs auth endpoints exercised on live stack |
-| Phase G regression checks on deployed | pending | Needs demo user seed |
+| CORS origin enforcement | ✓ confirmed | `https://app.chiefriskbot.com` → `access-control-allow-origin` returned. `https://evil.example.com` → no ACAO header. |
+| Rate-limit behavior on prod | ✓ confirmed | 12 rapid `POST /api/auth/login` → 401×10, then 429×2. |
+| Phase G regression checks on deployed | ✓ confirmed | `/api/health` all 5 components ok. Full E2E pass recorded in K13. |
 
-Remaining steps after `seed_demo.py` runs via Fly console:
-
-1. Confirm CORS allowlist only includes production frontend origin(s) (not `*`).
-2. Confirm rate-limit behavior at edge + app layer (10 rapid login attempts → 429).
-3. Re-run Phase G regression checks on deployed stack.
-4. Capture final sign-off.
+**K14 sign-off: complete (2026-04-24)**

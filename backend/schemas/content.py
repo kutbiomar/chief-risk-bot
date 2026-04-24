@@ -13,6 +13,7 @@ class BriefingResponse(BaseModel):
     status: str
     week_label: str
     output: dict[str, Any]
+    scope: str = "full"
     pdf_path: Optional[str] = None
     created_at: datetime
     published_at: Optional[datetime] = None

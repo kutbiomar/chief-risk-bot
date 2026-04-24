@@ -6,18 +6,19 @@
   <title>Sign in — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
-  <link rel="stylesheet" href="_shell.css"/>
+  <link rel="stylesheet" href="/_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_app.js" defer></script>
 </head>
 <body data-page="login" class="mvp-app-loading">
   <div class="mvp-login-shell">
     <section class="mvp-login-left">
-      <a href="index.html" class="mvp-login-brand" style="text-decoration:none">
-        <span style="font-family:'Fraunces',serif;font-weight:400;font-size:22px;letter-spacing:-0.01em;color:#1B2B5E">ChiefRiskBot</span>
-      </a>
+      <div class="mvp-login-brand">
+        <div class="logo">C</div>
+        <b>ChiefRiskBot</b>
+      </div>
       <div class="mvp-login-card">
         <div class="mvp-auth-tabs" role="tablist" aria-label="Authentication mode">
           <button type="button" class="is-active" data-auth-mode="sign-in" aria-selected="true">Sign in</button>
@@ -26,9 +27,9 @@
         </div>
         <div id="login-status" class="mvp-notice" hidden data-global-status></div>
         <section data-auth-panel="sign-in">
-          <h1 style="font-family:'Fraunces',serif;font-weight:400;font-size:clamp(28px,4vw,36px);letter-spacing:-0.02em;color:#1B2B5E;margin:0 0 10px">Welcome back.</h1>
-          <p style="color:rgba(27,43,94,.65);font-size:14px;line-height:1.6;margin:0 0 24px">Sign in to your workspace to open the live cockpit, documents queue, and this week's briefing.</p>
-          <form id="login-form" class="mvp-form">
+          <h1>Welcome back.</h1>
+          <p>Sign in to your workspace to open the live cockpit, documents queue, and this week’s briefing.</p>
+          <form id="login-form" class="mvp-form" style="margin-top:14px">
             <div class="mvp-field">
               <label for="email">Work email</label>
               <input id="email" type="email" placeholder="cio@demo.chiefriskbot.com" autocomplete="email" required/>
@@ -41,13 +42,13 @@
               <label class="mvp-auth-check"><input id="login-remember" type="checkbox"/> Keep me signed in</label>
               <button id="show-reset" class="mvp-auth-link" type="button">Forgot password?</button>
             </div>
-            <button id="login-submit" class="btn primary" type="submit" style="width:100%;justify-content:center">Sign in <span class="ms">arrow_forward</span></button>
+            <button id="login-submit" class="btn primary" type="submit">Sign in <span class="ms">arrow_forward</span></button>
           </form>
         </section>
         <section data-auth-panel="create" hidden>
-          <h1 style="font-family:'Fraunces',serif;font-weight:400;font-size:clamp(28px,4vw,36px);letter-spacing:-0.02em;color:#1B2B5E;margin:0 0 10px">Set up your workspace.</h1>
-          <p style="color:rgba(27,43,94,.65);font-size:14px;line-height:1.6;margin:0 0 24px">Create the owner account, provision the workspace, and move straight into first-run onboarding.</p>
-          <form id="register-form" class="mvp-form">
+          <h1>Set up your workspace.</h1>
+          <p>Create the owner account, provision the workspace in Supabase, and move straight into first-run onboarding.</p>
+          <form id="register-form" class="mvp-form" style="margin-top:14px">
             <div class="mvp-field">
               <label for="register-workspace-name">Workspace name</label>
               <input id="register-workspace-name" type="text" placeholder="Aldridge Family Office" autocomplete="organization" required/>
@@ -79,22 +80,23 @@
               <label class="mvp-auth-check"><input id="register-remember" type="checkbox"/> Keep me signed in on this device</label>
               <span class="mvp-item-subtle">Timezone: <b id="register-timezone">UTC</b></span>
             </div>
-            <button id="register-submit" class="btn primary" type="submit" style="width:100%;justify-content:center">Create workspace <span class="ms">arrow_forward</span></button>
+            <button id="register-submit" class="btn primary" type="submit">Create workspace <span class="ms">arrow_forward</span></button>
           </form>
         </section>
         <section data-auth-panel="reset" hidden>
-          <h1 style="font-family:'Fraunces',serif;font-weight:400;font-size:clamp(28px,4vw,36px);letter-spacing:-0.02em;color:#1B2B5E;margin:0 0 10px">Reset your password.</h1>
-          <p style="color:rgba(27,43,94,.65);font-size:14px;line-height:1.6;margin:0 0 24px">Use your workspace email. The reset request is accepted through the same live auth path as production sign-in.</p>
-          <form id="forgot-password-form" class="mvp-form">
+          <h1>Reset your password.</h1>
+          <p>Use your workspace email. The reset request is accepted through the same live auth path as production sign-in.</p>
+          <form id="forgot-password-form" class="mvp-form" style="margin-top:14px">
             <div class="mvp-field">
               <label for="forgot-email">Work email</label>
               <input id="forgot-email" type="email" placeholder="cio@demo.chiefriskbot.com" autocomplete="email" required/>
             </div>
-            <button id="forgot-submit" class="btn primary" type="submit" style="width:100%;justify-content:center">Send reset request <span class="ms">mail</span></button>
+            <button id="forgot-submit" class="btn primary" type="submit">Send reset request <span class="ms">mail</span></button>
           </form>
         </section>
         <p class="mvp-login-footnote">
-          By continuing you agree to the <a href="/legal.html#terms">Terms</a> and <a href="/legal.html#privacy">Privacy Policy</a>.
+          Demo account stays available, but it now signs in through the same real auth flow as every other workspace.
+          By continuing, you agree to the <a href="/legal.html#terms">Terms</a> and <a href="/legal.html#privacy">Privacy Policy</a>.
           We use secure session cookies required to keep you signed in.
         </p>
       </div>

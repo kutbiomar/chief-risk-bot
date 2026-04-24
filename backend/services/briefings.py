@@ -64,6 +64,31 @@ Respond with valid JSON only, using this exact structure:
   "data_caveats": ["<caveat if any data is incomplete or modeled with assumptions>"]
 }"""
 
+SCOPE_SYSTEM_OVERRIDES: dict[str, str] = {
+    "risk": (
+        "Focus ONLY on risk: portfolio_risks (all of them, with full detail), market_context, and one or two "
+        "targeted recommendations. Set executive_summary to a single sentence. data_caveats as needed."
+    ),
+    "assets": (
+        "Focus ONLY on assets and valuations: executive_summary covering AUM and composition changes, "
+        "market_context on asset-level macro drivers, and recommendations specific to allocation. "
+        "portfolio_risks: include only risks directly tied to asset concentration or valuation."
+    ),
+    "liquidity": (
+        "Focus ONLY on liquidity: executive_summary on cash position and near-term flows, "
+        "recommendations specific to liquidity management. "
+        "portfolio_risks: include only liquidity-related risks. market_context: liquidity macro only."
+    ),
+    "scenarios": (
+        "Focus ONLY on stress scenarios and tail risks: portfolio_risks should enumerate scenario impacts, "
+        "recommendations should address scenario mitigation. executive_summary: one sentence on tail risk posture."
+    ),
+    "daily": (
+        "This is the daily home-screen briefing. Be comprehensive but scannable: cover asset movements, "
+        "risk regime, and liquidity in executive_summary (3-4 sentences). Populate all sections fully."
+    ),
+}
+
 
 def _week_label(value: datetime) -> str:
     iso = value.isocalendar()
@@ -271,7 +296,7 @@ def assess_briefing_quality(
     }
 
 
-def generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id: str | None) -> BriefingRun:
+def generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id: str | None, scope: str = "full") -> BriefingRun:
     settings = get_settings()
     positions = db.scalars(select(Position).where(Position.snapshot_id == snapshot.id)).all()
     summary = summarize_positions(list(positions))
@@ -314,12 +339,19 @@ def generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id: str | N
         try:
             import anthropic
 
+            scope_override = SCOPE_SYSTEM_OVERRIDES.get(scope, "")
+            system_prompt = (
+                f"{BRIEFING_SYSTEM_PROMPT}\n\nScope instructions: {scope_override}"
+                if scope_override
+                else BRIEFING_SYSTEM_PROMPT
+            )
+
             client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
             user_content = json.dumps(payload, indent=2, sort_keys=True)
             response = client.messages.create(
                 model=BRIEFING_MODEL,
                 max_tokens=2000,
-                system=BRIEFING_SYSTEM_PROMPT,
+                system=system_prompt,
                 messages=[
                     {
                         "role": "user",

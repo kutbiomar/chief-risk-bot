@@ -3,8 +3,70 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>ChiefRiskBot MVP</title>
+  <title>ChiefRiskBot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_shell.css"/>
+  <link rel="stylesheet" href="_mvp.css"/>
+  <script src="_shell.js" defer></script>
   <script src="_app.js" defer></script>
 </head>
-<body data-page="index" class="mvp-app-loading"></body>
+<body data-page="index" class="mvp-app-loading">
+  <div class="app" id="app-root">
+    <main>
+      <!-- Hero -->
+      <div class="essay-hero compact" style="text-align:left;padding-left:max(32px,calc(50vw - 480px));padding-right:max(32px,calc(50vw - 480px))">
+        <div class="essay-meta" style="justify-content:flex-start">
+          <span id="home-eyebrow">Today</span>
+        </div>
+        <h1 id="home-headline" style="text-align:left;margin-left:0">Good morning.</h1>
+        <p class="essay-deck-hero" id="home-deck" style="margin-left:0;max-width:600px"></p>
+      </div>
+
+      <!-- Metric strip -->
+      <div class="essay-metric-row" id="home-metrics">
+        <div class="essay-metric">
+          <div class="essay-metric-label">AUM</div>
+          <div class="essay-metric-value" id="home-aum">—</div>
+          <div class="essay-metric-sub" id="home-aum-sub"></div>
+        </div>
+        <div class="essay-metric">
+          <div class="essay-metric-label">Cash</div>
+          <div class="essay-metric-value" id="home-cash">—</div>
+          <div class="essay-metric-sub" id="home-cash-sub"></div>
+        </div>
+        <div class="essay-metric">
+          <div class="essay-metric-label">Top concentration</div>
+          <div class="essay-metric-value" id="home-concentration">—</div>
+          <div class="essay-metric-sub" id="home-concentration-sub"></div>
+        </div>
+        <div class="essay-metric">
+          <div class="essay-metric-label">Value at Risk</div>
+          <div class="essay-metric-value" id="home-var">—</div>
+          <div class="essay-metric-sub" id="home-var-sub"></div>
+        </div>
+        <div class="essay-metric">
+          <div class="essay-metric-label">Active alerts</div>
+          <div class="essay-metric-value" id="home-alerts">—</div>
+          <div class="essay-metric-sub" id="home-alerts-sub"></div>
+        </div>
+      </div>
+
+      <!-- Today's briefing -->
+      <div class="essay-layout" style="padding-top:64px">
+        <aside class="essay-toc" id="home-toc" aria-label="Sections"></aside>
+        <article class="essay-body" id="home-briefing-body">
+          <div id="home-briefing-status">
+            <div class="essay-section is-visible">
+              <div class="essay-eyebrow">Today's briefing</div>
+              <div class="essay-heading">Loading…</div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </main>
+  </div>
+</body>
 </html>

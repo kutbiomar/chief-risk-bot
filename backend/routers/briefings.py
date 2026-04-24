@@ -20,7 +20,10 @@ from backend.services.briefings import PdfExportUnavailableError, export_briefin
 router = APIRouter(prefix="/briefings", tags=["briefings"])
 
 
-def _serialize(briefing: BriefingRun) -> BriefingResponse:
+VALID_SCOPES = {"full", "daily", "risk", "assets", "liquidity", "scenarios"}
+
+
+def _serialize(briefing: BriefingRun, scope: str = "full") -> BriefingResponse:
     return BriefingResponse(
         id=briefing.id,
         snapshot_id=briefing.snapshot_id,
@@ -28,6 +31,7 @@ def _serialize(briefing: BriefingRun) -> BriefingResponse:
         status=briefing.status,
         week_label=briefing.week_label,
         output=json.loads(briefing.output_json),
+        scope=scope,
         pdf_path=briefing.pdf_path,
         created_at=briefing.created_at,
         published_at=briefing.published_at,
@@ -36,10 +40,12 @@ def _serialize(briefing: BriefingRun) -> BriefingResponse:
 
 @router.post("/generate", response_model=BriefingResponse, dependencies=[Depends(require_cookie_csrf)])
 def generate(
+    scope: str = Query(default="full"),
     auth=Depends(require_session),
     db: Session = Depends(get_db),
 ) -> BriefingResponse:
     _, user = auth
+    resolved_scope = scope if scope in VALID_SCOPES else "full"
     snapshot = db.scalar(
         select(PortfolioSnapshot).where(
             PortfolioSnapshot.workspace_id == user.workspace_id,
@@ -49,12 +55,12 @@ def generate(
     if snapshot is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio snapshot not found")
     try:
-        briefing = generate_briefing(db, snapshot, user.id)
+        briefing = generate_briefing(db, snapshot, user.id, scope=resolved_scope)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     db.commit()
     db.refresh(briefing)
-    return _serialize(briefing)
+    return _serialize(briefing, scope=resolved_scope)
 
 
 @router.get("", response_model=BriefingListResponse)

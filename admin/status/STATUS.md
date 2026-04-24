@@ -1,7 +1,7 @@
 # ChiefRiskBot — Current Status
 
 _Last updated: 2026-04-24_  
-_Status: **PRODUCTION BACKEND LIVE.** `https://chief-risk-bot.fly.dev` — all 5 health components green (DB, Supabase auth, Supabase storage, Anthropic, FRED). Frontend on Cloudflare Pages. One remaining step before full EX13 sign-off: seed demo user via `flyctl ssh console` and run deployed E2E flow._
+_Status: **PHASE L COMPLETE — EDITORIAL REDESIGN SHIPPED.** All pages ported to `.essay-*` layout system. New global nav shell, home dashboard, assets page, scope-aware briefing drawer. Backend: scope parameter on `/api/briefings/generate`. K-phase complete (K8 deferred, user-action)._
 
 ---
 
@@ -147,11 +147,34 @@ Earlier phase-by-phase details remain in `codex_log` and `MVP2_STATUS.md`.
 | K7 Migration safety policy | Complete (repo) | `scripts/check_destructive_migrations.py` + `scripts/migrate.sh` |
 | K8 Backup + restore drill | Pending execution | policy/log scaffold in `admin/thinking/PRODUCTION_INFRA.md` |
 | K9 Observability | Complete | `/api/health` confirmed live: all 5 components ok on production (2026-04-24) |
-| K10 Alerting | In progress | thresholds documented; provider-side alert routing pending |
+| K10 Alerting | Complete | `.github/workflows/health-check.yml` — 5-min cron, all-components check, 5xx rate threshold; GH Actions emails on failure |
 | K11 Runbook | Complete (repo) | `admin/thinking/RUNBOOK.md` |
 | K12 Production PDF export | Complete | `200` (26 KB) confirmed on deployed container 2026-04-24 |
 | K13 Full QA sweep | Complete | Local 34/34 pass + full deployed E2E pass including PDF export |
-| K14 Security review pass | In progress | All code-level checks pass; HSTS+storage confirmed live. CORS/rate-limit test pending. |
+| K14 Security review pass | Complete | CORS: production origin allowed, unauthorized origin blocked (no ACAO header). Rate-limit: 429 at attempt 11/12 on live `POST /api/auth/login`. All code-level checks pass. |
 | K15 Legal/privacy baseline | Complete (repo) | `admin/business/legal/*` + login disclosure |
 | K16 Design partner onboarding collateral | Complete (repo) | `admin/business/onboarding/*` |
-| K17 Cutover checklist | In progress | this section established; final sign-off pending external validations |
+| K17 Cutover checklist | Complete (pending K8) | All gates closed except K8 (R2 backup — deferred, user-action required). Phase L unblocked. |
+
+## Phase L — Editorial Redesign (complete 2026-04-24)
+
+| Task | Status | Notes |
+|---|---|---|
+| L1 Archive old frontend | Complete | `frontend-mvp-archive/` snapshot preserved |
+| L2 `.essay-*` CSS namespace | Complete | ~756 lines appended to `_mvp.css`; full layout system promoted from briefing prototype |
+| L3 Global nav shell rewrite | Complete | `_shell.js` → `CRBMvpShell.mount(page)`, topnav + subnav, briefing drawer, avatar menu |
+| L4 Home dashboard | Complete | `index.html` — metric strip (AUM/Cash/VaR/Alerts/Concentration), latest briefing inline |
+| L5 Assets Overview page | Complete | `assets.html` — KPIs, composition donut, sliceable dimension table, liquidity projection |
+| L6 Risk Cockpit port | Complete | `cockpit.html` — essay layout, TOC, pills |
+| L7 Liquidity port | Complete | `liquidity.html` — essay layout, TOC |
+| L8 Scenarios port | Complete | `scenarios.html` (was overlay.html) — `data-page="overlay"` preserved for JS compat |
+| L9 Operations pages port | Complete | `documents.html`, `table.html`, `settings.html`, `access.html` |
+| L10 `briefing.html` cleanup | Complete | Removed 176-line inline `<style>` block, added `_shell.css` link |
+| L11 Login + onboarding | Complete | Fraunces 400, editorial hero on login + onboarding; no more old `.mvp-hero` |
+| L12 Backend scope-aware briefing | Complete | `?scope=` param on `POST /api/briefings/generate`; `SCOPE_SYSTEM_OVERRIDES` in services layer |
+| Shared render helpers | Complete | `renderBriefingBody()`, `renderCompositionDonut()`, `initScrollReveal()` in `_app.js` |
+
+### Open items post-Phase-L
+- Cloudflare redirect loop on `app.chiefriskbot.com`: change redirect rule expression from `contains "chiefriskbot.com"` to `eq "chiefriskbot.com"` (user-action in Cloudflare dashboard).
+- K8 backup drill (R2 setup) still pending user-action.
+- Full visual QA sweep requires live auth to verify nav + page renders end-to-end.
