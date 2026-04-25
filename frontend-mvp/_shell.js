@@ -1,101 +1,104 @@
 (function () {
-  const ANALYSIS_PAGES = ['index', 'assets', 'cockpit', 'liquidity', 'scenarios'];
-  const OPS_PAGES = ['documents', 'table', 'positions', 'settings', 'access'];
-
   const PRIMARY_NAV = [
-    { href: 'index.html', page: 'index', label: 'Home' },
-    { href: 'assets.html', page: 'assets', label: 'Assets' },
-    { href: 'cockpit.html', page: 'cockpit', label: 'Risk' },
-    { href: 'liquidity.html', page: 'liquidity', label: 'Liquidity' },
-    { href: 'scenarios.html', page: 'scenarios', label: 'Scenarios' },
+    { href: 'index.html',     page: 'index',     label: 'Home',        icon: 'home',           num: '01' },
+    { href: 'assets.html',    page: 'assets',    label: 'Assets',      icon: 'pie_chart',      num: '02' },
+    { href: 'cockpit.html',   page: 'cockpit',   label: 'Risk Cockpit',icon: 'monitoring',     num: '03' },
+    { href: 'liquidity.html', page: 'liquidity', label: 'Liquidity',   icon: 'waterfall_chart',num: '04' },
+    { href: 'briefings.html', page: 'briefings', label: 'Briefings',   icon: 'auto_stories',   num: '05' },
+    { href: 'scenarios.html', page: 'scenarios', label: 'Scenarios',   icon: 'description',    num: '06' },
   ];
 
   const OPS_NAV = [
-    { href: 'documents.html', page: 'documents', label: 'Documents' },
-    { href: 'table.html', page: 'table', label: 'Positions' },
-    { href: 'access.html', page: 'access', label: 'Access' },
-    { href: 'settings.html', page: 'settings', label: 'Settings' },
+    { href: 'table.html',     page: 'table',     label: 'Positions',   icon: 'table_view' },
+    { href: 'documents.html', page: 'documents', label: 'Documents',   icon: 'folder_open' },
+    { href: 'settings.html',  page: 'settings',  label: 'Settings',    icon: 'tune' },
+    { href: 'access.html',    page: 'access',    label: 'Access',      icon: 'key' },
   ];
 
   // Page-scope labels for the briefing drawer
   const PAGE_SCOPES = {
-    index: { scope: 'daily', label: 'Full daily briefing — positions, risk, liquidity' },
-    assets: { scope: 'assets', label: 'Assets — composition, valuation, projections' },
-    cockpit: { scope: 'risk', label: 'Risk — regime, factor exposures, alerts' },
-    liquidity: { scope: 'liquidity', label: 'Liquidity — cash position, flow ladder, stress' },
-    scenarios: { scope: 'scenarios', label: 'Scenarios — selected stress impacts' },
-    documents: { scope: 'full', label: 'Full briefing' },
-    table: { scope: 'full', label: 'Full briefing' },
-    positions: { scope: 'full', label: 'Full briefing' },
-    settings: { scope: 'full', label: 'Full briefing' },
+    index:     { scope: 'daily',    label: 'Full daily briefing — positions, risk, liquidity' },
+    assets:    { scope: 'assets',   label: 'Assets — composition, valuation, projections' },
+    cockpit:   { scope: 'risk',     label: 'Risk — regime, factor exposures, alerts' },
+    liquidity: { scope: 'liquidity',label: 'Liquidity — cash position, flow ladder, stress' },
+    scenarios: { scope: 'scenarios',label: 'Scenarios — selected stress impacts' },
+    briefings: { scope: 'full',     label: 'Full briefing' },
+    documents: { scope: 'full',     label: 'Full briefing' },
+    table:     { scope: 'full',     label: 'Full briefing' },
+    settings:  { scope: 'full',     label: 'Full briefing' },
+    access:    { scope: 'full',     label: 'Full briefing' },
+    onboarding:{ scope: 'full',     label: 'Full briefing' },
   };
 
-  function buildNav(activePage) {
-    const isOps = OPS_PAGES.includes(activePage);
-
-    const primaryLinks = PRIMARY_NAV.map(({ href, page, label }) => {
-      const active = page === activePage ? ' class="active"' : '';
-      return `<a href="${href}"${active}>${label}</a>`;
-    }).join('');
-
-    const opsSubnav = isOps ? `
-      <div class="essay-subnav" id="crb-subnav">
-        <div class="essay-subnav-inner">
-          ${OPS_NAV.map(({ href, page, label }) => {
-            const active = page === activePage ? ' class="active"' : '';
-            return `<a href="${href}"${active}>${label}</a>`;
-          }).join('')}
-        </div>
-      </div>` : '';
+  function buildSidebar(activePage) {
+    const primaryLink = ({ href, page, label, icon, num }) => {
+      const cls = page === activePage ? ' class="active"' : '';
+      return `<a href="${href}"${cls}><span class="ms">${icon}</span>${label}<span class="nav-num">${num}</span></a>`;
+    };
+    const opsLink = ({ href, page, label, icon }) => {
+      const cls = page === activePage ? ' class="active"' : '';
+      return `<a href="${href}"${cls}><span class="ms">${icon}</span>${label}</a>`;
+    };
 
     return `
-      <header class="essay-topnav" id="crb-topnav">
-        <div class="essay-topnav-inner">
-          <a href="index.html" class="essay-wordmark">ChiefRiskBot</a>
-          <nav class="essay-nav-primary" id="crb-nav-primary">${primaryLinks}</nav>
-          <div class="essay-nav-actions">
-            <button class="essay-nav-btn" id="crb-gen-briefing" data-drawer-trigger>
-              <span class="ms">edit_note</span>Generate briefing
-            </button>
-            <button class="essay-nav-avatar" id="crb-avatar" aria-label="Account menu" aria-expanded="false">CR</button>
+      <nav class="sidebar" id="crb-sidebar">
+        <div class="brand-row">
+          <div class="logo">C</div>
+          <div class="brand-name">ChiefRiskBot</div>
+        </div>
+
+        <div class="client" id="crb-client-widget">
+          <div class="who">
+            <small>Workspace</small>
+            <b id="crb-menu-workspace">—</b>
           </div>
-          <button class="essay-nav-hamburger" id="crb-hamburger" aria-label="Open menu">
-            <span class="ms">menu</span>
+          <span class="ms">unfold_more</span>
+        </div>
+
+        <div class="nav">
+          <div class="section">Analysis</div>
+          ${PRIMARY_NAV.map(primaryLink).join('')}
+          <div class="section">Operations</div>
+          ${OPS_NAV.map(opsLink).join('')}
+        </div>
+
+        <button class="sidebar-cta" id="crb-gen-briefing" data-drawer-trigger>
+          <span class="ms">edit_note</span>
+          <span class="sidebar-cta-label">
+            <span class="sidebar-cta-title">Generate briefing</span>
+            <span class="sidebar-cta-meta">For this workspace</span>
+          </span>
+        </button>
+
+        <div class="side-foot">
+          <div class="avatar" id="crb-avatar" aria-label="Account">CR</div>
+          <div style="flex:1;min-width:0">
+            <div class="side-foot-name" id="crb-menu-name">Loading…</div>
+            <div class="side-foot-role" id="crb-menu-role">Risk session</div>
+          </div>
+          <button class="iconbtn" id="mvp-logout" title="Sign out" aria-label="Sign out">
+            <span class="ms">logout</span>
           </button>
         </div>
-        ${opsSubnav}
-        <div class="essay-nav-mobile" id="crb-mobile-nav" hidden>
-          <div class="essay-nav-mobile-inner">
-            <div class="essay-nav-mobile-section">Analysis</div>
-            ${PRIMARY_NAV.map(({ href, page, label }) => {
-              const active = page === activePage ? ' class="active"' : '';
-              return `<a href="${href}"${active}>${label}</a>`;
-            }).join('')}
-            <div class="essay-nav-mobile-section">Operations</div>
-            ${OPS_NAV.map(({ href, page, label }) => {
-              const active = page === activePage ? ' class="active"' : '';
-              return `<a href="${href}"${active}>${label}</a>`;
-            }).join('')}
-          </div>
-        </div>
-      </header>
+      </nav>
     `;
   }
 
-  function buildAvatarMenu() {
+  function buildMobileTopBar() {
     return `
-      <div class="essay-avatar-menu" id="crb-avatar-menu" hidden>
-        <div class="essay-avatar-menu-header">
-          <div class="essay-avatar-menu-name" id="crb-menu-name">Loading…</div>
-          <div class="essay-avatar-menu-ws" id="crb-menu-workspace"></div>
-        </div>
-        <a href="settings.html" class="essay-avatar-menu-item">
-          <span class="ms">tune</span>Settings
+      <div class="top" id="crb-mobile-topbar" style="display:none">
+        <button class="hamburger" id="crb-hamburger" aria-label="Open navigation">
+          <span class="ms">menu</span>
+        </button>
+        <a href="index.html" style="font-family:'Fraunces';font-weight:900;font-size:15px;letter-spacing:-.01em">
+          ChiefRiskBot
         </a>
-        <button class="essay-avatar-menu-item" id="mvp-logout">
-          <span class="ms">logout</span>Sign out
+        <div style="flex:1"></div>
+        <button class="btn primary" id="crb-gen-briefing-mobile" data-drawer-trigger style="padding:7px 12px;font-size:11px">
+          <span class="ms">edit_note</span>Briefing
         </button>
       </div>
+      <div class="sb-backdrop" id="crb-sb-backdrop"></div>
     `;
   }
 
@@ -139,99 +142,92 @@
     `;
   }
 
+  // ── Mobile sidebar (off-canvas) ───────────────────────────────────────────
   function wireHamburger() {
     const hamburger = document.getElementById('crb-hamburger');
-    const mobileNav = document.getElementById('crb-mobile-nav');
-    if (!hamburger || !mobileNav) return;
+    const sidebar   = document.getElementById('crb-sidebar');
+    const backdrop  = document.getElementById('crb-sb-backdrop');
+    if (!hamburger || !sidebar || !backdrop) return;
 
-    hamburger.addEventListener('click', () => {
-      const open = !mobileNav.hidden;
-      mobileNav.hidden = open;
-      hamburger.setAttribute('aria-expanded', String(!open));
-    });
+    function openSidebar() {
+      sidebar.classList.add('open');
+      backdrop.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      backdrop.classList.remove('open');
+      document.body.style.overflow = '';
+    }
 
-    mobileNav.querySelectorAll('a').forEach((a) =>
-      a.addEventListener('click', () => { mobileNav.hidden = true; })
-    );
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') mobileNav.hidden = true;
-    });
+    hamburger.addEventListener('click', openSidebar);
+    backdrop.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSidebar(); });
+
+    // Show/hide top bar based on screen width
+    const topbar = document.getElementById('crb-mobile-topbar');
+    function syncMobile() {
+      const isMobile = window.innerWidth <= 640;
+      if (topbar) topbar.style.display = isMobile ? 'flex' : 'none';
+      if (!isMobile) closeSidebar();
+    }
+    syncMobile();
+    window.addEventListener('resize', syncMobile);
   }
 
-  function wireAvatarMenu() {
-    const avatarBtn = document.getElementById('crb-avatar');
-    const menu = document.getElementById('crb-avatar-menu');
-    if (!avatarBtn || !menu) return;
+  // ── Avatar (visual element; logout handled by dedicated button) ───────────
+  function wireAvatarMenu() { /* no-op — kept for API compat */ }
 
-    avatarBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const open = !menu.hidden;
-      menu.hidden = open;
-      avatarBtn.setAttribute('aria-expanded', String(!open));
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!menu.contains(e.target) && e.target !== avatarBtn) {
-        menu.hidden = true;
-        avatarBtn.setAttribute('aria-expanded', 'false');
-      }
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        menu.hidden = true;
-        avatarBtn.setAttribute('aria-expanded', 'false');
-      }
-    });
-  }
-
+  // ── Briefing drawer ───────────────────────────────────────────────────────
   function wireDrawer() {
-    const backdrop = document.getElementById('crb-drawer-backdrop');
-    const drawer = document.getElementById('crb-drawer');
-    const trigger = document.getElementById('crb-gen-briefing');
-    const closeBtn = document.getElementById('crb-drawer-close');
-    const tabGenerate = document.getElementById('crb-tab-generate');
-    const tabHistory = document.getElementById('crb-tab-history');
-    const generatePanel = document.getElementById('crb-drawer-generate-panel');
+    const backdrop     = document.getElementById('crb-drawer-backdrop');
+    const drawer       = document.getElementById('crb-drawer');
+    const closeBtn     = document.getElementById('crb-drawer-close');
+    const tabGenerate  = document.getElementById('crb-tab-generate');
+    const tabHistory   = document.getElementById('crb-tab-history');
+    const generatePanel= document.getElementById('crb-drawer-generate-panel');
     const historyPanel = document.getElementById('crb-drawer-history-panel');
     if (!backdrop || !drawer) return;
 
-    function open() {
+    function openDrawer() {
       backdrop.classList.add('open');
       drawer.classList.add('open');
       document.body.style.overflow = 'hidden';
     }
-    function close() {
+    function closeDrawer() {
       backdrop.classList.remove('open');
       drawer.classList.remove('open');
       document.body.style.overflow = '';
     }
 
-    if (trigger) trigger.addEventListener('click', open);
-    if (closeBtn) closeBtn.addEventListener('click', close);
-    backdrop.addEventListener('click', close);
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    document.querySelectorAll('[data-drawer-trigger]').forEach((btn) => {
+      btn.addEventListener('click', openDrawer);
+    });
+    if (closeBtn)  closeBtn.addEventListener('click', closeDrawer);
+    backdrop.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
     function switchTab(tab) {
       tabGenerate.classList.toggle('active', tab === 'generate');
       tabHistory.classList.toggle('active', tab === 'history');
-      generatePanel.hidden = tab !== 'generate';
-      historyPanel.hidden = tab !== 'history';
+      if (generatePanel) generatePanel.hidden = tab !== 'generate';
+      if (historyPanel)  historyPanel.hidden  = tab !== 'history';
       if (tab === 'history') loadHistory();
     }
 
     if (tabGenerate) tabGenerate.addEventListener('click', () => switchTab('generate'));
-    if (tabHistory) tabHistory.addEventListener('click', () => switchTab('history'));
+    if (tabHistory)  tabHistory.addEventListener('click',  () => switchTab('history'));
 
-    // Expose drawer API for _app.js to wire generate + history
-    window.CRBDrawer = { open, close, switchTab };
+    window.CRBDrawer = { open: openDrawer, close: closeDrawer, switchTab };
   }
 
   async function loadHistory() {
     const list = document.getElementById('crb-drawer-history-list');
     if (!list) return;
     try {
-      const data = await (window.CRBApi ? window.CRBApi('/briefings') : fetch('/api/briefings').then((r) => r.json()));
+      const data = await (window.CRBApi
+        ? window.CRBApi('/briefings')
+        : fetch('/api/briefings').then((r) => r.json()));
       const briefings = Array.isArray(data) ? data : (data.briefings || []);
       if (!briefings.length) {
         list.innerHTML = '<div style="color:rgba(27,43,94,.5);font-size:13px;padding:20px 0">No briefings yet. Generate one above.</div>';
@@ -251,35 +247,29 @@
     return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  // ── Public API ────────────────────────────────────────────────────────────
   window.CRBMvpShell = {
     mount(activePage) {
       const root = document.getElementById('app-root');
       if (!root) return;
 
-      // Switch app container to full-width editorial layout
-      root.classList.add('editorial');
-      document.body.classList.add('essay-mode');
+      // Inject sidebar as first child of .app grid
+      root.insertAdjacentHTML('afterbegin', buildSidebar(activePage));
 
-      // Inject editorial nav before the app root
-      root.insertAdjacentHTML('beforebegin', buildNav(activePage));
-
-      // Avatar menu anchored relative to the avatar button
-      const actionsEl = document.querySelector('.essay-nav-actions');
-      if (actionsEl) {
-        actionsEl.style.position = 'relative';
-        actionsEl.insertAdjacentHTML('beforeend', buildAvatarMenu());
-      }
+      // Inject mobile top bar + backdrop before the app root
+      root.insertAdjacentHTML('beforebegin', buildMobileTopBar());
 
       // Briefing drawer + backdrop at end of body
       document.body.insertAdjacentHTML('beforeend', buildDrawer(activePage));
 
-      // Wire interactions
+      // Wire everything
       wireHamburger();
       wireAvatarMenu();
       wireDrawer();
     },
 
     updateUser(user) {
+      if (!user) return;
       const initials = ((user.display_name || user.email || 'CR')
         .split(/\s+/)
         .map((w) => w[0] || '')
@@ -294,10 +284,10 @@
       if (menuName) menuName.textContent = user.display_name || user.email || '';
 
       const menuWs = document.getElementById('crb-menu-workspace');
-      if (menuWs) menuWs.textContent = user.workspace_name || '';
+      if (menuWs) menuWs.textContent = user.workspace_name || '—';
     },
 
-    // Legacy compat — _app.js calls mount(activePage, crumbs); crumbs ignored
+    // Legacy compat
     updateCrumbs() {},
   };
 })();
