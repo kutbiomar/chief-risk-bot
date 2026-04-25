@@ -1895,77 +1895,115 @@ body.essay-mode .mvp-page {
 .essay-subnav-inner a.active { color: #1B2B5E; font-weight: 600; }
 
 /* ---- Editorial hero ---- */
+/* ============================================================
+   Page header — left-aligned SaaS pattern.
+   Replaces the centered "newspaper" hero. Eyebrow + title
+   + deck on the left, actions inline on the right.
+   ============================================================ */
 .essay-hero {
-  padding: 120px 24px 72px;
-  text-align: center;
-  border-bottom: 1px solid rgba(27, 43, 94, 0.08);
+  padding: 32px 40px 24px;
+  text-align: left;
+  border-bottom: 1px solid var(--rule-soft);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "meta actions" "title actions" "deck actions";
+  column-gap: 32px;
+  row-gap: 6px;
+  align-items: end;
+  background: var(--paper);
 }
 .essay-hero .essay-meta {
+  grid-area: meta;
   font-family: 'Inter Tight', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(27, 43, 94, 0.6);
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 28px;
-}
-.essay-hero h1 {
-  font-family: 'Fraunces', serif;
-  font-weight: 400;
-  font-size: clamp(40px, 6vw, 72px);
-  line-height: 1.08;
-  letter-spacing: -0.02em;
-  color: #1B2B5E;
-  max-width: 900px;
-  margin: 0 auto 24px;
-}
-.essay-hero .essay-deck-hero {
-  font-family: 'Fraunces', serif;
-  font-weight: 400;
-  font-size: clamp(18px, 2vw, 22px);
-  line-height: 1.5;
-  color: rgba(27, 43, 94, 0.75);
-  max-width: 640px;
-  margin: 0 auto;
-}
-.essay-hero .essay-actions {
+  color: var(--ink-mute);
   display: flex;
   gap: 12px;
-  justify-content: center;
-  margin-top: 32px;
+  align-items: center;
   flex-wrap: wrap;
+  margin: 0 0 4px;
+  justify-content: flex-start;
+}
+.essay-hero h1 {
+  grid-area: title;
+  font-family: 'Inter Tight', sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  max-width: none;
+  margin: 0;
+  text-align: left;
+}
+.essay-hero .essay-deck-hero {
+  grid-area: deck;
+  font-family: 'Inter Tight', sans-serif;
+  font-weight: 400;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 640px;
+  margin: 4px 0 0;
+  text-align: left;
+}
+.essay-hero .essay-actions {
+  grid-area: actions;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  margin: 0;
+  flex-wrap: wrap;
+  align-self: end;
 }
 .essay-hero .essay-actions .btn {
   font-family: 'Inter Tight', sans-serif;
-  font-size: 13px;
-  padding: 10px 18px;
+  font-size: 12.5px;
+  padding: 8px 14px;
 }
 
-/* Compact hero for utility pages (ops, scenarios) */
+/* Compact hero variant — same pattern, slightly tighter */
 .essay-hero.compact {
-  padding: 72px 24px 48px;
+  padding: 28px 40px 22px;
 }
 .essay-hero.compact h1 {
-  font-size: clamp(32px, 4vw, 48px);
+  font-size: 24px;
+}
+
+@media (max-width: 720px) {
+  .essay-hero {
+    grid-template-columns: 1fr;
+    grid-template-areas: "meta" "title" "deck" "actions";
+    padding: 24px 20px 20px;
+    row-gap: 8px;
+  }
+  .essay-hero .essay-actions {
+    justify-content: flex-start;
+    margin-top: 8px;
+  }
 }
 
 /* ---- Essay layout (3-col w/ TOC) ---- */
 .essay-layout {
   display: grid;
-  grid-template-columns: 1fr min(680px, 90vw) 1fr;
+  grid-template-columns: minmax(0, 1fr) 200px;
   column-gap: 48px;
-  padding: 72px 24px 160px;
+  padding: 32px 40px 80px;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
 }
+.essay-layout > .essay-body { grid-column: 1; }
+.essay-layout > .essay-toc { grid-column: 2; }
 .essay-toc {
-  grid-column: 3;
+  grid-column: 2;
   align-self: start;
   position: sticky;
-  top: 120px;
+  top: 32px;
   font-family: 'Inter Tight', sans-serif;
   font-size: 11px;
   font-weight: 500;
@@ -1993,14 +2031,14 @@ body.essay-mode .mvp-page {
   border-left-color: #1B2B5E;
 }
 
-.essay-body { grid-column: 2; min-width: 0; }
+.essay-body { grid-column: 1; min-width: 0; }
 
 /* Wide layout (no TOC) — for denser pages where TOC is overkill */
 .essay-layout.wide {
-  grid-template-columns: 1fr min(960px, 92vw) 1fr;
+  grid-template-columns: 1fr;
   column-gap: 0;
 }
-.essay-layout.wide .essay-body { grid-column: 2; }
+.essay-layout.wide .essay-body { grid-column: 1; }
 .essay-layout.wide .essay-toc { display: none; }
 
 /* ---- Section primitives ---- */

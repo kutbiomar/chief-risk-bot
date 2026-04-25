@@ -20,23 +20,135 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-famil
 a{color:inherit;text-decoration:none}
 .ms{font-family:'Material Symbols Outlined';font-weight:400;font-style:normal;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 20;vertical-align:middle}
 
-.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-.sidebar{background:var(--paper-2);border-right:1px solid var(--rule);padding:18px 14px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh}
-.brand-row{display:flex;align-items:center;gap:10px;padding:4px 6px}
-.logo{width:28px;height:28px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:'Fraunces';font-weight:900;font-size:15px}
-.brand-name{font-family:'Fraunces';font-weight:900;font-size:17px;letter-spacing:-.01em}
-.client{border:1px solid var(--rule);border-radius:6px;padding:10px 12px;background:var(--paper);display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}
-.client .who{display:flex;flex-direction:column;gap:2px}
-.client small{font-size:10px;color:var(--ink-mute);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-.client b{font-size:13px;font-weight:700}
+/* ============================================================
+   Sidebar — calm, integrated, "private bank reading room"
+   Inspired by themahjong.guide: hairline border, generous
+   padding, mono numerals, accent-wash active state.
+   ============================================================ */
+:root{
+  --accent-wash: rgba(27, 43, 94, 0.06);
+  --accent-wash-strong: rgba(27, 43, 94, 0.10);
+  --rule-soft: #efe6e0;
+  --sidebar-w: 256px;
+}
+
+.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh;background:var(--paper)}
+.sidebar{
+  background:var(--paper);
+  border-right:1px solid var(--rule-soft);
+  padding:24px 18px 20px;
+  display:flex;flex-direction:column;gap:22px;
+  position:sticky;top:0;height:100vh;
+  overflow-y:auto;
+}
+.sidebar::-webkit-scrollbar{width:0}
+
+.brand-row{display:flex;align-items:center;gap:10px;padding:2px 8px;margin-bottom:2px}
+.logo{
+  width:26px;height:26px;border-radius:6px;background:var(--accent);color:#fff;
+  display:grid;place-items:center;font-family:'Fraunces',serif;font-weight:900;font-size:14px;
+  letter-spacing:-.02em;
+}
+.brand-name{
+  font-family:'Fraunces',serif;font-weight:700;font-size:16px;
+  letter-spacing:-.015em;color:var(--ink);
+}
+
+/* Workspace selector — subtle, button-like, not a card */
+.client{
+  border:0;border-radius:7px;padding:9px 10px;background:transparent;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  cursor:pointer;transition:background .15s ease;
+  margin:0 -2px;
+}
+.client:hover{background:var(--paper-3)}
+.client .who{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.client small{
+  font-family:'Inter Tight',sans-serif;
+  font-size:9.5px;color:var(--ink-mute);font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;
+}
+.client b{font-size:13px;font-weight:600;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.client .ms{color:var(--ink-mute);font-size:16px;flex-shrink:0}
+
+/* Nav */
 .nav{display:flex;flex-direction:column;gap:1px;margin-top:4px}
-.nav .section{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);padding:14px 8px 6px}
-.nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:5px;color:var(--ink-soft);font-weight:500}
+.nav .section{
+  font-family:'Inter Tight',sans-serif;
+  font-size:10px;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-mute);
+  padding:18px 10px 8px;
+}
+.nav .section:first-child{padding-top:6px}
+.nav a{
+  display:flex;align-items:center;gap:11px;
+  padding:8px 10px;border-radius:6px;
+  color:var(--ink-soft);font-weight:500;font-size:13px;
+  transition:background .15s ease,color .15s ease;
+  position:relative;
+}
 .nav a:hover{background:var(--paper-3);color:var(--ink)}
-.nav a.active{background:var(--paper);color:var(--accent);font-weight:600;box-shadow:inset 2px 0 0 var(--accent)}
-.nav a .ms{font-size:18px;color:inherit}
-.side-foot{margin-top:auto;border-top:1px solid var(--rule);padding-top:12px;display:flex;align-items:center;gap:10px}
-.avatar{width:30px;height:30px;border-radius:999px;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px}
+.nav a.active{background:var(--accent-wash);color:var(--accent);font-weight:600}
+.nav a .ms{font-size:17px;color:var(--ink-mute);transition:color .15s ease;flex-shrink:0}
+.nav a:hover .ms{color:var(--ink-soft)}
+.nav a.active .ms{color:var(--accent)}
+.nav a .nav-num{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;color:var(--ink-mute);font-weight:500;
+  margin-left:auto;letter-spacing:.02em;font-feature-settings:"tnum";
+}
+.nav a.active .nav-num{color:var(--accent);opacity:.7}
+
+/* Footer */
+.side-foot{
+  margin-top:auto;border-top:1px solid var(--rule-soft);
+  padding-top:14px;display:flex;align-items:center;gap:10px;
+}
+.avatar{
+  width:30px;height:30px;border-radius:999px;background:var(--accent);
+  color:#fff;display:grid;place-items:center;
+  font-family:'Inter Tight',sans-serif;font-weight:600;font-size:11px;
+  letter-spacing:.02em;flex-shrink:0;
+}
+
+/* Small ghost icon button (used for logout) */
+.iconbtn{
+  width:30px;height:30px;border-radius:6px;border:0;
+  background:transparent;display:grid;place-items:center;
+  color:var(--ink-mute);cursor:pointer;
+  transition:background .15s ease,color .15s ease;
+}
+.iconbtn:hover{background:var(--paper-3);color:var(--ink)}
+.iconbtn .ms{font-size:16px}
+
+/* Sidebar CTA — quieter than a primary button, more like a card */
+.sidebar-cta{
+  margin-top:auto;
+  display:flex;align-items:center;gap:10px;
+  padding:11px 12px;border-radius:8px;
+  background:var(--accent-wash);border:1px solid transparent;
+  color:var(--accent);font-family:'Inter Tight',sans-serif;
+  cursor:pointer;text-align:left;width:100%;
+  transition:background .15s ease,border-color .15s ease;
+}
+.sidebar-cta:hover{background:var(--accent-wash-strong);border-color:rgba(27,43,94,.12)}
+.sidebar-cta .ms{font-size:18px;color:var(--accent)}
+.sidebar-cta-label{display:flex;flex-direction:column;gap:1px;min-width:0}
+.sidebar-cta-title{font-size:12.5px;font-weight:600;color:var(--accent);letter-spacing:-.005em}
+.sidebar-cta-meta{font-size:10px;color:rgba(27,43,94,.55);font-weight:500;letter-spacing:.02em}
+
+/* Footer user info */
+.side-foot-name{
+  font-family:'Inter Tight',sans-serif;
+  font-weight:600;font-size:12.5px;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  letter-spacing:-.005em;
+}
+.side-foot-role{
+  font-size:10px;color:var(--ink-mute);font-weight:500;
+  letter-spacing:.02em;margin-top:1px;
+}
 
 .top{height:56px;border-bottom:1px solid var(--rule);background:var(--paper);display:flex;align-items:center;padding:0 24px;gap:18px;position:sticky;top:0;z-index:5}
 .crumbs{display:flex;align-items:center;gap:8px;color:var(--ink-mute);font-size:12px;font-weight:500}
@@ -46,8 +158,7 @@ a{color:inherit;text-decoration:none}
 .search{display:flex;align-items:center;gap:8px;border:1px solid var(--rule);background:var(--paper-2);border-radius:6px;padding:6px 10px;width:280px;color:var(--ink-mute)}
 .search input{border:0;background:transparent;outline:0;font:inherit;color:var(--ink);width:100%}
 .kbd{font-family:'JetBrains Mono';font-size:10px;background:var(--paper-3);border:1px solid var(--rule);border-radius:3px;padding:1px 5px;color:var(--ink-mute)}
-.iconbtn{width:32px;height:32px;border-radius:6px;border:1px solid var(--rule);background:var(--paper-2);display:grid;place-items:center;color:var(--ink-soft);cursor:pointer}
-.iconbtn:hover{background:var(--paper-3);color:var(--ink)}
+/* (legacy .iconbtn replaced by sidebar version above) */
 
 main{display:flex;flex-direction:column;min-width:0}
 .content{padding:28px 32px;display:flex;flex-direction:column;gap:20px;min-width:0}
