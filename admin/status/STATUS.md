@@ -1,7 +1,7 @@
 # ChiefRiskBot — Current Status
 
 _Last updated: 2026-04-25_  
-_Status: **PHASE M COMPLETE — SIDEBAR RESTORATION + VISUAL POLISH DEPLOYED.** Phase L editorial top-nav rolled back; left sidebar restored with serious-SaaS polish. Material Symbols icon fix deployed. All pages live on `app.chiefriskbot.com`. Admin folder deduplicated._
+_Status: **PRODUCTION FRONTEND RESTORED AND VERIFIED.** Direct API auth, loading-state fixes, and asset cache-busting are live on `app.chiefriskbot.com`. Sidebar shell remains the shipped Phase M direction._
 
 ---
 
@@ -42,12 +42,12 @@ FastAPI + vanilla HTML/JS frontend + market data + LLM briefing pipeline.
 
 ## Current focus
 
-Production is live. Three small items remain:
+Production is live. Immediate product blockers are closed. Current follow-up work is operational hardening:
 
-1. **PDF export** — Dockerfile fix (`d5283db`) is deploying via CI run 24895238321. Verify `200` once deploy completes.
-2. **Root domain redirect** — ✅ `chiefriskbot.com` → `app.chiefriskbot.com` 301 confirmed live.
-3. **Nightly backup (EX8)** — Deferred. `backup.yml` is wired and ready. Activate when R2 is set up: create `chiefriskbot-backups` bucket in Cloudflare R2, generate an R2 API token (Object Read & Write, scoped to that bucket), then add `R2_ACCOUNT_ID` (= your CF Account ID), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` as secrets in GitHub → `24April26` environment.
-4. **Frontend/API contract correction (repo)** — production frontend should call `https://api.chiefriskbot.com/api` directly, not rely on Pages `/api/*` behavior. Bearer token is the intended production auth path; `_headers` is the canonical Pages CSP source and must continue to allow `connect-src https://api.chiefriskbot.com`.
+1. **Static asset cache strategy** — current query-versioned `_app.js` / CSS URLs are working in production; replace with hashed assets or explicit immutable-cache rules when the frontend build pipeline is formalized.
+2. **Nightly backup (EX8)** — Deferred. `backup.yml` is wired and ready. Activate when R2 is set up: create `chiefriskbot-backups` bucket in Cloudflare R2, generate an R2 API token (Object Read & Write, scoped to that bucket), then add `R2_ACCOUNT_ID` (= your CF Account ID), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` as secrets in GitHub → `24April26` environment.
+3. **Production smoke automation** — `scripts/prod_smoke.sh` now exists and passes against the live app/API. Next step is wiring it into post-deploy CI rather than relying on manual invocation.
+4. **Frontend/API contract** — production frontend calls `https://api.chiefriskbot.com/api` directly. Bearer token is the intended production auth path; `_headers` is the canonical Pages CSP source and must continue to allow `connect-src https://api.chiefriskbot.com`.
 
 ## Reference docs
 
@@ -77,6 +77,11 @@ Earlier phase-by-phase details remain in `codex_log` and `MVP2_STATUS.md`.
   - `/api/auth/login` -> `200`
   - bearer `/api/auth/session` -> `200`
   - workspace resolved as `Whitmore Family Office`
+- Production frontend recovery pass on April 25, 2026:
+  - `https://app.chiefriskbot.com/login` -> `200` with CSP `connect-src https://api.chiefriskbot.com`
+  - direct frontend login posts to `https://api.chiefriskbot.com/api/auth/login` -> `200`
+  - `/`, `/cockpit`, `/liquidity`, `/briefings`, `/documents`, `/table`, `/settings`, `/access`, `/onboarding` all reached `mvp-ready` in browser verification
+  - `scripts/prod_smoke.sh` -> pass against live production app/API
 - Live API smoke test on the running server:
   - `/api/cockpit` -> `200`
   - `/api/liquidity/summary` -> `200`

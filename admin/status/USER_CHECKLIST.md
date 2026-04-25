@@ -117,7 +117,7 @@ In parallel, with no dependencies on your inputs:
 2. Dry-run `alembic upgrade --sql` against the current DB to catch any destructive migration before prod touches it
 3. Write `.github/workflows/backup.yml` (nightly `pg_dump` → R2) — ready to activate when #7 is done
 4. Tighten `backend/config.py` prod assertions: `SECRET_KEY != "replace-me"`, `ENV=production` requires `ALLOWED_ORIGINS` to be set, fail-fast on missing Supabase envs
-5. Add a production smoke-check script (`scripts/prod_smoke.sh`) the CI runs post-deploy
+5. [done] Add a production smoke-check script (`scripts/prod_smoke.sh`) the CI runs post-deploy
 6. Draft the prod secrets population script (no values, just the shape) so population is a one-shot `bash scripts/set_fly_secrets.sh < scratch.env` when your values land
 7. Pre-provision a "first design partner" workspace seed script variant (`admin/demo/seed_partner.py`) so onboarding is one command when the partner is named
 

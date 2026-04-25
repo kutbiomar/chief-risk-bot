@@ -1681,6 +1681,27 @@ Full deployment to production completed. All EX items resolved or confirmed.
 - Cloudflare Pages project `chiefriskbot-app` deployed.
 - All 11 secrets populated in GitHub environment `24April26`.
 
+### EX16 — Production frontend restore + smoke automation
+
+- **Work:** Restored production frontend auth and page hydration on `app.chiefriskbot.com`.
+  - Frontend now targets `https://api.chiefriskbot.com/api` directly in production.
+  - Login/register/reset handlers were hardened so submit logic runs consistently across browser surfaces.
+  - Home (`/`) and cockpit (`/cockpit`) were fixed to reveal the shell before slower downstream data loads, eliminating stuck `mvp-app-loading` states.
+  - Shared frontend assets were query-versioned to force stale Cloudflare/browser caches onto the current bundle after deploys.
+- **Operational follow-up:** Added `scripts/prod_smoke.sh` to verify:
+  - frontend login page + CSP
+  - API health
+  - demo-user login
+  - bearer session resolution
+  - onboarding, cockpit, liquidity, briefings, settings, and documents API paths
+- **Verification:**
+  - `bash scripts/prod_smoke.sh` -> pass against live production
+  - in-app browser verification:
+    - login -> cockpit success
+    - `/`, `/cockpit`, `/liquidity`, `/briefings`, `/documents`, `/table`, `/settings`, `/access`, `/onboarding` all reached visible `mvp-ready`
+    - cockpit KPI cards hydrated after shell render
+- **Commits:** `abd05a3`, `5377294`
+
 ---
 
 ### EX8 — Nightly database backup workflow

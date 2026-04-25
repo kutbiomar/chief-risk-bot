@@ -1,6 +1,6 @@
 # K13 QA Sweep Report
 
-_Last updated: 2026-04-24_
+_Last updated: 2026-04-25_
 
 ## Scope
 
@@ -11,6 +11,7 @@ _Last updated: 2026-04-24_
 ## Automated checks wired
 
 - `scripts/qa_sweep.sh`
+- `scripts/prod_smoke.sh`
 - Backend regression tests (`test_auth`, `test_phase_cd`, `test_security_regressions`, `test_health`, `test_liquidity`)
 - Frontend JS syntax checks
 
@@ -77,3 +78,30 @@ Demo user confirmed active (`cio@demo.chiefriskbot.com` / `DemoPass2026!`).
 | `https://app.chiefriskbot.com/login` | 200 ✓ (Cloudflare Pages) |
 
 **No P0 issues. K13 complete.**
+
+## Production runtime follow-up — 2026-04-25
+
+Post-deploy frontend recovery work added a dedicated production smoke path:
+
+```
+$ bash scripts/prod_smoke.sh
+Smoke target app: https://app.chiefriskbot.com
+Smoke target api: https://api.chiefriskbot.com/api
+PASS: frontend login page and CSP
+PASS: api health
+PASS: api login
+PASS: /auth/session
+PASS: /onboarding/state
+PASS: /cockpit
+PASS: /liquidity/summary
+PASS: /briefings
+PASS: /settings
+PASS: /documents
+Production smoke complete.
+```
+
+Additional live browser verification on 2026-04-25 confirmed:
+
+- production login succeeds through `https://api.chiefriskbot.com/api/auth/login`
+- `/`, `/cockpit`, `/liquidity`, `/briefings`, `/documents`, `/table`, `/settings`, `/access`, and `/onboarding` all reach visible `mvp-ready` state
+- cockpit KPI cards hydrate after shell render
