@@ -1,7 +1,7 @@
 # ChiefRiskBot — Current Status
 
-_Last updated: 2026-04-24_  
-_Status: **PHASE L COMPLETE — EDITORIAL REDESIGN SHIPPED.** All pages ported to `.essay-*` layout system. New global nav shell, home dashboard, assets page, scope-aware briefing drawer. Backend: scope parameter on `/api/briefings/generate`. K-phase complete (K8 deferred, user-action)._
+_Last updated: 2026-04-25_  
+_Status: **PHASE M COMPLETE — SIDEBAR RESTORATION + VISUAL POLISH DEPLOYED.** Phase L editorial top-nav rolled back; left sidebar restored with serious-SaaS polish. Material Symbols icon fix deployed. All pages live on `app.chiefriskbot.com`. Admin folder deduplicated._
 
 ---
 
@@ -178,3 +178,20 @@ Earlier phase-by-phase details remain in `codex_log` and `MVP2_STATUS.md`.
 - Cloudflare redirect loop on `app.chiefriskbot.com`: change redirect rule expression from `contains "chiefriskbot.com"` to `eq "chiefriskbot.com"` (user-action in Cloudflare dashboard).
 - K8 backup drill (R2 setup) still pending user-action.
 - Full visual QA sweep requires live auth to verify nav + page renders end-to-end.
+
+## Phase M — Sidebar Restoration + Visual Polish (complete 2026-04-25)
+
+| Task | Status | Notes |
+|---|---|---|
+| M1 Material Symbols icon fix | Complete | All 15 HTML files: wrong endpoint `/icon?family=` → correct `/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200` |
+| M2 JS null guard in updateUser() | Complete | `_shell.js` `updateUser()` — added `if (!user) return;` to prevent "undefined is not an object" error rendering in page UI |
+| M3 Phase L top-nav rollback | Complete | `_shell.js` rewritten from editorial horizontal top-nav back to left sidebar (`CRBMvpShell.mount()`); `body.essay-mode` class removed |
+| M4 Sidebar visual polish | Complete | Accent-wash active states (`rgba(27,43,94,0.06)`), JetBrains Mono nav numerals (01–06), hairline border, quiet sidebar-cta; inspired by themahjong.guide |
+| M5 Hero left-align (SaaS) | Complete | `_mvp.css` `.essay-hero` restyled: left-aligned, `font-size:28px` Inter Tight 600, `padding:32px 40px`, removed 72px Fraunces serif magazine layout |
+| M6 Deploy to production | Complete | Merge commit `e704961` pushed to `origin/main`; GitHub Actions run `24925178084` — both staging and production jobs green |
+| M7 Admin folder cleanup | Complete | Deleted 29 macOS Finder duplicate files (`* 2.*`) across all admin subdirectories |
+
+### Deploy reference
+- Branch: `MVP2` → commit `8916f8e "fix(frontend): restore left sidebar shell with serious-SaaS polish"`
+- Merge: `e704961 "merge: sidebar restoration + visual polish (MVP2 → main)"` on `main`
+- Live: `app.chiefriskbot.com` (Cloudflare Pages production)
