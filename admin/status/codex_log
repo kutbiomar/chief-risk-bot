@@ -3,7 +3,30 @@
 **Current status:** See `STATUS.md` (consolidated, 1-page reference)
 **Full history:** See `codex_log_archive` (phases A–J detail)
 
-No active Codex items. Phases A–J complete (2026-04-07 to 2026-04-10).
+Latest active finding: EX14 production frontend API routing defect. Phases A–J complete (2026-04-07 to 2026-04-10).
+
+---
+
+## 2026-04-25 — Frontend visual/auth audit
+
+### EX14 — Production frontend API routing defect
+
+- **Admin context checked:** `STATUS.md` is current; archived status files point back to it. Existing frontend audit doc is historical inventory, not current defect tracking.
+- **Issue found:** Production frontend calls relative `/api/...` on `app.chiefriskbot.com`. Cloudflare Pages returns SPA HTML for GET API paths and `405` for `POST /api/auth/login`, so auth fails and app pages render shell/placeholders instead of live data.
+- **Backend control:** `https://api.chiefriskbot.com/api/health` is healthy and direct demo login to `https://api.chiefriskbot.com/api/auth/login` returns `200`.
+- **Additional finding:** `.essay-hero h1` now uses Inter Tight, conflicting with `frontend-design-ideal/DESIGN.md` guidance that dashboard/page heroes use Fraunces.
+- **File:** `admin/status/FRONTEND_VISUAL_AUDIT_2026-04-25.md`
+
+---
+
+### EX15 — Frontend runtime hardening + Phase M consistency pass
+
+- **Work:** Implemented a shared production API-base resolver in `frontend-mvp/_app.js`, with direct production routing to `https://api.chiefriskbot.com/api`, strict JSON expectations for API responses, and fail-closed session handling when API payloads are invalid.
+- **Auth contract:** production frontend now treats bearer-token auth as primary. Cross-origin requests no longer depend on cookie sessions.
+- **CSP/CORS contract:** retained `_headers` as the canonical Pages CSP source with `connect-src 'self' https://api.chiefriskbot.com`. Verified production preflight from `https://app.chiefriskbot.com` to the backend succeeds; localhost origins are still intentionally blocked on production.
+- **Design work:** standardized the Phase M page-header system across auth and app pages, normalized Google Font includes, removed stale absolute `/ _shell.css` references, and upgraded `briefings.html` / `overlay.html` off the older `mvp-hero` pattern.
+- **Verification:** `node --check frontend-mvp/_app.js`, `node --check frontend-mvp/_shell.js`, local static-browser checks for routing-error surfacing and header consistency, production CSP/header spot-check via `curl`, production backend CORS preflight from `https://app.chiefriskbot.com` -> `200`.
+- **Pending:** deploy and run a final browser smoke on the deployed frontend to confirm login POST now targets `https://api.chiefriskbot.com/api/auth/login` and protected pages populate live data end-to-end.
 
 ---
 

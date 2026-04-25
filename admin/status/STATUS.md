@@ -47,6 +47,7 @@ Production is live. Three small items remain:
 1. **PDF export** — Dockerfile fix (`d5283db`) is deploying via CI run 24895238321. Verify `200` once deploy completes.
 2. **Root domain redirect** — ✅ `chiefriskbot.com` → `app.chiefriskbot.com` 301 confirmed live.
 3. **Nightly backup (EX8)** — Deferred. `backup.yml` is wired and ready. Activate when R2 is set up: create `chiefriskbot-backups` bucket in Cloudflare R2, generate an R2 API token (Object Read & Write, scoped to that bucket), then add `R2_ACCOUNT_ID` (= your CF Account ID), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` as secrets in GitHub → `24April26` environment.
+4. **Frontend/API contract correction (repo)** — production frontend should call `https://api.chiefriskbot.com/api` directly, not rely on Pages `/api/*` behavior. Bearer token is the intended production auth path; `_headers` is the canonical Pages CSP source and must continue to allow `connect-src https://api.chiefriskbot.com`.
 
 ## Reference docs
 

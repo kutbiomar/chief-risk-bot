@@ -816,6 +816,23 @@ body.mvp-app-loading::after {
   margin: auto 0;
 }
 
+.mvp-auth-title {
+  margin: 0 0 10px;
+  font-family: 'Inter Tight', sans-serif;
+  font-size: clamp(28px, 4vw, 36px);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+
+.mvp-auth-copy {
+  margin: 0 0 24px;
+  color: rgba(27, 43, 94, 0.65);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 .mvp-auth-tabs {
   display: inline-flex;
   align-items: center;
@@ -880,10 +897,10 @@ body.mvp-app-loading::after {
 
 .mvp-login-card h1 {
   margin: 0 0 8px;
-  font-family: 'Fraunces', serif;
+  font-family: 'Inter Tight', sans-serif;
   font-size: 34px;
-  font-weight: 900;
-  line-height: 1.04;
+  font-weight: 600;
+  line-height: 1.08;
   letter-spacing: -0.02em;
 }
 
@@ -1901,7 +1918,7 @@ body.essay-mode .mvp-page {
    + deck on the left, actions inline on the right.
    ============================================================ */
 .essay-hero {
-  padding: 32px 40px 24px;
+  padding: 32px max(32px, 5vw) 24px;
   text-align: left;
   border-bottom: 1px solid var(--rule-soft);
   display: grid;
@@ -1915,24 +1932,24 @@ body.essay-mode .mvp-page {
 .essay-hero .essay-meta {
   grid-area: meta;
   font-family: 'Inter Tight', sans-serif;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink-mute);
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
   flex-wrap: wrap;
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   justify-content: flex-start;
 }
 .essay-hero h1 {
   grid-area: title;
   font-family: 'Inter Tight', sans-serif;
   font-weight: 600;
-  font-size: 28px;
-  line-height: 1.15;
+  font-size: 30px;
+  line-height: 1.1;
   letter-spacing: -0.02em;
   color: var(--ink);
   max-width: none;
@@ -1943,10 +1960,10 @@ body.essay-mode .mvp-page {
   grid-area: deck;
   font-family: 'Inter Tight', sans-serif;
   font-weight: 400;
-  font-size: 13.5px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.55;
   color: var(--ink-soft);
-  max-width: 640px;
+  max-width: 680px;
   margin: 4px 0 0;
   text-align: left;
 }
@@ -1968,10 +1985,13 @@ body.essay-mode .mvp-page {
 
 /* Compact hero variant — same pattern, slightly tighter */
 .essay-hero.compact {
-  padding: 28px 40px 22px;
+  padding: 28px max(32px, 5vw) 22px;
 }
 .essay-hero.compact h1 {
-  font-size: 24px;
+  font-size: 28px;
+}
+.essay-hero.compact .essay-deck-hero {
+  max-width: 720px;
 }
 
 @media (max-width: 720px) {

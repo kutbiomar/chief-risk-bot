@@ -227,7 +227,7 @@
     try {
       const data = await (window.CRBApi
         ? window.CRBApi('/briefings')
-        : fetch('/api/briefings').then((r) => r.json()));
+        : window.CRBMvp?.api('/briefings'));
       const briefings = Array.isArray(data) ? data : (data.briefings || []);
       if (!briefings.length) {
         list.innerHTML = '<div style="color:rgba(27,43,94,.5);font-size:13px;padding:20px 0">No briefings yet. Generate one above.</div>';

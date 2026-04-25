@@ -4,6 +4,8 @@
   const AUTH_TOKEN_STORAGE_KEY = 'crb.auth_token';
   const AUTH_TOKEN_SESSION_STORAGE_KEY = 'crb.auth_token.session';
   const AUTH_STORAGE_PREFERENCE_KEY = 'crb.auth_storage';
+  const API_BASE_OVERRIDE_STORAGE_KEY = 'crb.api_base_override';
+  const PROD_API_BASE = 'https://api.chiefriskbot.com/api';
   const REPORTING_FX_RATES = {
     USD: 1,
     CHF: 0.91,
@@ -73,6 +75,59 @@
 
   function browserTimezone() {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  }
+
+  function isLocalHostname(hostname) {
+    const normalized = String(hostname || '').toLowerCase();
+    return normalized === 'localhost'
+      || normalized === '127.0.0.1'
+      || normalized === '0.0.0.0'
+      || normalized === '[::1]';
+  }
+
+  function getApiBase() {
+    const { location } = window;
+    const hostname = String(location?.hostname || '').toLowerCase();
+    const queryOverride = new URL(window.location.href).searchParams.get('api_base');
+    if (queryOverride) {
+      return queryOverride.trim().replace(/\/$/, '');
+    }
+    const runtimeOverride = String(window.CRB_API_BASE || '').trim();
+    if (runtimeOverride) {
+      return runtimeOverride.replace(/\/$/, '');
+    }
+    try {
+      const storedOverride = String(window.localStorage.getItem(API_BASE_OVERRIDE_STORAGE_KEY) || '').trim();
+      if (storedOverride) {
+        return storedOverride.replace(/\/$/, '');
+      }
+    } catch {
+      // ignore storage failures
+    }
+    if (!hostname || location?.protocol === 'file:' || isLocalHostname(hostname)) {
+      return '/api';
+    }
+    if (hostname === 'app.chiefriskbot.com' || hostname.endsWith('.pages.dev')) {
+      return PROD_API_BASE;
+    }
+    return `${location.origin}/api`;
+  }
+
+  function resolveApiUrl(path) {
+    if (/^https?:\/\//i.test(path)) return path;
+    const normalizedPath = path.startsWith('/api')
+      ? path.slice('/api'.length)
+      : (path.startsWith('/') ? path : `/${path}`);
+    return `${getApiBase()}${normalizedPath}`;
+  }
+
+  function apiCredentialsMode(url) {
+    try {
+      const target = new URL(url, window.location.href);
+      return target.origin === window.location.origin ? 'include' : 'omit';
+    } catch {
+      return 'include';
+    }
   }
 
   function markPageReady() {
@@ -484,10 +539,28 @@
     return simpleMatch ? simpleMatch[1] : fallback;
   }
 
+  async function readApiPayload(response, { expectJson = true } = {}) {
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+
+    if (expectJson) {
+      if (!isJson) {
+        const sample = (await response.text()).trim().slice(0, 120);
+        const suffix = sample ? ` Received: ${sample}` : '';
+        throw new Error(`API routing error: expected JSON from ${response.url}.${suffix}`);
+      }
+      return response.json();
+    }
+
+    if (isJson) return response.json();
+    return response.text();
+  }
+
   async function api(path, options = {}) {
     const method = (options.method || 'GET').toUpperCase();
     const headers = new Headers(options.headers || {});
     let body = options.body;
+    const url = resolveApiUrl(path);
 
     if (options.formData) {
       body = options.formData;
@@ -511,17 +584,13 @@
       headers.set('Authorization', `Bearer ${token}`);
     }
 
-    const response = await fetch(path.startsWith('/api') ? path : `/api${path}`, {
+    const response = await fetch(url, {
       method,
       headers,
       body,
-      credentials: 'include',
+      credentials: apiCredentialsMode(url),
     });
-
-    const contentType = response.headers.get('content-type') || '';
-    const payload = contentType.includes('application/json')
-      ? await response.json()
-      : await response.text();
+    const payload = await readApiPayload(response);
 
     if (!response.ok) {
       const detail =
@@ -539,18 +608,16 @@
   async function download(path, fallbackName) {
     const headers = new Headers();
     const token = getAuthToken();
+    const url = resolveApiUrl(path);
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
-    const response = await fetch(path.startsWith('/api') ? path : `/api${path}`, {
+    const response = await fetch(url, {
       headers,
-      credentials: 'include',
+      credentials: apiCredentialsMode(url),
     });
     if (!response.ok) {
-      const contentType = response.headers.get('content-type') || '';
-      const payload = contentType.includes('application/json')
-        ? await response.json()
-        : await response.text();
+      const payload = await readApiPayload(response, { expectJson: false });
       const detail =
         typeof payload === 'object' && payload && 'detail' in payload
           ? payload.detail
@@ -565,32 +632,30 @@
       response.headers.get('content-disposition'),
       fallbackName
     );
-    const url = URL.createObjectURL(blob);
+    const objectUrl = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
-    anchor.href = url;
+    anchor.href = objectUrl;
     anchor.download = filename;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     return filename;
   }
 
   async function fetchBlob(path) {
     const headers = new Headers();
     const token = getAuthToken();
+    const url = resolveApiUrl(path);
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
-    const response = await fetch(path.startsWith('/api') ? path : `/api${path}`, {
+    const response = await fetch(url, {
       headers,
-      credentials: 'include',
+      credentials: apiCredentialsMode(url),
     });
     if (!response.ok) {
-      const contentType = response.headers.get('content-type') || '';
-      const payload = contentType.includes('application/json')
-        ? await response.json()
-        : await response.text();
+      const payload = await readApiPayload(response, { expectJson: false });
       const detail =
         typeof payload === 'object' && payload && 'detail' in payload
           ? payload.detail
@@ -609,6 +674,9 @@
   async function getSession(retries = 0) {
     try {
       const session = await api('/auth/session');
+      if (!session || typeof session !== 'object' || !session.user) {
+        throw new Error('Invalid session payload');
+      }
       sessionStorage.setItem('crb.user', JSON.stringify(session.user));
       return session.user;
     } catch (error) {
@@ -3517,6 +3585,8 @@
 
   window.CRBMvp = {
     api,
+    getApiBase,
+    resolveApiUrl,
     formatCurrency,
     formatCompactCurrency,
     formatNumber,
