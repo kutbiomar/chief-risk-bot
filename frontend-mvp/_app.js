@@ -1209,69 +1209,116 @@
     });
     showReset?.addEventListener('click', () => setAuthMode('reset'));
 
+    async function handleLoginSubmit() {
+      setStatus(status, '', '');
+      await withButtonBusy(loginSubmit, 'Signing in...', async () => {
+        const login = await api('/auth/login', {
+          method: 'POST',
+          body: {
+            email: loginEmail.value.trim(),
+            password: loginPassword.value,
+          },
+        });
+        saveAuthToken(login.access_token || '', loginRemember?.checked);
+        if (login.user) {
+          sessionStorage.setItem('crb.user', JSON.stringify(login.user));
+        }
+        window.location.href = await resolveAuthenticatedLanding(true);
+      });
+    }
+
     loginForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-      setStatus(status, '', '');
       try {
-        await withButtonBusy(loginSubmit, 'Signing in...', async () => {
-          const login = await api('/auth/login', {
-            method: 'POST',
-            body: {
-              email: loginEmail.value.trim(),
-              password: loginPassword.value,
-            },
-          });
-          saveAuthToken(login.access_token || '', loginRemember?.checked);
-          if (login.user) {
-            sessionStorage.setItem('crb.user', JSON.stringify(login.user));
-          }
-          window.location.href = await resolveAuthenticatedLanding(true);
-        });
+        await handleLoginSubmit();
       } catch (error) {
         clearAuthState();
         setStatus(status, error.message, 'error');
       }
     });
+
+    loginSubmit?.addEventListener('click', async (event) => {
+      if (event.detail === 0) return;
+      event.preventDefault();
+      if (loginForm?.reportValidity && !loginForm.reportValidity()) return;
+      try {
+        await handleLoginSubmit();
+      } catch (error) {
+        clearAuthState();
+        setStatus(status, error.message, 'error');
+      }
+    });
+
+    async function handleRegisterSubmit() {
+      setStatus(status, '', '');
+      await withButtonBusy(registerSubmit, 'Creating workspace...', async () => {
+        const response = await api('/auth/register', {
+          method: 'POST',
+          body: {
+            workspace_name: registerWorkspaceName.value.trim(),
+            display_name: registerName.value.trim(),
+            email: registerEmail.value.trim(),
+            password: registerPassword.value,
+            timezone: browserTimezone(),
+            reporting_currency: registerCurrency.value,
+          },
+        });
+        saveAuthToken(response.access_token || '', registerRemember?.checked);
+        if (response.user) {
+          sessionStorage.setItem('crb.user', JSON.stringify(response.user));
+        }
+        window.location.href = await resolveAuthenticatedLanding(true);
+      });
+    }
 
     registerForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-      setStatus(status, '', '');
       try {
-        await withButtonBusy(registerSubmit, 'Creating workspace...', async () => {
-          const response = await api('/auth/register', {
-            method: 'POST',
-            body: {
-              workspace_name: registerWorkspaceName.value.trim(),
-              display_name: registerName.value.trim(),
-              email: registerEmail.value.trim(),
-              password: registerPassword.value,
-              timezone: browserTimezone(),
-              reporting_currency: registerCurrency.value,
-            },
-          });
-          saveAuthToken(response.access_token || '', registerRemember?.checked);
-          if (response.user) {
-            sessionStorage.setItem('crb.user', JSON.stringify(response.user));
-          }
-          window.location.href = await resolveAuthenticatedLanding(true);
-        });
+        await handleRegisterSubmit();
       } catch (error) {
         clearAuthState();
         setStatus(status, error.message, 'error');
       }
     });
 
+    registerSubmit?.addEventListener('click', async (event) => {
+      if (event.detail === 0) return;
+      event.preventDefault();
+      if (registerForm?.reportValidity && !registerForm.reportValidity()) return;
+      try {
+        await handleRegisterSubmit();
+      } catch (error) {
+        clearAuthState();
+        setStatus(status, error.message, 'error');
+      }
+    });
+
+    async function handleForgotSubmit() {
+      setStatus(status, '', '');
+      await withButtonBusy(forgotSubmit, 'Sending reset...', async () => {
+        await api('/auth/forgot-password', {
+          method: 'POST',
+          body: { email: forgotEmail.value.trim() },
+        });
+      });
+      setStatus(status, 'If that email exists, a reset flow has been accepted for the workspace.', 'success');
+    }
+
     forgotForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-      setStatus(status, '', '');
       try {
-        await withButtonBusy(forgotSubmit, 'Sending reset...', async () => {
-          await api('/auth/forgot-password', {
-            method: 'POST',
-            body: { email: forgotEmail.value.trim() },
-          });
-        });
-        setStatus(status, 'If that email exists, a reset flow has been accepted for the workspace.', 'success');
+        await handleForgotSubmit();
+      } catch (error) {
+        setStatus(status, error.message, 'error');
+      }
+    });
+
+    forgotSubmit?.addEventListener('click', async (event) => {
+      if (event.detail === 0) return;
+      event.preventDefault();
+      if (forgotForm?.reportValidity && !forgotForm.reportValidity()) return;
+      try {
+        await handleForgotSubmit();
       } catch (error) {
         setStatus(status, error.message, 'error');
       }
