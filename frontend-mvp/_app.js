@@ -978,6 +978,8 @@
       eyebrow.textContent = `Today · ${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
     }
 
+    markPageReady();
+
     // Load cockpit + liquidity data in parallel for the metric strip
     const [cockpitData, liquidityData] = await Promise.allSettled([
       api('/cockpit'),
@@ -1030,7 +1032,7 @@
       }
     }
 
-    // Load latest briefing for the daily section
+    // Load latest briefing after the shell is visible.
     const briefingBody = document.getElementById('home-briefing-body');
     const deck = document.getElementById('home-deck');
     try {
@@ -1041,8 +1043,8 @@
         const output = latest.output || {};
         if (deck) deck.textContent = output.executive_summary || '';
         if (briefingBody) renderBriefingBody(briefingBody, output, document.getElementById('home-toc'));
-      } else {
-        if (briefingBody) briefingBody.innerHTML = `
+      } else if (briefingBody) {
+        briefingBody.innerHTML = `
           <div class="essay-section is-visible">
             <div class="essay-eyebrow">Today's briefing</div>
             <div class="essay-heading">No briefing yet.</div>
@@ -1050,10 +1052,10 @@
           </div>`;
       }
     } catch {
-      if (briefingBody) briefingBody.innerHTML = `<div class="essay-section is-visible"><div class="essay-eyebrow">Today's briefing</div><p class="essay-prose"><p>Could not load briefing data.</p></p></div>`;
+      if (briefingBody) {
+        briefingBody.innerHTML = `<div class="essay-section is-visible"><div class="essay-eyebrow">Today's briefing</div><p class="essay-prose"><p>Could not load briefing data.</p></p></div>`;
+      }
     }
-
-    markPageReady();
   }
 
   async function initAssets() {
@@ -1877,6 +1879,7 @@
       }
     });
 
+    markPageReady();
     await loadCockpit();
   }
 
