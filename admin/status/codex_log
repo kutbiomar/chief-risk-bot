@@ -1687,7 +1687,7 @@ Full deployment to production completed. All EX items resolved or confirmed.
   - Frontend now targets `https://api.chiefriskbot.com/api` directly in production.
   - Login/register/reset handlers were hardened so submit logic runs consistently across browser surfaces.
   - Home (`/`) and cockpit (`/cockpit`) were fixed to reveal the shell before slower downstream data loads, eliminating stuck `mvp-app-loading` states.
-  - Shared frontend assets were query-versioned to force stale Cloudflare/browser caches onto the current bundle after deploys.
+  - Shared frontend assets were first query-versioned to force stale Cloudflare/browser caches onto the current bundle after deploys.
 - **Operational follow-up:** Added `scripts/prod_smoke.sh` to verify:
   - frontend login page + CSP
   - API health
@@ -1702,6 +1702,16 @@ Full deployment to production completed. All EX items resolved or confirmed.
     - `/`, `/cockpit`, `/liquidity`, `/briefings`, `/documents`, `/table`, `/settings`, `/access`, `/onboarding` all reached visible `mvp-ready`
     - cockpit KPI cards hydrated after shell render
 - **Commits:** `abd05a3`, `5377294`
+
+### EX17 — Frontend cache-policy hardening
+
+- **Work:** Removed manual `?v=` asset URLs from `frontend-mvp/*.html` and moved the cache fix into `frontend-mvp/_headers`.
+  - `/_app.js`, `/_shell.js`, `/_mvp.css`, and `/_shell.css` now serve with `Cache-Control: no-cache, no-store, must-revalidate`.
+  - HTML entrypoints are back to clean asset URLs, so the app no longer depends on manual query-string bumps for frontend correctness.
+- **Verification:**
+  - `curl -I https://app.chiefriskbot.com/_app.js` -> `Cache-Control: no-cache, no-store, must-revalidate`
+  - `curl -I https://app.chiefriskbot.com/_mvp.css` -> `Cache-Control: no-cache, no-store, must-revalidate`
+  - `bash scripts/prod_smoke.sh` -> pass against live production after deploy
 
 ---
 

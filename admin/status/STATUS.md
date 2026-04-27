@@ -1,7 +1,7 @@
 # ChiefRiskBot — Current Status
 
-_Last updated: 2026-04-25_  
-_Status: **PRODUCTION FRONTEND RESTORED AND VERIFIED.** Direct API auth, loading-state fixes, and asset cache-busting are live on `app.chiefriskbot.com`. Sidebar shell remains the shipped Phase M direction._
+_Last updated: 2026-04-27_  
+_Status: **PRODUCTION FRONTEND RESTORED AND VERIFIED.** Direct API auth, loading-state fixes, and explicit app-shell cache revalidation are live on `app.chiefriskbot.com`. Sidebar shell remains the shipped Phase M direction._
 
 ---
 
@@ -44,7 +44,7 @@ FastAPI + vanilla HTML/JS frontend + market data + LLM briefing pipeline.
 
 Production is live. Immediate product blockers are closed. Current follow-up work is operational hardening:
 
-1. **Static asset cache strategy** — current query-versioned `_app.js` / CSS URLs are working in production; replace with hashed assets or explicit immutable-cache rules when the frontend build pipeline is formalized.
+1. **Static asset cache strategy** — shared app shell assets now ship with `Cache-Control: no-cache, no-store, must-revalidate`, which removes the stale-bundle failure mode. Long-term improvement is a hashed-asset pipeline once the frontend build path is formalized.
 2. **Nightly backup (EX8)** — Deferred. `backup.yml` is wired and ready. Activate when R2 is set up: create `chiefriskbot-backups` bucket in Cloudflare R2, generate an R2 API token (Object Read & Write, scoped to that bucket), then add `R2_ACCOUNT_ID` (= your CF Account ID), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` as secrets in GitHub → `24April26` environment.
 3. **Production smoke automation** — `scripts/prod_smoke.sh` now exists, passes against the live app/API, and is wired into `.github/workflows/ci-cd.yml` as the post-production `smoke_production` job.
 4. **Frontend/API contract** — production frontend calls `https://api.chiefriskbot.com/api` directly. Bearer token is the intended production auth path; `_headers` is the canonical Pages CSP source and must continue to allow `connect-src https://api.chiefriskbot.com`.
@@ -82,6 +82,10 @@ Earlier phase-by-phase details remain in `codex_log` and `MVP2_STATUS.md`.
   - direct frontend login posts to `https://api.chiefriskbot.com/api/auth/login` -> `200`
   - `/`, `/cockpit`, `/liquidity`, `/briefings`, `/documents`, `/table`, `/settings`, `/access`, `/onboarding` all reached `mvp-ready` in browser verification
   - `scripts/prod_smoke.sh` -> pass against live production app/API
+- Frontend cache hardening on April 27, 2026:
+  - removed manual `?v=` asset URLs from shipped HTML entrypoints
+  - `frontend-mvp/_headers` now forces `_app.js`, `_shell.js`, `_mvp.css`, `_shell.css` to `Cache-Control: no-cache, no-store, must-revalidate`
+  - verified live response headers and reran `scripts/prod_smoke.sh` successfully
 - Live API smoke test on the running server:
   - `/api/cockpit` -> `200`
   - `/api/liquidity/summary` -> `200`
