@@ -46,7 +46,7 @@ Production is live. Immediate product blockers are closed. Current follow-up wor
 
 1. **Static asset cache strategy** — current query-versioned `_app.js` / CSS URLs are working in production; replace with hashed assets or explicit immutable-cache rules when the frontend build pipeline is formalized.
 2. **Nightly backup (EX8)** — Deferred. `backup.yml` is wired and ready. Activate when R2 is set up: create `chiefriskbot-backups` bucket in Cloudflare R2, generate an R2 API token (Object Read & Write, scoped to that bucket), then add `R2_ACCOUNT_ID` (= your CF Account ID), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` as secrets in GitHub → `24April26` environment.
-3. **Production smoke automation** — `scripts/prod_smoke.sh` now exists and passes against the live app/API. Next step is wiring it into post-deploy CI rather than relying on manual invocation.
+3. **Production smoke automation** — `scripts/prod_smoke.sh` now exists, passes against the live app/API, and is wired into `.github/workflows/ci-cd.yml` as the post-production `smoke_production` job.
 4. **Frontend/API contract** — production frontend calls `https://api.chiefriskbot.com/api` directly. Bearer token is the intended production auth path; `_headers` is the canonical Pages CSP source and must continue to allow `connect-src https://api.chiefriskbot.com`.
 
 ## Reference docs

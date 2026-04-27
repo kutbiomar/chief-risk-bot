@@ -127,3 +127,16 @@ jobs:
           CLOUDFLARE_PAGES_PROJECT: ${{ secrets.CLOUDFLARE_PAGES_PROJECT }}
         run: |
           npx wrangler pages deploy frontend-mvp --project-name "$CLOUDFLARE_PAGES_PROJECT" --branch main
+
+  smoke_production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    needs: [deploy_production]
+    environment: 24April26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run production smoke check
+        run: |
+          bash scripts/prod_smoke.sh

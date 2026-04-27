@@ -1694,6 +1694,7 @@ Full deployment to production completed. All EX items resolved or confirmed.
   - demo-user login
   - bearer session resolution
   - onboarding, cockpit, liquidity, briefings, settings, and documents API paths
+- **CI integration:** `.github/workflows/ci-cd.yml` now runs `smoke_production` after the production deploy job on `main`.
 - **Verification:**
   - `bash scripts/prod_smoke.sh` -> pass against live production
   - in-app browser verification:
