@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Access — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
@@ -21,8 +22,26 @@
         <h1>Access</h1>
         <p class="essay-deck-hero">Manage workspace members, roles, and session activity.</p>
       </div>
-      <div style="padding:0 max(32px,5vw) 64px">
-        <div class="mvp-card" style="max-width:680px">
+      <div class="mvp-page-frame">
+        <div class="mvp-grid cards-3" id="access-summary">
+          <div class="mvp-feature-stat">
+            <div class="uplabel">Signed in as</div>
+            <div class="value" id="access-user-name">—</div>
+            <div class="meta" id="access-user-email">Loading session</div>
+          </div>
+          <div class="mvp-feature-stat">
+            <div class="uplabel">Role</div>
+            <div class="value" id="access-user-role">—</div>
+            <div class="meta">Workspace permissions</div>
+          </div>
+          <div class="mvp-feature-stat">
+            <div class="uplabel">Session storage</div>
+            <div class="value" id="access-session-mode">—</div>
+            <div class="meta" id="access-api-base">Resolving API route</div>
+          </div>
+        </div>
+
+        <div class="mvp-card">
           <div class="mvp-card-header">
             <div>
               <div class="uplabel">Members</div>
@@ -30,11 +49,48 @@
             </div>
           </div>
           <div class="mvp-card-body">
-            <p style="color:var(--ink-soft);font-size:13px;line-height:1.6">
-              Multi-user access management is planned for a future release.
-              Currently this workspace supports one owner account.
-              Contact support to transfer ownership or add an observer seat.
-            </p>
+            <div class="mvp-table-wrap">
+              <table class="mvp-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="access-members">
+                  <tr><td colspan="4" class="mvp-empty">Loading access profile...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="mvp-card">
+          <div class="mvp-card-header">
+            <div>
+              <div class="uplabel">Controls</div>
+              <h2>Session controls</h2>
+            </div>
+          </div>
+          <div class="mvp-card-body">
+            <div class="mvp-list">
+              <div class="mvp-item">
+                <div>
+                  <div class="mvp-item-title">Current workspace</div>
+                  <div class="mvp-item-subtle" id="access-workspace">Loading workspace</div>
+                </div>
+                <a class="btn" href="settings.html"><span class="ms">settings</span>Settings</a>
+              </div>
+              <div class="mvp-item">
+                <div>
+                  <div class="mvp-item-title">Authentication route</div>
+                  <div class="mvp-item-subtle">Uses the same live session path as the rest of the app.</div>
+                </div>
+                <button class="btn" id="access-refresh" type="button"><span class="ms">refresh</span>Refresh session</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

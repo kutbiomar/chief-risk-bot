@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Scenarios — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
@@ -40,38 +41,59 @@
         <article class="essay-body no-reveal">
 
           <section class="essay-section is-visible" id="scenarios-section-kpis">
-            <div id="overlay-kpis" class="mvp-grid cards-4"></div>
+            <div id="overlay-kpis" class="mvp-grid cards-4">
+              <div class="mvp-kpi"><div class="uplabel">Composite score</div><div class="value mvp-skeleton">00.00</div><div class="meta">Loading overlay</div></div>
+              <div class="mvp-kpi"><div class="uplabel">AUM at risk</div><div class="value mvp-skeleton">CHF 0.0M</div><div class="meta">Loading exposure</div></div>
+              <div class="mvp-kpi"><div class="uplabel">Tracked factors</div><div class="value mvp-skeleton">00</div><div class="meta">Loading scores</div></div>
+              <div class="mvp-kpi"><div class="uplabel">Active alerts</div><div class="value mvp-skeleton">00</div><div class="meta">Loading run</div></div>
+            </div>
           </section>
 
-          <section class="essay-section is-visible" id="scenarios-section-regime" style="margin-top:32px">
+          <section class="essay-section is-visible" id="scenarios-section-regime">
             <div class="essay-eyebrow">Regime</div>
             <h2 class="essay-heading-sm">Trigger Conditions</h2>
             <div class="mvp-card">
-              <div class="mvp-card-body" id="overlay-regime-panel"></div>
+              <div class="mvp-card-body" id="overlay-regime-panel">
+                <div class="mvp-skeleton mvp-skeleton-line medium"></div>
+                <div class="mvp-skeleton mvp-skeleton-line"></div>
+                <div class="mvp-skeleton mvp-skeleton-line short"></div>
+              </div>
             </div>
           </section>
 
-          <section class="essay-section is-visible" id="scenarios-section-exposure" style="margin-top:48px">
+          <section class="essay-section is-visible" id="scenarios-section-exposure">
             <div class="essay-eyebrow">Exposure</div>
             <h2 class="essay-heading-sm">Exposure Map</h2>
             <div class="mvp-card">
-              <div class="mvp-card-body" id="overlay-triangulation-panel"></div>
+              <div class="mvp-card-body" id="overlay-triangulation-panel">
+                <div class="mvp-skeleton mvp-skeleton-line medium"></div>
+                <div class="mvp-skeleton mvp-skeleton-line"></div>
+                <div class="mvp-skeleton mvp-skeleton-line"></div>
+              </div>
             </div>
           </section>
 
-          <section class="essay-section is-visible" id="scenarios-section-factors" style="margin-top:48px">
+          <section class="essay-section is-visible" id="scenarios-section-factors">
             <div class="essay-eyebrow">Factors</div>
             <h2 class="essay-heading-sm">Factor Diagnostics</h2>
             <div class="mvp-card">
-              <div class="mvp-card-body" id="overlay-factors-panel"></div>
+              <div class="mvp-card-body" id="overlay-factors-panel">
+                <div class="mvp-skeleton mvp-skeleton-line medium"></div>
+                <div class="mvp-skeleton mvp-skeleton-line"></div>
+                <div class="mvp-skeleton mvp-skeleton-line"></div>
+              </div>
             </div>
           </section>
 
-          <section class="essay-section is-visible" id="scenarios-section-stress" style="margin-top:48px">
+          <section class="essay-section is-visible" id="scenarios-section-stress">
             <div class="essay-eyebrow">Stress</div>
             <h2 class="essay-heading-sm">Scenario Impacts</h2>
             <div class="mvp-card">
-              <div class="mvp-card-body" id="overlay-stress-panel"></div>
+              <div class="mvp-card-body" id="overlay-stress-panel">
+                <div class="mvp-skeleton mvp-skeleton-line medium"></div>
+                <div class="mvp-skeleton mvp-skeleton-line"></div>
+                <div class="mvp-skeleton mvp-skeleton-line short"></div>
+              </div>
             </div>
           </section>
 

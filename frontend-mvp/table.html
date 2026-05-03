@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Positions — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
@@ -20,11 +21,11 @@
         <div class="essay-meta"><span>Operations</span></div>
         <h1>Positions</h1>
         <p class="essay-deck-hero">Your current portfolio positions. Add, edit, or remove holdings — each change creates a versioned snapshot.</p>
-        <div class="essay-actions" style="justify-content:flex-start">
+        <div class="essay-actions mvp-left-actions">
           <button id="new-position" class="btn primary"><span class="ms">add</span>New position</button>
         </div>
       </div>
-      <div style="padding:0 max(32px,5vw) 64px">
+      <div class="mvp-page-frame">
         <div id="table-status" class="mvp-notice" hidden data-global-status></div>
         <div class="mvp-grid two">
           <section class="mvp-card">
@@ -35,19 +36,20 @@
               </div>
               <div id="positions-meta" class="mvp-item-subtle"></div>
             </div>
-            <div class="mvp-card-body" style="padding:0">
+            <div class="mvp-card-body mvp-table-card-body">
               <div class="mvp-table-wrap">
                 <table class="mvp-table is-clickable">
                   <thead>
                     <tr>
                       <th>Identifier</th>
                       <th>Name</th>
+                      <th class="num">Quantity</th>
+                      <th class="num">Price</th>
+                      <th class="num">Market Value</th>
                       <th>Asset Class</th>
-                      <th>Sector</th>
-                      <th>Subsector</th>
-                      <th>Market Segment</th>
-                      <th>Region</th>
+                      <th>Segment</th>
                       <th>Custodian</th>
+                      <th>Source</th>
                       <th>Added</th>
                       <th>Modified</th>
                     </tr>
