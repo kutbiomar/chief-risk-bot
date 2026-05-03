@@ -132,14 +132,15 @@ def _validate_magic_bytes(extension: str, payload: bytes) -> None:
 
 
 def validate_document_upload(filename: str, payload: bytes) -> tuple[str, str, str]:
+    raw_filename = str(filename or "")
+    if ".." in raw_filename or "/" in raw_filename or "\\" in raw_filename:
+        raise ValueError("Filename contains invalid traversal semantics")
     normalized = Path(filename).name
     extension = Path(normalized).suffix.lower()
     if extension not in DOCUMENT_TYPES:
         raise ValueError("Only PDF, DOCX, and XLSX files are accepted")
     if len(payload) > DOCUMENT_LIMIT_BYTES:
         raise ValueError("Document exceeds the 50MB upload limit")
-    if ".." in normalized or "/" in normalized or "\\" in normalized:
-        raise ValueError("Filename contains invalid traversal semantics")
     if extension == ".pdf" and _is_pdf_encrypted(payload):
         raise ValueError("Encrypted PDF files are not supported")
     _validate_magic_bytes(extension, payload)
@@ -180,7 +181,10 @@ def _load_extraction_or_raise(db: Session, document: Document) -> ExtractionResu
 
 
 def _load_confidence_payload(extraction: ExtractionResult) -> dict[str, object]:
-    payload = json.loads(extraction.confidence_json)
+    try:
+        payload = json.loads(extraction.confidence_json) if extraction.confidence_json else {}
+    except (json.JSONDecodeError, TypeError):
+        payload = {}
     if isinstance(payload, list):
         return {
             "rows": payload,
@@ -194,6 +198,8 @@ def _load_confidence_payload(extraction: ExtractionResult) -> dict[str, object]:
                 "model": extraction.model,
             },
         }
+    if not isinstance(payload, dict):
+        return {}
     return payload
 
 

@@ -133,6 +133,7 @@ def list_positions(
             ticker=position.ticker,
             name=position.name,
             quantity=position.quantity,
+            price_usd=position.price_usd,
             market_value_usd=position.market_value_usd,
             asset_class=position.asset_class,
             geo_region=position.geo_region,
@@ -147,6 +148,7 @@ def list_positions(
             factor_tag_source=position.factor_tag_source,
             factor_tag_confidence=position.factor_tag_confidence,
             custodian=position.custodian,
+            price_source=position.price_source,
             notes=position.notes,
             created_at=position.created_at,
             first_seen_at=first_seen_map.get((

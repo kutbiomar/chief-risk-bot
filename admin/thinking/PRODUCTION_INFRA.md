@@ -68,6 +68,18 @@ _Last updated: 2026-04-17_
 - Execute `scripts/qa_sweep.sh` against scratch API URL.
 - Validate sample login + document upload + briefing PDF export.
 
+### Activation checklist
+
+1. Create private Cloudflare R2 bucket `chiefriskbot-backups`.
+2. Create an R2 API token scoped to that bucket with Object Read and Write.
+3. Add these secrets to GitHub environment `24April26`:
+   - `R2_ACCOUNT_ID`
+   - `R2_ACCESS_KEY_ID`
+   - `R2_SECRET_ACCESS_KEY`
+4. Trigger `.github/workflows/backup.yml` manually once.
+5. Confirm a `daily/chiefriskbot-YYYYMMDD-HHMMSS.sql.gz` object lands in the bucket.
+6. Log the first successful run in `admin/status/codex_log`.
+
 ### Drill log
 
 | Date | Executor | Restore target | Result | Notes |

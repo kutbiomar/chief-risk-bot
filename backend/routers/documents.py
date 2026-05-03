@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, Response, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, Response, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from backend.config import get_settings
 from backend.deps import get_db
 from backend.models.content import Document, ExtractionResult
 from backend.routers.auth import require_cookie_csrf, require_session
@@ -29,6 +30,12 @@ from backend.services.storage import read_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
+DOCUMENT_UPLOAD_MIME_TYPES = {
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+
 
 def _serialize(document: Document) -> DocumentResponse:
     return DocumentResponse(
@@ -51,13 +58,27 @@ def _serialize(document: Document) -> DocumentResponse:
     dependencies=[Depends(require_cookie_csrf)],
 )
 async def upload_document(
+    request: Request,
     file: UploadFile = File(...),
     folder: str = Form(default="custodian_statements"),
     auth=Depends(require_session),
     db: Session = Depends(get_db),
 ) -> DocumentResponse:
     _, user = auth
+    settings = get_settings()
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            request_size = int(content_length)
+        except ValueError:
+            request_size = 0
+        if request_size > settings.document_upload_max_bytes + 1_048_576:
+            raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="Document exceeds the upload limit")
+    if file.content_type and file.content_type not in DOCUMENT_UPLOAD_MIME_TYPES:
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail="Unsupported document MIME type")
     payload = await file.read()
+    if len(payload) > settings.document_upload_max_bytes:
+        raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="Document exceeds the upload limit")
     try:
         document = create_document(
             db,
@@ -82,16 +103,22 @@ def list_documents(
     db: Session = Depends(get_db),
 ) -> DocumentListResponse:
     _, user = auth
+    base_filter = (Document.workspace_id == user.workspace_id, Document.deleted_at.is_(None))
+    folder_rows = db.execute(
+        select(Document.folder, func.count(Document.id))
+        .where(*base_filter)
+        .group_by(Document.folder)
+    ).all()
+    folder_counts: dict[str, int] = {folder: count for folder, count in folder_rows}
     items = db.scalars(
         select(Document)
-        .where(Document.workspace_id == user.workspace_id, Document.deleted_at.is_(None))
+        .where(*base_filter)
         .order_by(Document.created_at.desc(), Document.id.desc())
+        .offset(offset)
+        .limit(limit)
     ).all()
-    folder_counts: dict[str, int] = {}
-    for item in items:
-        folder_counts[item.folder] = folder_counts.get(item.folder, 0) + 1
     return DocumentListResponse(
-        items=[_serialize(item) for item in items[offset : offset + limit]],
+        items=[_serialize(item) for item in items],
         folder_counts=folder_counts,
     )
 

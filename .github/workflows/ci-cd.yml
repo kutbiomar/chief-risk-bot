@@ -104,7 +104,7 @@ jobs:
   deploy_production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
-    needs: [deploy_staging]
+    needs: [release_check_staging]
     environment: 24April26
     steps:
       - name: Checkout
@@ -127,6 +127,37 @@ jobs:
           CLOUDFLARE_PAGES_PROJECT: ${{ secrets.CLOUDFLARE_PAGES_PROJECT }}
         run: |
           npx wrangler pages deploy frontend-mvp --project-name "$CLOUDFLARE_PAGES_PROJECT" --branch main
+
+  release_check_staging:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    needs: [deploy_staging]
+    environment: 24April26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
+      - name: Run release gate against staging
+        env:
+          CRB_APP_BASE: ${{ secrets.CRB_APP_BASE }}
+          CRB_API_BASE: ${{ secrets.CRB_API_BASE }}
+          CRB_SMOKE_EMAIL: ${{ secrets.STAGING_SMOKE_EMAIL }}
+          CRB_SMOKE_PASSWORD: ${{ secrets.STAGING_SMOKE_PASSWORD }}
+          CRB_SMOKE_RESET_TOKEN: ${{ secrets.STAGING_RESET_TOKEN }}
+          CRB_SMOKE_ROTATED_PASSWORD: ${{ secrets.STAGING_ROTATED_PASSWORD }}
+          CRB_SYNTHETIC_ERROR: ${{ vars.CRB_SYNTHETIC_ERROR }}
+        run: |
+          scripts/release_check.sh
 
   smoke_production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'

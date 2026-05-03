@@ -299,9 +299,16 @@ def ensure_enrichment_for_positions(
     currencies_in_portfolio = {
         pos.position_currency for pos in positions if pos.position_currency and pos.position_currency != "USD"
     }
+    pairs_to_check = [f"{currency}USD" for currency in currencies_in_portfolio]
+    existing_fx_map: dict[str, FxCache] = {}
+    if pairs_to_check:
+        existing_fx_map = {
+            row.pair: row
+            for row in db.scalars(select(FxCache).where(FxCache.pair.in_(pairs_to_check))).all()
+        }
     for currency in currencies_in_portfolio:
         pair = f"{currency}USD"
-        existing_fx = db.get(FxCache, pair)
+        existing_fx = existing_fx_map.get(pair)
         if existing_fx is None or _is_cache_stale(existing_fx.fetched_at, existing_fx.ttl_hours):
             yf_symbol = FX_PAIRS.get(currency)
             fx_entry = _fetch_fx_cache_yfinance(currency, yf_symbol) if yf_symbol else None

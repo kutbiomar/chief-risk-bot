@@ -8,6 +8,8 @@ from collections import defaultdict
 from threading import Lock
 from typing import Any
 
+from backend.config import Settings
+
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
@@ -43,6 +45,38 @@ def configure_json_logging() -> None:
     for handler in root_logger.handlers:
         if not isinstance(handler.formatter, JsonFormatter):
             handler.setFormatter(JsonFormatter())
+
+
+def configure_error_tracking(settings: Settings) -> None:
+    if not settings.sentry_dsn:
+        return
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+    except Exception as exc:  # noqa: BLE001
+        logging.getLogger(__name__).warning("Sentry SDK unavailable: %s", exc)
+        return
+
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.environment,
+        integrations=[FastApiIntegration(), SqlalchemyIntegration()],
+        send_default_pii=False,
+    )
+
+
+def capture_exception(exc: BaseException, *, request_id: str, route: str, method: str, auth_mode: str) -> None:
+    try:
+        import sentry_sdk
+    except Exception:
+        return
+    with sentry_sdk.push_scope() as scope:
+        scope.set_tag("request_id", request_id)
+        scope.set_tag("route", route)
+        scope.set_tag("method", method)
+        scope.set_tag("auth_mode", auth_mode)
+        sentry_sdk.capture_exception(exc)
 
 
 def start_request_observation() -> contextvars.Token:

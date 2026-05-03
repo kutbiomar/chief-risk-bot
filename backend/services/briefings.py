@@ -13,7 +13,8 @@ from sqlalchemy.orm import Session
 from backend.config import get_settings
 from backend.models.analytics import MacroCache, RiskFlag, RiskScore, VarResult
 from backend.models.content import BriefingRun
-from backend.models.portfolio import PortfolioSnapshot, Position
+from backend.models.auth import WorkspaceSetting
+from backend.models.portfolio import PortfolioSnapshot, Position, Workspace
 from backend.paths import STORAGE_ROOT
 from backend.services.auth.session import utc_now
 from backend.services.liquidity import get_liquidity_summary
@@ -36,6 +37,12 @@ def _is_test_runtime() -> bool:
 
 BRIEFING_MODEL = "claude-sonnet-4-6"
 PROMPT_VERSION = "briefing-v1"
+REPORTING_FX_RATES = {
+    "USD": 1.0,
+    "CHF": 0.91,
+    "EUR": 0.93,
+    "GBP": 0.79,
+}
 
 BRIEFING_SYSTEM_PROMPT = """You are the Chief Risk Officer of a family office. You are writing the weekly risk briefing for the CIO. Your writing is:
 - Precise and data-driven (cite specific numbers)
@@ -95,6 +102,13 @@ def _week_label(value: datetime) -> str:
     return f"week-{iso.week}-{iso.year}"
 
 
+def _display_amount(value_usd: float, currency: str) -> str:
+    normalized = (currency or "USD").upper()
+    rate = REPORTING_FX_RATES.get(normalized, 1.0)
+    converted = float(value_usd or 0.0) * rate
+    return f"{normalized} {converted:,.0f}"
+
+
 def _build_briefing_payload(
     snapshot: PortfolioSnapshot,
     positions: list[Position],
@@ -104,6 +118,7 @@ def _build_briefing_payload(
     var_result: VarResult | None,
     macro: MacroCache | None,
     liquidity_summary: dict | None,
+    reporting_currency: str,
 ) -> dict:
     macro_payload = json.loads(macro.payload_json) if macro else {}
 
@@ -155,6 +170,8 @@ def _build_briefing_payload(
     return {
         "portfolio": {
             "total_aum_usd": round(float(summary["total_aum_usd"]), 0),
+            "reporting_currency": reporting_currency,
+            "total_aum_reporting": _display_amount(float(summary["total_aum_usd"]), reporting_currency),
             "position_count": len(positions),
             "hhi_concentration": round(float(summary["hhi_concentration"]), 4),
             "top_five_concentration_pct": round(float(summary["top_five_concentration_pct"]), 2),
@@ -165,7 +182,10 @@ def _build_briefing_payload(
         "risk_flags": flags_summary,
         "var": var_section,
         "macro": macro_payload,
-        "liquidity": liquidity_summary or {},
+        "liquidity": {
+            **(liquidity_summary or {}),
+            "reporting_currency": reporting_currency,
+        },
     }
 
 
@@ -176,6 +196,7 @@ def _generate_briefing_deterministic(payload: dict) -> dict:
     portfolio = payload.get("portfolio", {})
     macro = payload.get("macro", {})
     total_aum = portfolio.get("total_aum_usd", 0)
+    total_aum_display = portfolio.get("total_aum_reporting") or _display_amount(total_aum, "USD")
     var_pct = var.get("var_1d_95_pct_aum", 0)
     priority = [s for s in scores if s.get("severity") == "priority"]
     elevated = [s for s in scores if s.get("severity") == "elevated"]
@@ -229,7 +250,7 @@ def _generate_briefing_deterministic(payload: dict) -> dict:
 
     return {
         "executive_summary": (
-            f"Portfolio AUM of ${total_aum:,.0f}. "
+            f"Portfolio AUM of {total_aum_display}. "
             f"1-day 95% VaR is {var_pct:.2f}% of AUM. "
             f"{len(priority)} priority and {len(elevated)} elevated risk findings this week."
         ),
@@ -316,6 +337,13 @@ def generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id: str | N
         .first()
     )
     liquidity_summary = get_liquidity_summary(snapshot.workspace_id, db)
+    workspace = db.get(Workspace, snapshot.workspace_id)
+    workspace_settings = db.get(WorkspaceSetting, snapshot.workspace_id)
+    reporting_currency = (
+        (workspace_settings.reporting_currency if workspace_settings is not None else None)
+        or (workspace.reporting_currency if workspace is not None else None)
+        or "USD"
+    ).upper()
     now = utc_now()
     current_version = (
         db.scalar(
@@ -328,7 +356,7 @@ def generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id: str | N
     )
 
     payload = _build_briefing_payload(
-        snapshot, list(positions), summary, list(scores), list(flags), var_result, macro, liquidity_summary
+        snapshot, list(positions), summary, list(scores), list(flags), var_result, macro, liquidity_summary, reporting_currency
     )
 
     model_used = "deterministic-demo-briefing"
@@ -381,6 +409,8 @@ def generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id: str | N
         "snapshot_id": snapshot.id,
         "position_count": snapshot.position_count,
         "total_aum_usd": snapshot.total_aum_usd,
+        "reporting_currency": reporting_currency,
+        "total_aum_reporting": _display_amount(float(snapshot.total_aum_usd or 0.0), reporting_currency),
     }
     output["agents_used"] = [
         {"agent": s.agent, "model": s.model, "status": s.status}
@@ -388,19 +418,20 @@ def generate_briefing(db: Session, snapshot: PortfolioSnapshot, user_id: str | N
     ]
     if var_result:
         output["var_commentary"] = (
-            f"1-day 95% VaR is ${var_result.var_1d_95:,.0f} "
+            f"1-day 95% VaR is {_display_amount(float(var_result.var_1d_95 or 0.0), reporting_currency)} "
             f"({var_result.var_1d_95 / max(float(snapshot.total_aum_usd), 1) * 100:.2f}% of AUM) "
-            f"on a ${snapshot.total_aum_usd:,.0f} portfolio."
+            f"on a {_display_amount(float(snapshot.total_aum_usd or 0.0), reporting_currency)} portfolio."
         )
     if liquidity_summary:
         next_due = liquidity_summary.get("next_call_due_date") or "no scheduled call"
         next_amount = float(liquidity_summary.get("next_call_amount_usd") or 0.0)
         output["liquidity_snapshot"] = liquidity_summary
+        output["liquidity_snapshot"]["reporting_currency"] = reporting_currency
         output["liquidity_commentary"] = (
             f"Next capital call: {next_due}"
-            f"{f' for ${next_amount:,.0f}' if next_amount else ''}. "
-            f"Expected 90-day distributions: ${float(liquidity_summary.get('expected_distributions_usd') or 0.0):,.0f}. "
-            f"Net 90-day liquidity: ${float(liquidity_summary.get('net_liquidity_usd') or 0.0):,.0f}. "
+            f"{f' for {_display_amount(next_amount, reporting_currency)}' if next_amount else ''}. "
+            f"Expected 90-day distributions: {_display_amount(float(liquidity_summary.get('expected_distributions_usd') or 0.0), reporting_currency)}. "
+            f"Net 90-day liquidity: {_display_amount(float(liquidity_summary.get('net_liquidity_usd') or 0.0), reporting_currency)}. "
             f"{'Buffer breach projected.' if liquidity_summary.get('buffer_breach') else 'Buffer remains intact.'}"
         )
     output["quality_gate"] = assess_briefing_quality(

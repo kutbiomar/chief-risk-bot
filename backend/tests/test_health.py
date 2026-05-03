@@ -18,3 +18,13 @@ def test_healthcheck_returns_200() -> None:
     assert body["components"]["database"]["status"] in {"ok", "degraded", "fail"}
     assert "metrics" in body
     assert "requests_total" in body["metrics"]
+    assert response.headers.get("x-request-id")
+
+
+def test_request_id_echoes_client_value() -> None:
+    client = TestClient(app)
+
+    response = client.get("/api/health", headers={"X-Request-Id": "test-request-id"})
+
+    assert response.status_code == 200
+    assert response.headers["x-request-id"] == "test-request-id"

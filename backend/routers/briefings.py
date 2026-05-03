@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from datetime import datetime, time, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from backend.config import get_settings
 from backend.deps import get_db
 from backend.models.content import BriefingRun
 from backend.models.portfolio import PortfolioSnapshot
@@ -23,6 +25,16 @@ router = APIRouter(prefix="/briefings", tags=["briefings"])
 VALID_SCOPES = {"full", "daily", "risk", "assets", "liquidity", "scenarios"}
 
 
+def _safe_parse_output(raw: str | None) -> dict:
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
 def _serialize(briefing: BriefingRun, scope: str = "full") -> BriefingResponse:
     return BriefingResponse(
         id=briefing.id,
@@ -30,12 +42,47 @@ def _serialize(briefing: BriefingRun, scope: str = "full") -> BriefingResponse:
         version=briefing.version,
         status=briefing.status,
         week_label=briefing.week_label,
-        output=json.loads(briefing.output_json),
+        output=_safe_parse_output(briefing.output_json),
         scope=scope,
         pdf_path=briefing.pdf_path,
         created_at=briefing.created_at,
         published_at=briefing.published_at,
     )
+
+
+def _enforce_generation_limits(db: Session, workspace_id: str) -> None:
+    settings = get_settings()
+    if not settings.ai_generation_enabled:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="AI briefing generation is temporarily disabled")
+
+    today = datetime.now(timezone.utc).date()
+    start = datetime.combine(today, time.min, tzinfo=timezone.utc)
+    end = start + timedelta(days=1)
+    daily_count = db.scalar(
+        select(func.count(BriefingRun.id)).where(
+            BriefingRun.workspace_id == workspace_id,
+            BriefingRun.created_at >= start,
+            BriefingRun.created_at < end,
+        )
+    ) or 0
+    if settings.briefing_daily_quota > 0 and daily_count >= settings.briefing_daily_quota:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Daily briefing generation quota reached for this workspace.",
+        )
+
+    if settings.anthropic_daily_token_cap > 0:
+        token_total = db.scalar(
+            select(func.coalesce(func.sum(BriefingRun.input_tokens + BriefingRun.output_tokens), 0)).where(
+                BriefingRun.created_at >= start,
+                BriefingRun.created_at < end,
+            )
+        ) or 0
+        if token_total >= settings.anthropic_daily_token_cap:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Global AI generation budget is exhausted for today.",
+            )
 
 
 @router.post("/generate", response_model=BriefingResponse, dependencies=[Depends(require_cookie_csrf)])
@@ -54,6 +101,7 @@ def generate(
     )
     if snapshot is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio snapshot not found")
+    _enforce_generation_limits(db, user.workspace_id)
     try:
         briefing = generate_briefing(db, snapshot, user.id, scope=resolved_scope)
     except ValueError as exc:
@@ -72,9 +120,13 @@ def list_briefings(
 ) -> BriefingListResponse:
     _, user = auth
     items = db.scalars(
-        select(BriefingRun).where(BriefingRun.workspace_id == user.workspace_id).order_by(BriefingRun.created_at.desc())
+        select(BriefingRun)
+        .where(BriefingRun.workspace_id == user.workspace_id)
+        .order_by(BriefingRun.created_at.desc())
+        .offset(offset)
+        .limit(limit)
     ).all()
-    return BriefingListResponse(items=[_serialize(item) for item in items[offset : offset + limit]])
+    return BriefingListResponse(items=[_serialize(item) for item in items])
 
 
 @router.get("/{briefing_id}", response_model=BriefingResponse)

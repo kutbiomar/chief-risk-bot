@@ -49,6 +49,7 @@ class PositionResponse(BaseModel):
     ticker: str
     name: Optional[str] = None
     quantity: float
+    price_usd: Optional[float] = None
     market_value_usd: Optional[float] = None
     asset_class: str
     geo_region: Optional[str] = None
@@ -63,6 +64,7 @@ class PositionResponse(BaseModel):
     factor_tag_source: Optional[str] = None
     factor_tag_confidence: Optional[float] = None
     custodian: Optional[str] = None
+    price_source: Optional[str] = None
     notes: Optional[str] = None
     created_at: datetime
     first_seen_at: Optional[datetime] = None
