@@ -21,10 +21,18 @@ _Last updated: 2026-04-17_
 
 ## Reseed demo workspace
 
-1. Use production-safe service account.
-2. Run:
-   - `AUTH_MODE=supabase .venv/bin/python admin/demo/seed_demo.py`
-3. Verify demo login and seeded documents/briefings.
+1. Confirm the intended target before running any mutating command.
+2. Run a dry run first. Local example:
+   - `DATABASE_URL=sqlite:///./backend/runtime/chiefriskbot.db AUTH_MODE=local .venv/bin/python admin/demo/seed_demo.py --target local --confirm-target sqlite --dry-run`
+3. If the dry run points at the expected database, run the seed. Local example:
+   - `DATABASE_URL=sqlite:///./backend/runtime/chiefriskbot.db AUTH_MODE=local .venv/bin/python admin/demo/seed_demo.py --target local --confirm-target sqlite`
+4. For staging, set staging `DATABASE_URL`/`AUTH_MODE` explicitly and confirm the staging DB host:
+   - `.venv/bin/python admin/demo/seed_demo.py --target staging --confirm-target <staging-db-host> --dry-run`
+   - `.venv/bin/python admin/demo/seed_demo.py --target staging --confirm-target <staging-db-host>`
+5. Production reseeding is blocked unless the command includes both:
+   - `--target production --confirm-target <production-db-host>`
+   - `--confirm-production-seed seed-production-demo`
+6. Verify demo login and seeded documents/briefings.
 
 ## Rotate secrets
 

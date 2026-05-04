@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -96,6 +98,92 @@ def test_protected_routes_require_authentication(client: TestClient, db_session:
     assert client.get("/api/documents").status_code == 401
     assert client.get("/api/liquidity/summary").status_code == 401
     assert client.post("/api/risk/run").status_code == 401
+
+
+def test_document_upload_rejects_oversize_payload(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    auth = bootstrap_portfolio(client, db_session, email="oversize-upload@example.com")
+    monkeypatch.setattr(
+        "backend.routers.documents.get_settings",
+        lambda: SimpleNamespace(document_upload_max_bytes=10),
+    )
+
+    response = client.post(
+        "/api/documents/upload",
+        data={"folder": "custodian_statements"},
+        files={
+            "file": (
+                "statement.xlsx",
+                build_statement_xlsx(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+        headers=csrf_headers(auth),
+    )
+
+    assert response.status_code == 413
+
+
+def test_document_upload_rejects_malicious_inputs(client: TestClient, db_session: Session) -> None:
+    auth = bootstrap_portfolio(client, db_session, email="malicious-upload@example.com")
+    headers = csrf_headers(auth)
+
+    traversal = client.post(
+        "/api/documents/upload",
+        data={"folder": "custodian_statements"},
+        files={"file": ("../etc/passwd.pdf", b"%PDF-1.4\n%%EOF", "application/pdf")},
+        headers=headers,
+    )
+    spoofed = client.post(
+        "/api/documents/upload",
+        data={"folder": "custodian_statements"},
+        files={"file": ("statement.pdf", b"MZ executable payload", "application/pdf")},
+        headers=headers,
+    )
+    unsupported_mime = client.post(
+        "/api/documents/upload",
+        data={"folder": "custodian_statements"},
+        files={"file": ("statement.pdf", b"%PDF-1.4\n%%EOF", "application/x-msdownload")},
+        headers=headers,
+    )
+    empty = client.post(
+        "/api/documents/upload",
+        data={"folder": "custodian_statements"},
+        files={"file": ("empty.xlsx", b"", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        headers=headers,
+    )
+
+    assert traversal.status_code == 400
+    assert spoofed.status_code == 400
+    assert unsupported_mime.status_code == 415
+    assert empty.status_code == 400
+
+
+def test_briefing_generation_enforces_workspace_daily_quota(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    auth = bootstrap_portfolio(client, db_session, email="briefing-quota@example.com")
+    assert client.post("/api/var/compute", headers=csrf_headers(auth)).status_code == 200
+    assert client.post("/api/risk/run", headers=csrf_headers(auth)).status_code == 200
+    monkeypatch.setattr(
+        "backend.routers.briefings.get_settings",
+        lambda: SimpleNamespace(
+            ai_generation_enabled=True,
+            briefing_daily_quota=1,
+            anthropic_daily_token_cap=0,
+        ),
+    )
+
+    first = client.post("/api/briefings/generate", headers=csrf_headers(auth))
+    second = client.post("/api/briefings/generate", headers=csrf_headers(auth))
+
+    assert first.status_code == 200
+    assert second.status_code == 429
 
 
 def test_workspace_isolation_blocks_cross_workspace_reads(client: TestClient, db_session: Session) -> None:

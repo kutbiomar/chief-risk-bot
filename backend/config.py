@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     session_ttl_days: int = 30
     auth_mode: str = "local"
     anthropic_api_key: str = Field(default="")
+    ai_generation_enabled: bool = True
+    anthropic_daily_token_cap: int = 0
+    briefing_daily_quota: int = 5
+    document_upload_max_bytes: int = 25 * 1024 * 1024
     fred_api_key: str = Field(default="")
     azure_document_intelligence_endpoint: str = Field(default="")
     azure_document_intelligence_key: str = Field(default="")
@@ -29,6 +33,8 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = Field(default="")
     supabase_storage_bucket: str = Field(default="documents")
     scheduler_enabled: bool = False
+    sentry_dsn: str = Field(default="")
+    observability_synthetic_errors_enabled: bool = False
 
     @field_validator("auth_mode")
     @classmethod

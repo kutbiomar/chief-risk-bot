@@ -221,13 +221,16 @@
     window.CRBDrawer = { open: openDrawer, close: closeDrawer, switchTab };
   }
 
+  let historyLoadToken = 0;
   async function loadHistory() {
     const list = document.getElementById('crb-drawer-history-list');
     if (!list) return;
+    const token = ++historyLoadToken;
     try {
       const data = await (window.CRBApi
         ? window.CRBApi('/briefings')
         : window.CRBMvp?.api('/briefings'));
+      if (token !== historyLoadToken) return;
       const briefings = Array.isArray(data) ? data : (data.briefings || []);
       if (!briefings.length) {
         list.innerHTML = '<div style="color:rgba(27,43,94,.5);font-size:13px;padding:20px 0">No briefings yet. Generate one above.</div>';
@@ -239,6 +242,7 @@
           <div class="essay-drawer-history-item-title">${escHtml(b.title || b.headline || 'Briefing')}</div>
         </a>`).join('');
     } catch {
+      if (token !== historyLoadToken) return;
       list.innerHTML = '<div style="color:rgba(185,28,28,.7);font-size:13px;padding:20px 0">Could not load briefing history.</div>';
     }
   }

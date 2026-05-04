@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Workspace Setup — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
@@ -18,16 +19,16 @@
     <main>
       <div class="essay-hero compact">
         <div class="essay-meta"><span>First Run</span></div>
-        <h1>Take <span id="onboarding-workspace-name">your workspace</span> to first briefing.</h1>
+        <h1 id="onboarding-title">Take <span id="onboarding-workspace-name">your workspace</span> to first briefing.</h1>
         <p class="essay-deck-hero">Import the book, add optional source documents, run analysis, and generate the first committee memo.</p>
-        <div class="essay-actions" style="justify-content:flex-start">
+        <div class="essay-actions mvp-left-actions">
           <a class="btn" href="cockpit.html"><span class="ms">dashboard</span>Open cockpit</a>
         </div>
       </div>
 
       <div id="onboarding-status" class="mvp-notice" hidden data-global-status style="margin:0 max(32px,5vw) 16px"></div>
 
-      <div style="padding:0 max(32px,5vw) 64px;display:flex;flex-direction:column;gap:24px;max-width:900px">
+      <div class="mvp-page-frame" style="max-width:900px">
 
         <!-- Progress card -->
         <section class="mvp-card">
@@ -46,7 +47,7 @@
 
         <!-- Ready state -->
         <section id="onboarding-ready" class="mvp-card pad" hidden>
-          <div class="mvp-item" style="padding:0;border-bottom:0;align-items:center">
+          <div class="mvp-item mvp-plain-item">
             <div>
               <div class="uplabel">Ready</div>
               <div class="mvp-item-title">Your workspace is ready.</div>
@@ -111,7 +112,7 @@
                   </div>
                   <button class="btn" type="submit"><span class="ms">description</span>Upload and parse document</button>
                 </form>
-                <div class="mvp-form-actions" style="justify-content:flex-start">
+                <div class="mvp-form-actions mvp-left-actions">
                   <button id="run-risk" class="btn" type="button"><span class="ms">warning</span>Run risk analysis</button>
                   <button id="generate-briefing" class="btn" type="button"><span class="ms">auto_stories</span>Generate briefing</button>
                 </div>

@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Liquidity — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
@@ -44,23 +45,23 @@
           </section>
 
           <!-- Ladder chart -->
-          <section class="essay-section is-visible" id="liquidity-section-chart" style="margin-top:48px">
+          <section class="essay-section is-visible" id="liquidity-section-chart">
             <div class="essay-eyebrow">Cash Flow Ladder</div>
             <h2 class="essay-heading-sm">Projected monthly cash flows</h2>
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-              <label class="mvp-buffer-input" style="font-family:'Inter Tight',sans-serif;font-size:13px;display:flex;align-items:center;gap:8px;color:rgba(27,43,94,.65)">
+            <div class="mvp-cluster">
+              <label class="mvp-buffer-input">
                 Buffer target
-                <input id="liquidity-buffer" type="text" inputmode="numeric" value="2,000,000" data-format="integer" style="font-family:'JetBrains Mono',monospace;font-size:13px;border:1px solid rgba(27,43,94,.2);border-radius:4px;padding:6px 10px;background:#fff8f6;color:#1B2B5E;width:140px"/>
+                <input id="liquidity-buffer" type="text" inputmode="numeric" value="2,000,000" data-format="integer"/>
               </label>
             </div>
-            <div class="essay-figure" style="padding:0;background:none;border:none">
+            <div class="essay-figure mvp-reset-figure">
               <div id="liquidity-chart-summary" class="mvp-liquidity-summary"></div>
               <div id="liquidity-chart" class="mvp-liquidity-chart-wrap"></div>
             </div>
           </section>
 
           <!-- Detail panels -->
-          <section class="essay-section is-visible" id="liquidity-section-detail" style="margin-top:48px">
+          <section class="essay-section is-visible" id="liquidity-section-detail">
             <div class="mvp-grid mvp-liquidity-lower-grid">
               <div class="mvp-card">
                 <div class="mvp-card-header">

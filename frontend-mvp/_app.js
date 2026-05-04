@@ -62,7 +62,19 @@
 
   function clearAuthState() {
     saveAuthToken('');
-    sessionStorage.removeItem('crb.user');
+    try {
+      sessionStorage.removeItem('crb.user');
+      window.localStorage.removeItem(SETTINGS_STORAGE_KEY);
+      for (let i = window.localStorage.length - 1; i >= 0; i--) {
+        const key = window.localStorage.key(i);
+        if (key && (key.startsWith('crb_') || key.startsWith('crb.'))
+            && key !== API_BASE_OVERRIDE_STORAGE_KEY) {
+          window.localStorage.removeItem(key);
+        }
+      }
+    } catch {
+      // ignore storage failures
+    }
   }
 
   function preferredAuthPersistence() {
@@ -85,25 +97,49 @@
       || normalized === '[::1]';
   }
 
+  function normalizeApiBase(value) {
+    return String(value || '').trim().replace(/\/$/, '');
+  }
+
+  function getStoredApiBaseOverride() {
+    try {
+      return normalizeApiBase(window.localStorage.getItem(API_BASE_OVERRIDE_STORAGE_KEY) || '');
+    } catch {
+      return '';
+    }
+  }
+
+  function getExplicitApiBaseOverride() {
+    const queryOverride = normalizeApiBase(new URL(window.location.href).searchParams.get('api_base') || '');
+    if (queryOverride) {
+      try {
+        window.localStorage.setItem(API_BASE_OVERRIDE_STORAGE_KEY, queryOverride);
+      } catch {
+        // ignore storage failures; redirects still carry the query param
+      }
+      return queryOverride;
+    }
+    const runtimeOverride = normalizeApiBase(window.CRB_API_BASE || '');
+    if (runtimeOverride) return runtimeOverride;
+    return getStoredApiBaseOverride();
+  }
+
+  function withApiBaseOverride(target) {
+    const override = getExplicitApiBaseOverride();
+    if (!override) return target;
+    const url = new URL(target, window.location.href);
+    url.searchParams.set('api_base', override);
+    if (url.origin === window.location.origin) {
+      return `${url.pathname.split('/').pop()}${url.search}${url.hash}`;
+    }
+    return url.toString();
+  }
+
   function getApiBase() {
     const { location } = window;
     const hostname = String(location?.hostname || '').toLowerCase();
-    const queryOverride = new URL(window.location.href).searchParams.get('api_base');
-    if (queryOverride) {
-      return queryOverride.trim().replace(/\/$/, '');
-    }
-    const runtimeOverride = String(window.CRB_API_BASE || '').trim();
-    if (runtimeOverride) {
-      return runtimeOverride.replace(/\/$/, '');
-    }
-    try {
-      const storedOverride = String(window.localStorage.getItem(API_BASE_OVERRIDE_STORAGE_KEY) || '').trim();
-      if (storedOverride) {
-        return storedOverride.replace(/\/$/, '');
-      }
-    } catch {
-      // ignore storage failures
-    }
+    const explicitOverride = getExplicitApiBaseOverride();
+    if (explicitOverride) return explicitOverride;
     if (!hostname || location?.protocol === 'file:' || isLocalHostname(hostname)) {
       return '/api';
     }
@@ -246,6 +282,41 @@
     const text = String(value || '').trim();
     if (!text || text.length <= maxLength) return text;
     return `${text.slice(0, maxLength - 1).trimEnd()}...`;
+  }
+
+  function portfolioAum(summary) {
+    return Number(summary?.total_aum_usd ?? summary?.total_value ?? 0) || 0;
+  }
+
+  function bucketValue(bucket) {
+    return Number(bucket?.market_value_usd ?? bucket?.total_value ?? bucket?.value ?? 0) || 0;
+  }
+
+  function portfolioPositionCount(summary) {
+    const explicit = Number(summary?.position_count);
+    if (Number.isFinite(explicit) && explicit > 0) return explicit;
+    return (summary?.asset_class || []).reduce((total, bucket) => total + (Number(bucket.position_count) || 0), 0);
+  }
+
+  function assetClassBucket(summary, labels) {
+    const normalizedLabels = new Set(labels.map((label) => String(label).toLowerCase()));
+    return (summary?.asset_class || []).find((bucket) => {
+      const label = String(bucket.label || bucket.asset_class || '').toLowerCase();
+      return normalizedLabels.has(label);
+    }) || null;
+  }
+
+  function sumAssetClassBuckets(summary, labels) {
+    const normalizedLabels = new Set(labels.map((label) => String(label).toLowerCase()));
+    return (summary?.asset_class || []).reduce((total, bucket) => {
+      const label = String(bucket.label || bucket.asset_class || '').toLowerCase();
+      return normalizedLabels.has(label) ? total + bucketValue(bucket) : total;
+    }, 0);
+  }
+
+  function pctOfAum(value, summary) {
+    const aum = portfolioAum(summary);
+    return aum > 0 ? (Number(value || 0) / aum) * 100 : 0;
   }
 
   function withTransientUpdate(nodes, render) {
@@ -489,6 +560,51 @@
     return gate.summary || (gate.publish_ready ? 'Publish ready' : 'Manual review required');
   }
 
+  function briefingPortfolioSummary(output) {
+    const snapshot = output?.portfolio_snapshot || {};
+    const liquidity = output?.liquidity_snapshot || {};
+    const parts = [];
+    if (snapshot.total_aum_usd != null) {
+      parts.push(`Portfolio AUM is ${formatCurrency(snapshot.total_aum_usd)}.`);
+    }
+    if (output?.var_commentary) {
+      const varText = String(output.var_commentary)
+        .replace(/\$[\d,]+(?:\.\d+)?/g, (match) => {
+          const value = Number(match.replace(/[$,]/g, ''));
+          return Number.isFinite(value) ? formatCurrency(value) : match;
+        });
+      parts.push(varText);
+    }
+    if (liquidity.buffer_breach != null) {
+      parts.push(
+        liquidity.buffer_breach
+          ? `Liquidity buffer is short by ${formatCurrency(liquidity.buffer_gap_usd || 0)}.`
+          : `Liquidity buffer remains intact with ${formatCurrency(liquidity.projected_cash_usd || 0)} projected cash.`
+      );
+    }
+    return parts.join(' ');
+  }
+
+  function briefingDisplaySummary(output) {
+    return briefingPortfolioSummary(output) || output?.executive_summary || briefingSummary(output);
+  }
+
+  function briefingDisplayLiquidity(output) {
+    const liq = output?.liquidity_snapshot;
+    if (!liq) return output?.liquidity_commentary || '';
+    const nextCall = liq.next_call_due_date
+      ? `Next capital call: ${formatCurrency(liq.next_call_amount_usd || 0)} on ${liq.next_call_due_date}.`
+      : 'No capital call is currently scheduled.';
+    return [
+      nextCall,
+      `Expected 90-day distributions: ${formatCurrency(liq.expected_distributions_usd || 0)}.`,
+      `Net 90-day liquidity: ${formatCurrency(liq.net_liquidity_usd || 0)}.`,
+      liq.buffer_breach
+        ? `Buffer breach projected: ${formatCurrency(liq.buffer_gap_usd || 0)} shortfall.`
+        : 'Buffer remains intact.',
+    ].join(' ');
+  }
+
   function renderQualityNote(gate) {
     if (!gate) return '';
     const blocking = gate.blocking_messages || [];
@@ -694,7 +810,7 @@
     try {
       user = await getSession(3);
     } catch {
-      window.location.href = `login.html?next=${encodeURIComponent(window.location.pathname.split('/').pop() || 'cockpit.html')}`;
+      window.location.href = withApiBaseOverride(`login.html?next=${encodeURIComponent(window.location.pathname.split('/').pop() || 'cockpit.html')}`);
       return null;
     }
 
@@ -719,7 +835,7 @@
             // ignore
           }
           clearAuthState();
-          window.location.href = 'login.html';
+          window.location.href = withApiBaseOverride('login.html');
         });
       }
 
@@ -844,12 +960,12 @@
 
   async function resolveAuthenticatedLanding(useNext = false) {
     const next = useNext ? getQueryParam('next') : '';
-    if (next) return next;
+    if (next) return withApiBaseOverride(next);
     let attempts = 3;
     while (attempts > 0) {
       try {
         const state = await api('/onboarding/state');
-        return state.is_complete ? 'cockpit.html' : 'onboarding.html';
+        return withApiBaseOverride(state.is_complete ? 'cockpit.html' : 'onboarding.html');
       } catch (error) {
         attempts -= 1;
         const transient = attempts > 0
@@ -859,7 +975,7 @@
         await new Promise((resolve) => window.setTimeout(resolve, 250));
       }
     }
-    return 'onboarding.html';
+    return withApiBaseOverride('onboarding.html');
   }
 
   // ── Shared rendering helpers ─────────────────────────────────────────────
@@ -874,10 +990,12 @@
 
   function renderBriefingBody(bodyEl, output, tocEl) {
     if (!bodyEl) return;
+    const summaryText = briefingDisplaySummary(output);
+    const liquidityText = briefingDisplayLiquidity(output);
     const sections = [
-      output.executive_summary && {
+      summaryText && {
         id: 'summary', eyebrow: 'Executive Summary', heading: 'The week in one breath',
-        html: `<div class="essay-prose"><p class="essay-deck">${escapeHtml(output.executive_summary)}</p></div>`,
+        html: `<div class="essay-prose"><p class="essay-deck">${escapeHtml(summaryText)}</p></div>`,
       },
       output.market_context && {
         id: 'context', eyebrow: 'Market Context', heading: 'What the tape is saying',
@@ -898,6 +1016,10 @@
       (output.recommendations || []).length && {
         id: 'recs', eyebrow: 'Recommendations', heading: 'What to do next',
         html: `<ol class="essay-recs">${(output.recommendations || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ol>`,
+      },
+      liquidityText && {
+        id: 'liquidity', eyebrow: 'Liquidity', heading: 'Cash and commitments',
+        html: `<div class="essay-prose"><p>${escapeHtml(liquidityText)}</p></div>`,
       },
     ].filter(Boolean);
 
@@ -934,9 +1056,9 @@
       return `M ${x1} ${y1} A ${radius} ${radius} 0 ${large} 1 ${x2} ${y2}`;
     }
 
-    const total = buckets.reduce((s, b) => s + (b.total_value || b.pct_of_portfolio || 0), 0);
+    const total = buckets.reduce((s, b) => s + (bucketValue(b) || b.pct_of_portfolio || 0), 0);
     const paths = buckets.map((b, i) => {
-      const share = total > 0 ? (b.total_value || b.pct_of_portfolio || 0) / total : 0;
+      const share = total > 0 ? (bucketValue(b) || b.pct_of_portfolio || 0) / total : 0;
       const sweep = share * tau;
       const startAngle = cursor;
       cursor += sweep;
@@ -978,20 +1100,20 @@
       eyebrow.textContent = `Today · ${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
     }
 
-    markPageReady();
-
     // Load cockpit + liquidity data in parallel for the metric strip
     const [cockpitData, liquidityData] = await Promise.allSettled([
       api('/cockpit'),
       api('/liquidity/summary'),
     ]);
+    let homePortfolioSummary = {};
 
     if (cockpitData.status === 'fulfilled') {
       const body = cockpitData.value;
       const ps = body?.portfolio_summary || {};
+      homePortfolioSummary = ps;
 
       const aum = document.getElementById('home-aum');
-      if (aum) aum.textContent = formatCurrency(ps.total_value || 0);
+      if (aum) aum.textContent = formatCurrency(portfolioAum(ps));
 
       const conc = document.getElementById('home-concentration');
       const concSub = document.getElementById('home-concentration-sub');
@@ -1004,13 +1126,13 @@
       const varEl = document.getElementById('home-var');
       const varSub = document.getElementById('home-var-sub');
       if (body?.var_result && varEl) {
-        varEl.textContent = formatCurrency(body.var_result.var_95 || 0);
+        varEl.textContent = formatCurrency(body.var_result.var_1d_95 ?? body.var_result.var_95 ?? 0);
         if (varSub) varSub.textContent = '95% confidence, 1-day';
       }
 
       const alertsEl = document.getElementById('home-alerts');
       const alertsSub = document.getElementById('home-alerts-sub');
-      const flags = body?.risk_flags || [];
+      const flags = body?.risk_flags || body?.risk_register || [];
       const priorityCount = flags.filter((f) => f.severity === 'priority').length;
       if (alertsEl) {
         alertsEl.textContent = flags.length;
@@ -1023,10 +1145,11 @@
       const liq = liquidityData.value;
       const cashEl = document.getElementById('home-cash');
       const cashSub = document.getElementById('home-cash-sub');
+      const cashOnHand = Number(liq?.cash_on_hand_usd ?? liq?.cash_balance ?? 0) || 0;
       if (cashEl) {
-        cashEl.textContent = formatCurrency(liq?.cash_balance || 0);
+        cashEl.textContent = formatCurrency(cashOnHand);
         if (cashSub) {
-          const pct = liq?.cash_pct_of_portfolio;
+          const pct = liq?.cash_pct_of_portfolio ?? pctOfAum(cashOnHand, homePortfolioSummary);
           cashSub.textContent = pct != null ? `${formatNumber(pct, 1)}% of AUM` : '';
         }
       }
@@ -1041,21 +1164,22 @@
       const latest = items[0];
       if (latest) {
         const output = latest.output || {};
-        if (deck) deck.textContent = output.executive_summary || '';
+        if (deck) deck.textContent = briefingDisplaySummary(output);
         if (briefingBody) renderBriefingBody(briefingBody, output, document.getElementById('home-toc'));
       } else if (briefingBody) {
         briefingBody.innerHTML = `
           <div class="essay-section is-visible">
             <div class="essay-eyebrow">Today's briefing</div>
             <div class="essay-heading">No briefing yet.</div>
-            <p class="essay-prose"><p>Generate your first briefing using the button in the nav bar.</p></p>
+            <p class="essay-prose">Generate your first briefing using the button in the nav bar.</p>
           </div>`;
       }
     } catch {
       if (briefingBody) {
-        briefingBody.innerHTML = `<div class="essay-section is-visible"><div class="essay-eyebrow">Today's briefing</div><p class="essay-prose"><p>Could not load briefing data.</p></p></div>`;
+        briefingBody.innerHTML = `<div class="essay-section is-visible"><div class="essay-eyebrow">Today's briefing</div><p class="essay-prose">Could not load briefing data.</p></div>`;
       }
     }
+    markPageReady();
   }
 
   async function initAssets() {
@@ -1078,11 +1202,14 @@
     const ps = cockpitBody?.portfolio_summary || {};
     const kpis = document.getElementById('assets-kpis');
     if (kpis) {
+      const publicEquity = assetClassBucket(ps, ['public_equity', 'Public Equity']);
+      const privateAlternativesValue = sumAssetClassBuckets(ps, ['private_equity', 'alternative', 'real_assets', 'real_estate']);
+      const cashFixedIncomeValue = sumAssetClassBuckets(ps, ['cash', 'fixed_income']);
       kpis.innerHTML = [
-        { label: 'Total AUM', value: formatCurrency(ps.total_value || 0), meta: `${formatNumber(ps.position_count || 0, 0)} positions` },
-        { label: 'Public Equity', value: formatCurrency(ps.public_equity_value || 0), meta: formatPct(ps.public_equity_pct || 0) },
-        { label: 'Private / Alternatives', value: formatCurrency(ps.private_value || 0), meta: formatPct(ps.private_pct || 0) },
-        { label: 'Cash & Fixed Income', value: formatCurrency(ps.cash_fi_value || 0), meta: formatPct(ps.cash_fi_pct || 0) },
+        { label: 'Total AUM', value: formatCurrency(portfolioAum(ps)), meta: `${formatNumber(portfolioPositionCount(ps), 0)} positions` },
+        { label: 'Public Equity', value: formatCurrency(bucketValue(publicEquity)), meta: formatPct(publicEquity?.pct_of_portfolio || pctOfAum(bucketValue(publicEquity), ps)) },
+        { label: 'Private / Alternatives', value: formatCurrency(privateAlternativesValue), meta: formatPct(pctOfAum(privateAlternativesValue, ps)) },
+        { label: 'Cash & Fixed Income', value: formatCurrency(cashFixedIncomeValue), meta: formatPct(pctOfAum(cashFixedIncomeValue, ps)) },
       ].map((k) => `
         <div class="mvp-kpi">
           <div class="uplabel">${escapeHtml(k.label)}</div>
@@ -1113,7 +1240,7 @@
           <tbody>${buckets.map((b) => `
             <tr>
               <td>${escapeHtml(titleCase(b.label || b.asset_class || b.sector || b.geo_region || b.custodian || ''))}</td>
-              <td class="num">${escapeHtml(formatCurrency(b.total_value || 0))}</td>
+              <td class="num">${escapeHtml(formatCurrency(bucketValue(b)))}</td>
               <td class="num">${escapeHtml(formatNumber(b.pct_of_portfolio || 0, 1))}%</td>
               <td class="num">${escapeHtml(formatNumber(b.position_count || 0, 0))}</td>
             </tr>`).join('')}
@@ -1138,9 +1265,12 @@
     try {
       const liq = await api('/liquidity/summary');
       if (projSummary) {
-        const cashBal = formatCurrency(liq?.cash_balance || 0);
-        const next90 = formatCurrency(Math.abs(liq?.net_90d || 0));
-        projSummary.textContent = `Current cash position is ${cashBal}. Net cash flow over the next 90 days is projected at ${next90}. Detailed cash flow ladder available on the Liquidity page.`;
+        const cashBal = formatCurrency(liq?.cash_on_hand_usd || 0);
+        const next90 = formatCurrency(liq?.net_liquidity_usd || 0);
+        const bufferText = liq?.buffer_breach
+          ? `Projected cash is ${formatCurrency(liq.projected_cash_usd || 0)}, leaving a ${formatCurrency(liq.buffer_gap_usd || 0)} shortfall to the buffer.`
+          : `Projected cash is ${formatCurrency(liq?.projected_cash_usd || 0)}, above the target buffer.`;
+        projSummary.textContent = `Current cash position is ${cashBal}. Net cash flow over the next 90 days is projected at ${next90}. ${bufferText} Detailed cash flow ladder available on the Liquidity page.`;
       }
     } catch {
       if (projSummary) projSummary.textContent = 'Liquidity projection data unavailable. Visit the Liquidity page for cash flow detail.';
@@ -1339,6 +1469,7 @@
     const stepperNode = document.getElementById('onboarding-stepper');
     const summaryNode = document.getElementById('onboarding-summary');
     const nextActionNode = document.getElementById('onboarding-next-action');
+    const titleNode = document.getElementById('onboarding-title');
     const workspaceNode = document.getElementById('onboarding-workspace-name');
     const onboardingUrl = new URL(window.location.href);
     if (workspaceNode) workspaceNode.textContent = user.workspace_name || 'Your workspace';
@@ -1371,6 +1502,12 @@
       }
       if (nextActionNode) {
         nextActionNode.textContent = STEP_LABELS[state.next_step] || 'Open cockpit';
+      }
+      if (titleNode) {
+        const workspaceName = user.workspace_name || 'Your workspace';
+        titleNode.textContent = state.is_complete
+          ? `${workspaceName} is ready.`
+          : `Take ${workspaceName} to first briefing.`;
       }
       if (readyBanner) {
         readyBanner.hidden = !state.is_complete;
@@ -1771,6 +1908,7 @@
       const liquidity = summary.liquidity_summary || liquiditySummary;
       const nextCallAmount = Math.abs(Number(liquidity?.next_call_amount_usd || 0));
       const bufferGap = Math.abs(Number(liquidity?.buffer_gap_usd || 0));
+      const projectedCash = Number(liquidity?.projected_cash_usd || 0);
       kpis.innerHTML = `
         <div class="mvp-kpi mvp-kpi-featured"><div class="uplabel">Portfolio value</div><div class="value">${formatCompactCurrency(summary.total_aum_usd)}</div><div class="meta">Live portfolio snapshot</div></div>
         <div class="mvp-kpi"><div class="uplabel">Bad normal day</div><div class="value">${formatCurrency(body.var_result.var_1d_95)}</div><div class="meta">Estimated 1-day downside at 95%</div></div>
@@ -1778,10 +1916,14 @@
         <button type="button" class="mvp-kpi mvp-kpi-liquidity" data-open-liquidity>
           <div class="uplabel">Liquidity outlook</div>
           <div class="mvp-kpi-liquidity-list">
+            <div class="mvp-kpi-liquidity-item mvp-kpi-liquidity-status">
+              <span class="mvp-pill ${liquidity?.buffer_breach ? 'priority' : 'good'}">${liquidity?.buffer_breach ? 'Buffer breach' : 'Buffer intact'}</span>
+              <div class="meta">${liquidity?.buffer_breach ? `${formatCompactCurrency(bufferGap)} shortfall to buffer` : `${formatCompactCurrency(projectedCash)} projected cash`}</div>
+            </div>
             <div class="mvp-kpi-liquidity-item">
               <div>
-                <div class="value">${liquidity?.next_call_due_date ? formatCompactCurrency(nextCallAmount) : 'None'}</div>
-                <div class="meta">${escapeHtml(liquidity?.next_call_due_date ? `Next call · ${liquidity.next_call_due_date}` : 'No capital call scheduled')}</div>
+                <div class="value">${liquidity?.next_call_due_date ? formatCompactCurrency(nextCallAmount) : 'No scheduled call'}</div>
+                <div class="meta">${escapeHtml(liquidity?.next_call_due_date ? `Next call · ${liquidity.next_call_due_date}` : 'Capital calls only; buffer status shown above')}</div>
               </div>
             </div>
             <div class="mvp-kpi-liquidity-item">
@@ -1789,10 +1931,6 @@
                 <div class="value">${formatCompactCurrency(liquidity?.net_liquidity_usd || 0)}</div>
                 <div class="meta">Net 90-day liquidity</div>
               </div>
-            </div>
-            <div class="mvp-kpi-liquidity-item mvp-kpi-liquidity-status">
-              <span class="mvp-pill ${liquidity?.buffer_breach ? 'priority' : 'good'}">${liquidity?.buffer_breach ? 'Buffer breach' : 'Buffer intact'}</span>
-              <div class="meta">${liquidity?.buffer_breach ? `${formatCompactCurrency(bufferGap)} shortfall to buffer` : `${formatCompactCurrency(liquidity?.projected_cash_usd || 0)} projected cash`}</div>
             </div>
           </div>
         </button>
@@ -2158,7 +2296,7 @@
   }
 
   async function initOverlay() {
-    const user = await requireSession('overlay.html', ['Workspace', 'Overlay']);
+    const user = await requireSession('scenarios.html', ['Workspace', 'Overlay']);
     if (!user) return;
 
     const status = document.getElementById('overlay-status');
@@ -2403,7 +2541,7 @@
                 <div class="mvp-feature-card">
                   <div class="uplabel">Latest committee pack</div>
                   <h3>${escapeHtml(featured.output.headline || 'Weekly briefing')}</h3>
-                  <p>${escapeHtml(featured.output.executive_summary || briefingSummary(featured.output))}</p>
+                  <p>${escapeHtml(briefingDisplaySummary(featured.output))}</p>
                   <div class="mvp-feature-meta" style="margin-top:14px">
                     <span class="mvp-pill ${featured.status === 'published' ? 'good' : 'elevated'}">${escapeHtml(featured.status)}</span>
                     <span>${escapeHtml(formatWeekLabel(featured.week_label))}</span>
@@ -2441,7 +2579,7 @@
                       <span>v${escapeHtml(item.version)}</span>
                     </div>
                     <h3 style="font-family:'Fraunces',serif;margin:12px 0 6px">${escapeHtml(item.output.headline || 'Weekly briefing')}</h3>
-                    <p style="margin:0;color:var(--ink-soft);font-size:12px">${escapeHtml(truncateText(item.output.executive_summary || briefingSummary(item.output), 120))}</p>
+                    <p style="margin:0;color:var(--ink-soft);font-size:12px">${escapeHtml(truncateText(briefingDisplaySummary(item.output), 120))}</p>
                   </a>
                 `
               )
@@ -2527,10 +2665,12 @@
         exportButton.innerHTML = legacyTxtExport
           ? '<span class="ms">block</span>PDF unavailable'
           : '<span class="ms">file_download</span>Export PDF';
+        const summaryText = briefingDisplaySummary(output);
+        const liquidityText = briefingDisplayLiquidity(output);
         const sections = [
-          output.executive_summary && {
+          summaryText && {
             id: 'summary', eyebrow: 'I. Executive Summary', heading: 'The week in one breath',
-            html: `<div class="essay-prose"><p class="essay-deck">${escapeHtml(output.executive_summary)}</p></div>`,
+            html: `<div class="essay-prose"><p class="essay-deck">${escapeHtml(summaryText)}</p></div>`,
           },
           output.market_context && {
             id: 'context', eyebrow: 'II. Market Context', heading: 'What the tape is saying',
@@ -2551,6 +2691,10 @@
           (output.recommendations || []).length && {
             id: 'recs', eyebrow: 'IV. Recommendations', heading: 'What to do next',
             html: `<ol class="essay-recs">${(output.recommendations || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ol>`,
+          },
+          liquidityText && {
+            id: 'liquidity', eyebrow: 'V. Liquidity', heading: 'Cash and commitments',
+            html: `<div class="essay-prose"><p>${escapeHtml(liquidityText)}</p></div>`,
           },
         ].filter(Boolean);
 
@@ -2739,6 +2883,17 @@
       return text || '—';
     }
 
+    function formatPositionPrice(item) {
+      const price = Number(item?.price_usd);
+      if (Number.isFinite(price) && price > 0) return formatCurrency(price, 2);
+      const quantity = Number(item?.quantity);
+      const marketValue = Number(item?.market_value_usd);
+      if (Number.isFinite(quantity) && quantity > 0 && Number.isFinite(marketValue) && marketValue > 0) {
+        return formatCurrency(marketValue / quantity, 2);
+      }
+      return '—';
+    }
+
     async function loadPositions(selectId) {
       try {
         const response = await api('/portfolio/positions');
@@ -2749,12 +2904,13 @@
               <tr data-id="${escapeHtml(item.id)}" class="${selectId === item.id || (!selectId && selected?.id === item.id) ? 'is-selected' : ''}">
                 <td>${escapeHtml(item.ticker)}</td>
                 <td>${escapeHtml(item.name || '')}</td>
+                <td class="num">${escapeHtml(formatNumber(item.quantity || 0, 2))}</td>
+                <td class="num">${escapeHtml(formatPositionPrice(item))}</td>
+                <td class="num">${escapeHtml(formatCurrency(item.market_value_usd || 0))}</td>
                 <td>${escapeHtml(showOrDash(taxonomyLabel(item.asset_class || item.factor_asset_class)))}</td>
-                <td>${escapeHtml(showOrDash(taxonomyLabel(item.sector || item.factor_sector)))}</td>
-                <td>${escapeHtml(showOrDash(taxonomyLabel(item.factor_subsector)))}</td>
                 <td>${escapeHtml(showOrDash(taxonomyLabel(item.market_segment || item.factor_market_segment)))}</td>
-                <td>${escapeHtml(showOrDash(taxonomyLabel(item.geo_region || item.factor_region)))}</td>
                 <td>${escapeHtml(showOrDash(item.custodian))}</td>
+                <td>${escapeHtml(showOrDash(titleCase(item.price_source || 'manual')))}</td>
                 <td>${escapeHtml(formatDateTime(item.first_seen_at || item.created_at))}</td>
                 <td>${escapeHtml(formatDateTime(item.last_modified_at || item.created_at))}</td>
               </tr>
@@ -2762,7 +2918,7 @@
           )
           .join('');
         if (!response.items.length) {
-          tableBody.innerHTML = '<tr><td colspan="10" class="mvp-empty">No positions yet. Add the first holding from the editor.</td></tr>';
+          tableBody.innerHTML = '<tr><td colspan="11" class="mvp-empty">No positions yet. Add the first holding from the editor.</td></tr>';
         }
 
         const selectedPosition = response.items.find((item) => item.id === selectId) || response.items.find((item) => item.id === selected?.id) || null;
@@ -2779,7 +2935,7 @@
 
         setStatus(status, '', '');
       } catch (error) {
-        tableBody.innerHTML = '<tr><td colspan="10" class="mvp-empty">Unable to load positions.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="11" class="mvp-empty">Unable to load positions.</td></tr>';
         setStatus(status, error.message, 'error');
       }
     }
@@ -3595,6 +3751,56 @@
     await loadDocuments({ focusSelectedDocument: Boolean(selectedId) });
   }
 
+  async function initAccess() {
+    let user = await requireSession('access.html', ['Access']);
+    if (!user) return;
+
+    const userName = document.getElementById('access-user-name');
+    const userEmail = document.getElementById('access-user-email');
+    const userRole = document.getElementById('access-user-role');
+    const sessionMode = document.getElementById('access-session-mode');
+    const apiBase = document.getElementById('access-api-base');
+    const workspace = document.getElementById('access-workspace');
+    const members = document.getElementById('access-members');
+    const refresh = document.getElementById('access-refresh');
+
+    function renderAccess(nextUser) {
+      const storageMode = window.localStorage.getItem(AUTH_STORAGE_PREFERENCE_KEY) === 'session'
+        ? 'This browser session'
+        : 'Remembered device';
+      const apiRoute = getApiBase();
+      if (userName) userName.textContent = nextUser.display_name || 'Workspace owner';
+      if (userEmail) userEmail.textContent = nextUser.email || 'No email on session';
+      if (userRole) userRole.textContent = titleCase(nextUser.role || 'owner');
+      if (sessionMode) sessionMode.textContent = getAuthToken() ? storageMode : 'Cookie session';
+      if (apiBase) apiBase.textContent = apiRoute.replace(/^https?:\/\//, '');
+      if (workspace) workspace.textContent = nextUser.workspace_name || 'Current workspace';
+      if (members) {
+        members.innerHTML = `
+          <tr>
+            <td><div class="mvp-risk-name">${escapeHtml(nextUser.display_name || 'Workspace owner')}</div></td>
+            <td>${escapeHtml(nextUser.email || 'Unknown')}</td>
+            <td>${escapeHtml(titleCase(nextUser.role || 'owner'))}</td>
+            <td><span class="mvp-pill good">Active</span></td>
+          </tr>
+        `;
+      }
+    }
+
+    renderAccess(user);
+
+    refresh?.addEventListener('click', async () => {
+      await withButtonBusy(refresh, 'Refreshing...', async () => {
+        const session = await api('/auth/session');
+        user = session.user || user;
+        sessionStorage.setItem('crb.user', JSON.stringify(user));
+        renderAccess(user);
+      });
+    });
+
+    markPageReady();
+  }
+
   const initializers = {
     index: initIndex,
     login: initLogin,
@@ -3608,10 +3814,7 @@
     documents: initDocuments,
     liquidity: initLiquidity,
     overlay: initOverlay,
-    access: async () => {
-      const user = await requireSession('access', ['Access']);
-      if (user) markPageReady();
-    },
+    access: initAccess,
   };
 
   document.addEventListener('DOMContentLoaded', () => {

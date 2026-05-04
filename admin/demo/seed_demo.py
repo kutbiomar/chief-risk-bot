@@ -4,11 +4,14 @@ Seed (or reset) the ChiefRiskBot demo database to a clean, presentable state.
 
 Usage:
     cd /path/to/chief-risk-bot
-    .venv/bin/python admin/demo/seed_demo.py
+    DATABASE_URL=sqlite:///./backend/runtime/chiefriskbot.db AUTH_MODE=local \
+        .venv/bin/python admin/demo/seed_demo.py --target local --confirm-target sqlite
+    DATABASE_URL=sqlite:///./backend/runtime/chiefriskbot.db AUTH_MODE=local \
+        .venv/bin/python admin/demo/seed_demo.py --target local --confirm-target sqlite --documents-only
 
 Creates one real demo workspace with one CIO user, uploads the demo portfolio,
-runs VaR and risk analysis, and generates a published briefing — so the
-demo account starts at the cockpit with real data already loaded.
+runs VaR and risk analysis, seeds reviewable documents, and generates a
+published briefing — so the demo account starts with real data already loaded.
 
 Demo credentials:
     email:    cio@demo.chiefriskbot.com
@@ -39,7 +42,7 @@ if not (ROOT / ".env").exists():
     os.environ.setdefault("SECRET_KEY", "demo-secret-key-please-change-in-production!")
     os.environ.setdefault("ENVIRONMENT", "development")
 
-from sqlalchemy import delete, select  # noqa: E402
+from sqlalchemy import delete, func, select  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 from backend.database import Base, engine, SessionLocal  # noqa: E402
 from backend.models.auth import ApiKey, AuthChallenge, PasswordResetToken, User, UserSession, WorkspaceSetting  # noqa: E402
@@ -64,6 +67,90 @@ DEMO_EMAIL = "cio@demo.chiefriskbot.com"
 DEMO_PASSWORD = "DemoPass2026!"
 DEMO_WORKSPACE_NAME = "Whitmore Family Office"
 DEMO_CSV = ROOT / "admin" / "demo" / "demo_portfolio.csv"
+DEMO_UPLOADS = ROOT / "admin" / "demo" / "test_uploads"
+DEMO_DOCUMENT_FILENAMES = [
+    "ubs_q1_2026_custody_statement.xlsx",
+    "carlyle_growth_fund_iii_nav_q1_2026.pdf",
+    "carlyle_growth_fund_iii_capital_call_apr_2026.pdf",
+    "blackstone_real_estate_ix_distribution_notice_may_2026.pdf",
+    "carlyle_growth_fund_iii_call_workpaper.xlsx",
+]
+PRODUCTION_SEED_CONFIRMATION = "seed-production-demo"
+
+
+def _database_target_descriptor() -> dict[str, str]:
+    url = engine.url
+    return {
+        "driver": url.drivername,
+        "database": str(url.database or ""),
+        "host": str(url.host or ""),
+        "rendered": url.render_as_string(hide_password=True),
+    }
+
+
+def _target_matches_confirmation(*, target: str, confirm_target: str, descriptor: dict[str, str]) -> bool:
+    expected = confirm_target.strip().lower()
+    if not expected:
+        return False
+    if expected == "sqlite":
+        return descriptor["driver"].startswith("sqlite")
+    if expected == "postgres" or expected == "postgresql":
+        return descriptor["driver"].startswith("postgresql")
+    if expected == "supabase":
+        return "supabase.co" in descriptor["host"].lower()
+    if expected == "local":
+        return target == "local" and descriptor["driver"].startswith("sqlite")
+    return expected in descriptor["host"].lower() or expected in descriptor["database"].lower()
+
+
+def _validate_target_or_exit(args: argparse.Namespace) -> dict[str, str]:
+    descriptor = _database_target_descriptor()
+    if not args.target:
+        raise SystemExit("Refusing to run without --target local|staging|production.")
+    if not _target_matches_confirmation(
+        target=args.target,
+        confirm_target=args.confirm_target or "",
+        descriptor=descriptor,
+    ):
+        raise SystemExit(
+            "Refusing to run: --confirm-target does not match resolved DATABASE_URL "
+            f"({descriptor['rendered']})."
+        )
+    if args.target == "local" and not descriptor["driver"].startswith("sqlite"):
+        raise SystemExit("Refusing local target because DATABASE_URL is not SQLite.")
+    if args.target in {"staging", "production"} and descriptor["driver"].startswith("sqlite"):
+        raise SystemExit(f"Refusing {args.target} target because DATABASE_URL is SQLite.")
+    if args.target == "production" and args.confirm_production_seed != PRODUCTION_SEED_CONFIRMATION:
+        raise SystemExit(
+            "Refusing production seed without "
+            f"--confirm-production-seed {PRODUCTION_SEED_CONFIRMATION!r}."
+        )
+    return descriptor
+
+
+def _document_seed_plan(db: Session, workspace_id: str) -> dict[str, int]:
+    existing = set(
+        db.scalars(
+            select(Document.filename).where(
+                Document.workspace_id == workspace_id,
+                Document.filename.in_(DEMO_DOCUMENT_FILENAMES),
+                Document.deleted_at.is_(None),
+            )
+        ).all()
+    )
+    skipped = len(existing)
+    return {
+        "create": len(DEMO_DOCUMENT_FILENAMES) - skipped,
+        "update": 0,
+        "skip": skipped,
+    }
+
+
+def _print_seed_target(args: argparse.Namespace, descriptor: dict[str, str]) -> None:
+    print(f"  Target:   {args.target}")
+    print(f"  Database: {descriptor['rendered']}")
+    print(f"  Auth:     {os.environ.get('AUTH_MODE', 'local')}")
+    print(f"  Demo:     {DEMO_EMAIL}")
 
 
 def _build_positions_workbook() -> bytes:
@@ -87,6 +174,91 @@ def _build_pending_call_workbook() -> bytes:
     buffer = io.BytesIO()
     workbook.save(buffer)
     return buffer.getvalue()
+
+
+async def seed_demo_documents(db: Session, *, workspace_id: str, user_id: str) -> int:
+    """Top up the demo workspace with realistic document fixtures.
+
+    The function is idempotent by filename so it can be used after a full reset
+    or against an already-running demo workspace without duplicating records.
+    """
+    seeded = 0
+
+    async def ensure_document(
+        *,
+        filename: str,
+        payload: bytes,
+        folder: str,
+        tag: str | None = None,
+        parse: bool = True,
+    ) -> None:
+        nonlocal seeded
+        existing = db.scalar(
+            select(Document).where(
+                Document.workspace_id == workspace_id,
+                Document.filename == filename,
+                Document.deleted_at.is_(None),
+            )
+        )
+        if existing is not None:
+            if tag and existing.tag != tag:
+                existing.tag = tag
+                db.flush()
+            return
+
+        document = create_document(
+            db,
+            workspace_id=workspace_id,
+            uploaded_by=user_id,
+            filename=filename,
+            payload=payload,
+            folder=folder,
+        )
+        if tag:
+            document.tag = tag
+        if parse:
+            try:
+                await parse_document(db, document)
+                if tag:
+                    document.tag = tag
+            except ValueError:
+                document.extraction_status = "failed"
+        db.flush()
+        seeded += 1
+
+    await ensure_document(
+        filename="ubs_q1_2026_custody_statement.xlsx",
+        payload=_build_positions_workbook(),
+        folder="custodian_statements",
+        tag="custody_statement",
+    )
+    await ensure_document(
+        filename="carlyle_growth_fund_iii_nav_q1_2026.pdf",
+        payload=(DEMO_UPLOADS / "pe_nav_statement_q1_2026.pdf").read_bytes(),
+        folder="private_equity",
+        tag="nav_statement",
+    )
+    await ensure_document(
+        filename="carlyle_growth_fund_iii_capital_call_apr_2026.pdf",
+        payload=(DEMO_UPLOADS / "pe_capital_call_apr_2026.pdf").read_bytes(),
+        folder="capital_calls",
+        tag="capital_call",
+    )
+    await ensure_document(
+        filename="blackstone_real_estate_ix_distribution_notice_may_2026.pdf",
+        payload=(DEMO_UPLOADS / "pe_distribution_notice_may_2026.pdf").read_bytes(),
+        folder="distribution_notices",
+        tag="distribution_notice",
+    )
+    await ensure_document(
+        filename="carlyle_growth_fund_iii_call_workpaper.xlsx",
+        payload=_build_pending_call_workbook(),
+        folder="private_equity",
+        tag="capital_call",
+        parse=False,
+    )
+    db.commit()
+    return seeded
 
 
 def wipe_demo_workspace(db: Session, workspace_id: str) -> None:
@@ -139,14 +311,91 @@ def wipe_demo_workspace(db: Session, workspace_id: str) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Seed the ChiefRiskBot demo workspace.")
+    parser.add_argument(
+        "--target",
+        choices=("local", "staging", "production"),
+        help="Required safety target for any mutating seed run.",
+    )
+    parser.add_argument(
+        "--confirm-target",
+        default="",
+        help="Required confirmation matching the resolved database target, such as sqlite, supabase, or a DB host substring.",
+    )
+    parser.add_argument(
+        "--confirm-production-seed",
+        default="",
+        help=f"Required for --target production. Must equal {PRODUCTION_SEED_CONFIRMATION!r}.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print resolved target and planned record changes without writing data.",
+    )
+    parser.add_argument(
+        "--documents-only",
+        action="store_true",
+        help="Only top up the existing demo workspace with document fixtures.",
+    )
+    args = parser.parse_args()
+
     print("ChiefRiskBot — demo seed script")
     print("=" * 50)
 
-    # Ensure tables exist (idempotent)
-    Base.metadata.create_all(bind=engine)
+    descriptor = _validate_target_or_exit(args)
+    _print_seed_target(args, descriptor)
+
+    if not args.dry_run:
+        # Ensure tables exist (idempotent)
+        Base.metadata.create_all(bind=engine)
 
     db: Session = SessionLocal()
     try:
+        if args.documents_only:
+            existing = db.scalar(select(User).where(User.email == DEMO_EMAIL))
+            if existing is None:
+                raise SystemExit(f"Demo user {DEMO_EMAIL} does not exist. Run the full seed first.")
+            plan = _document_seed_plan(db, existing.workspace_id)
+            if args.dry_run:
+                print(f"  Existing workspace: {existing.workspace_id}")
+                print(
+                    "  Planned document changes: "
+                    f"create={plan['create']} update={plan['update']} skip={plan['skip']}"
+                )
+                print("Dry run complete. No data was changed.")
+                return
+            print(f"  Seeding documents for existing workspace: {existing.workspace_id}")
+            seeded = asyncio.run(
+                seed_demo_documents(
+                    db,
+                    workspace_id=existing.workspace_id,
+                    user_id=existing.id,
+                )
+            )
+            total = db.scalar(
+                select(func.count(Document.id)).where(
+                    Document.workspace_id == existing.workspace_id,
+                    Document.deleted_at.is_(None),
+                )
+            )
+            print(f"  Documents added: {seeded}")
+            print(f"  Documents available: {total}")
+            print("Demo document seed complete.")
+            return
+
+        existing = db.query(User).filter(User.email == DEMO_EMAIL).first()
+        if args.dry_run:
+            print(
+                "  Planned workspace changes: "
+                f"create=1 update=0 skip=0 wipe_existing={1 if existing else 0}"
+            )
+            print(
+                "  Planned document changes: "
+                f"create={len(DEMO_DOCUMENT_FILENAMES)} update=0 skip=0"
+            )
+            print("Dry run complete. No data was changed.")
+            return
+
         supabase_identity = None
         if is_supabase_auth_enabled():
             print("  Ensuring Supabase demo auth user exists...")
@@ -158,7 +407,6 @@ def main() -> None:
             print(f"  Supabase auth user ready: {supabase_identity.email}")
 
         # --- Wipe any existing demo user/workspace ---
-        existing = db.query(User).filter(User.email == DEMO_EMAIL).first()
         if existing:
             print(f"Found existing demo user ({DEMO_EMAIL}), wiping workspace...")
             wipe_demo_workspace(db, existing.workspace_id)
@@ -362,26 +610,14 @@ def main() -> None:
 
         # --- Documents seed for review queue ---
         print("  Seeding documents...")
-        parsed_document = create_document(
-            db,
-            workspace_id=workspace_id,
-            uploaded_by=user_id,
-            filename="ubs_q1_custody_statement.xlsx",
-            payload=_build_positions_workbook(),
-            folder="custodian_statements",
+        seeded_document_count = asyncio.run(
+            seed_demo_documents(
+                db,
+                workspace_id=workspace_id,
+                user_id=user_id,
+            )
         )
-        asyncio.run(parse_document(db, parsed_document))
-        pending_document = create_document(
-            db,
-            workspace_id=workspace_id,
-            uploaded_by=user_id,
-            filename="carlyle_capital_call_notice.xlsx",
-            payload=_build_pending_call_workbook(),
-            folder="private_equity",
-        )
-        pending_document.tag = "capital_call"
-        db.commit()
-        print("  Seeded documents: 1 parsed, 1 pending")
+        print(f"  Seeded documents: {seeded_document_count} fixtures")
 
         # --- Portfolio snapshot from CSV ---
         print("  Ingesting demo portfolio...")

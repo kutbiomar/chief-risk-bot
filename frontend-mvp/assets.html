@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Assets Overview — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
@@ -43,18 +44,18 @@
           <section class="essay-section is-visible" id="assets-section-agg">
             <div class="essay-eyebrow">Aggregation</div>
             <h2 class="essay-heading-sm">Total Assets Under Management</h2>
-            <div id="assets-kpis" class="mvp-grid cards-4" style="margin-bottom:24px"></div>
+            <div id="assets-kpis" class="mvp-grid cards-4"></div>
             <div class="essay-figure">
               <div id="assets-composition-chart" class="mvp-cockpit-composition"></div>
             </div>
           </section>
 
           <!-- Slicing -->
-          <section class="essay-section is-visible" id="assets-section-slice" style="margin-top:48px">
+          <section class="essay-section is-visible" id="assets-section-slice">
             <div class="essay-eyebrow">Composition</div>
-            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:20px">
-              <h2 class="essay-heading-sm" style="margin-bottom:0" id="assets-slice-title">By Asset Class</h2>
-              <div class="essay-pills" id="assets-slice-toggles" style="margin:0">
+            <div class="mvp-cluster baseline between">
+              <h2 class="essay-heading-sm mvp-flush" id="assets-slice-title">By Asset Class</h2>
+              <div class="essay-pills mvp-flush" id="assets-slice-toggles">
                 <button type="button" class="essay-pill active" data-dimension="asset_class">Asset Class</button>
                 <button type="button" class="essay-pill" data-dimension="sector">Sector</button>
                 <button type="button" class="essay-pill" data-dimension="geo_region">Region</button>
@@ -65,10 +66,10 @@
           </section>
 
           <!-- Projections -->
-          <section class="essay-section is-visible" id="assets-section-proj" style="margin-top:48px">
+          <section class="essay-section is-visible" id="assets-section-proj">
             <div class="essay-eyebrow">Projections</div>
             <h2 class="essay-heading-sm">Forward Cash Flows</h2>
-            <p class="essay-prose" style="font-size:14px;line-height:1.6" id="assets-proj-summary">Loading projection data…</p>
+            <p class="essay-prose mvp-copy" id="assets-proj-summary">Loading projection data…</p>
             <div class="essay-figure" id="assets-proj-figure" hidden>
               <div id="assets-proj-chart"></div>
               <div class="essay-figure-caption">Next 12-month cash flow projection</div>

@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Sign in — ChiefRiskBot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_app.js" defer></script>
@@ -15,8 +16,8 @@
 <body data-page="login" class="mvp-app-loading">
   <div class="mvp-login-shell">
     <section class="mvp-login-left">
-      <a href="index.html" class="mvp-login-brand" style="text-decoration:none">
-        <span style="font-family:'Fraunces',serif;font-weight:400;font-size:22px;letter-spacing:-0.01em;color:#1B2B5E">ChiefRiskBot</span>
+      <a href="index.html" class="mvp-login-brand">
+        <span class="mvp-login-wordmark">ChiefRiskBot</span>
       </a>
       <div class="mvp-login-card">
         <div class="mvp-auth-tabs" role="tablist" aria-label="Authentication mode">
@@ -41,7 +42,7 @@
               <label class="mvp-auth-check"><input id="login-remember" type="checkbox"/> Keep me signed in</label>
               <button id="show-reset" class="mvp-auth-link" type="button">Forgot password?</button>
             </div>
-            <button id="login-submit" class="btn primary" type="submit" style="width:100%;justify-content:center">Sign in <span class="ms">arrow_forward</span></button>
+            <button id="login-submit" class="btn primary mvp-full-button" type="submit">Sign in <span class="ms">arrow_forward</span></button>
           </form>
         </section>
         <section data-auth-panel="create" hidden>
@@ -79,7 +80,7 @@
               <label class="mvp-auth-check"><input id="register-remember" type="checkbox"/> Keep me signed in on this device</label>
               <span class="mvp-item-subtle">Timezone: <b id="register-timezone">UTC</b></span>
             </div>
-            <button id="register-submit" class="btn primary" type="submit" style="width:100%;justify-content:center">Create workspace <span class="ms">arrow_forward</span></button>
+            <button id="register-submit" class="btn primary mvp-full-button" type="submit">Create workspace <span class="ms">arrow_forward</span></button>
           </form>
         </section>
         <section data-auth-panel="reset" hidden>
@@ -90,7 +91,7 @@
               <label for="forgot-email">Work email</label>
               <input id="forgot-email" type="email" placeholder="cio@demo.chiefriskbot.com" autocomplete="email" required/>
             </div>
-            <button id="forgot-submit" class="btn primary" type="submit" style="width:100%;justify-content:center">Send reset request <span class="ms">mail</span></button>
+            <button id="forgot-submit" class="btn primary mvp-full-button" type="submit">Send reset request <span class="ms">mail</span></button>
           </form>
         </section>
         <p class="mvp-login-footnote">
@@ -100,8 +101,8 @@
       </div>
     </section>
     <section class="mvp-login-right">
-      <div class="mvp-metadata" style="justify-content:flex-end">
-        <span><span class="ms" style="font-size:14px;color:var(--good-fg)">circle</span> supabase-hosted auth</span>
+      <div class="mvp-metadata mvp-right-actions">
+        <span><span class="ms mvp-status-dot">circle</span> supabase-hosted auth</span>
       </div>
       <div class="mvp-login-quote">
         <blockquote>Stop showing me a prototype memo. Show me the memo generated from the actual book.</blockquote>

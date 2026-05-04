@@ -6,7 +6,7 @@ from time import perf_counter
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -173,3 +173,11 @@ def healthcheck(db: Session = Depends(get_db)) -> HealthResponse:
         components=components,
         metrics=ObservabilitySnapshot(**snapshot),
     )
+
+
+@router.get("/health/synthetic-error", include_in_schema=False)
+def synthetic_error() -> None:
+    settings = get_settings()
+    if not settings.observability_synthetic_errors_enabled:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    raise RuntimeError("Synthetic observability incident")

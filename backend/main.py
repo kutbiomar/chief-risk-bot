@@ -25,6 +25,8 @@ from backend.routers import (
     var_router,
 )
 from backend.services.observability import (
+    capture_exception,
+    configure_error_tracking,
     configure_json_logging,
     finish_request_observation,
     monotonic_ms,
@@ -52,6 +54,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     settings = get_settings()
     settings.validate_runtime()
+    configure_error_tracking(settings)
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     logger = logging.getLogger("chiefriskbot.request")
@@ -71,6 +74,15 @@ def create_app() -> FastAPI:
         response = None
         try:
             response = await call_next(request)
+        except Exception as exc:
+            capture_exception(
+                exc,
+                request_id=request_id,
+                route=request.url.path,
+                method=request.method,
+                auth_mode=settings.auth_mode,
+            )
+            raise
         finally:
             observation = finish_request_observation(observation_token)
             elapsed_ms = max(monotonic_ms() - request_started, 0.0)
