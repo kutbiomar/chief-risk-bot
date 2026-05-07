@@ -4,12 +4,15 @@ import hashlib
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import delete, select
+from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.deps import get_db
-from backend.models.auth import ApiKey, WorkspaceSetting
+from backend.models.auth import ApiKey, User, UserSession, WorkspaceSetting
+from backend.models.portfolio import Workspace
 from backend.routers.auth import require_cookie_csrf, require_session
+from backend.schemas.auth import MessageResponse
 from backend.schemas.content import (
     ApiKeyCreateRequest,
     ApiKeyCreateResponse,
@@ -22,6 +25,15 @@ from backend.services.auth.session import utc_now
 from backend.services.scheduler import get_scheduler_manager
 
 router = APIRouter(prefix="/settings", tags=["settings"])
+
+
+class InviteMemberRequest(BaseModel):
+    email: str
+    role: str = "viewer"
+
+
+class MemberRoleRequest(BaseModel):
+    role: str
 
 
 def _get_or_create_settings(db: Session, workspace_id: str) -> WorkspaceSetting:
@@ -82,6 +94,15 @@ def patch_settings(
     db.refresh(settings)
     get_scheduler_manager().sync_workspace_job(user.workspace_id)
     return _serialize_settings(settings)
+
+
+@router.put("", response_model=SettingsResponse, dependencies=[Depends(require_cookie_csrf)])
+def put_settings(
+    payload: SettingsPatchRequest,
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> SettingsResponse:
+    return patch_settings(payload, auth, db)
 
 
 @router.get("/api-keys", response_model=list[ApiKeyResponse])
@@ -147,3 +168,130 @@ def delete_api_key(
     key.revoked_at = utc_now()
     db.commit()
     return {"detail": "API key revoked"}
+
+
+@router.get("/members")
+def list_members(
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> dict:
+    _, user = auth
+    members = db.scalars(select(User).where(User.workspace_id == user.workspace_id, User.disabled_at.is_(None))).all()
+    return {
+        "items": [
+            {
+                "id": member.id,
+                "email": member.email,
+                "display_name": member.display_name,
+                "role": member.role,
+                "last_active_at": member.last_active_at.isoformat() if member.last_active_at else None,
+                "is_current_user": member.id == user.id,
+            }
+            for member in members
+        ],
+        "invites": [],
+    }
+
+
+@router.post("/members/invite", dependencies=[Depends(require_cookie_csrf)])
+def invite_member(
+    payload: InviteMemberRequest,
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> dict:
+    _, user = auth
+    return {
+        "id": f"pending-{payload.email}",
+        "email": payload.email,
+        "role": payload.role,
+        "status": "pending",
+        "workspace_id": user.workspace_id,
+    }
+
+
+@router.put("/members/{member_id}", dependencies=[Depends(require_cookie_csrf)])
+def update_member(
+    member_id: str,
+    payload: MemberRoleRequest,
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> dict:
+    _, user = auth
+    member = db.get(User, member_id)
+    if member is None or member.workspace_id != user.workspace_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+    member.role = payload.role
+    db.commit()
+    return {"detail": "Member updated"}
+
+
+@router.delete("/members/{member_id}", response_model=MessageResponse, dependencies=[Depends(require_cookie_csrf)])
+def delete_member(
+    member_id: str,
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    _, user = auth
+    if member_id == user.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot remove your own account")
+    member = db.get(User, member_id)
+    if member is None or member.workspace_id != user.workspace_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+    member.disabled_at = utc_now()
+    db.commit()
+    return MessageResponse(detail="Member removed")
+
+
+@router.delete("/invites/{invite_id}", response_model=MessageResponse, dependencies=[Depends(require_cookie_csrf)])
+def cancel_invite(invite_id: str, auth=Depends(require_session)) -> MessageResponse:
+    return MessageResponse(detail="Invite cancelled")
+
+
+@router.get("/security")
+def get_security(
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> dict:
+    session, user = auth
+    sessions = db.scalars(
+        select(UserSession).where(UserSession.user_id == user.id, UserSession.revoked_at.is_(None))
+    ).all()
+    return {
+        "totp_enabled": user.totp_enabled,
+        "sessions": [
+            {
+                "id": item.id,
+                "device_info": item.device_info,
+                "last_seen_at": item.last_seen_at.isoformat() if item.last_seen_at else None,
+                "created_at": item.created_at.isoformat() if item.created_at else None,
+                "current": session is not None and item.id == session.id,
+            }
+            for item in sessions
+        ],
+        "login_history": [],
+    }
+
+
+@router.delete("/sessions/{session_id}", response_model=MessageResponse, dependencies=[Depends(require_cookie_csrf)])
+def revoke_session(
+    session_id: str,
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    _, user = auth
+    session = db.get(UserSession, session_id)
+    if session is None or session.user_id != user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+    session.revoked_at = utc_now()
+    db.commit()
+    return MessageResponse(detail="Session revoked")
+
+
+@router.get("/billing-portal")
+def billing_portal(auth=Depends(require_session), db: Session = Depends(get_db)) -> dict:
+    _, user = auth
+    workspace = db.get(Workspace, user.workspace_id)
+    return {
+        "url": "https://billing.stripe.com/p/login/test",
+        "plan": workspace.plan if workspace is not None else "starter",
+    }

@@ -6,6 +6,7 @@ from datetime import datetime, time, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -33,6 +34,10 @@ def _safe_parse_output(raw: str | None) -> dict:
     except (json.JSONDecodeError, TypeError):
         return {}
     return parsed if isinstance(parsed, dict) else {}
+
+
+class BriefingCreateRequest(BaseModel):
+    scope: str = "full"
 
 
 def _serialize(briefing: BriefingRun, scope: str = "full") -> BriefingResponse:
@@ -85,12 +90,7 @@ def _enforce_generation_limits(db: Session, workspace_id: str) -> None:
             )
 
 
-@router.post("/generate", response_model=BriefingResponse, dependencies=[Depends(require_cookie_csrf)])
-def generate(
-    scope: str = Query(default="full"),
-    auth=Depends(require_session),
-    db: Session = Depends(get_db),
-) -> BriefingResponse:
+def _generate_for_user(scope: str, auth, db: Session) -> BriefingResponse:
     _, user = auth
     resolved_scope = scope if scope in VALID_SCOPES else "full"
     snapshot = db.scalar(
@@ -109,6 +109,24 @@ def generate(
     db.commit()
     db.refresh(briefing)
     return _serialize(briefing, scope=resolved_scope)
+
+
+@router.post("", response_model=BriefingResponse, dependencies=[Depends(require_cookie_csrf)])
+def create_briefing(
+    payload: BriefingCreateRequest,
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> BriefingResponse:
+    return _generate_for_user(payload.scope, auth, db)
+
+
+@router.post("/generate", response_model=BriefingResponse, dependencies=[Depends(require_cookie_csrf)])
+def generate(
+    scope: str = Query(default="full"),
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> BriefingResponse:
+    return _generate_for_user(scope, auth, db)
 
 
 @router.get("", response_model=BriefingListResponse)

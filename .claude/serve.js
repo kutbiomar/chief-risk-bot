@@ -16,8 +16,7 @@ const MIME = {
 };
 
 const ROOTS = [
-  path.join(__dirname, '..', 'frontend-mvp'),
-  path.join(__dirname, '..', 'frontend-design-ideal'),
+  path.join(__dirname, '..', 'frontend'),
 ];
 const PORT = Number(process.env.PORT || 8000);
 const API_ORIGIN = process.env.CRB_API_ORIGIN || 'http://127.0.0.1:8001';

@@ -1,0 +1,75 @@
+/* ChiefRiskBot — Design Tokens
+   Single source of truth for all CSS custom properties.
+   Values locked to DESIGN.md. Do not edit without updating DESIGN.md. */
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* ── Paper (warm cream backgrounds) ── */
+  --paper:   #fff8f6;
+  --paper-2: #f9f2f0;
+  --paper-3: #f4ecea;
+  --paper-4: #eee7e4;
+
+  /* ── Rule (hairline borders) ── */
+  --rule:        #e8ddd6;
+  --rule-strong: #d3c3bc;
+
+  /* ── Ink (text) ── */
+  --ink:      #1e1b1a;
+  --ink-soft: #4f453f;
+  --ink-mute: #81756f;
+
+  /* ── Brand & Accent ── */
+  --brand:       #72594c;
+  --brand-deep:  #584236;
+  --accent:      #1B2B5E;
+  --accent-soft: #3a4a7a;
+  --gold:        #C9A449;
+  --teal:        #006972;
+
+  /* ── Severity (risk states only) ── */
+  --pri-fg: #B91C1C; --pri-bg: #FBE9E7;
+  --ele-fg: #C2741C; --ele-bg: #FBF1E2;
+  --wat-fg: #A38108; --wat-bg: #FAF5DC;
+  --good-fg:#3F7A4F; --good-bg:#E8F1EA;
+
+  /* ── Elevation ── */
+  --shadow: 0 1px 0 rgba(114,89,76,.04), 0 1px 2px rgba(30,27,26,.03);
+  --shadow-md: 0 2px 4px rgba(30,27,26,.06), 0 1px 2px rgba(30,27,26,.04);
+
+  /* ── Typography ── */
+  --font-sans: 'Inter Tight', system-ui, sans-serif;
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+html, body {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Utility classes ── */
+.serif  { font-family: var(--font-serif); font-optical-sizing: auto; }
+.mono   { font-family: var(--font-mono); font-feature-settings: "tnum"; }
+.uplabel {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.ms {
+  font-family: 'Material Symbols Outlined';
+  font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 20;
+  font-size: 20px; line-height: 1;
+  display: inline-block; vertical-align: middle;
+  user-select: none;
+}
+.ms.filled { font-variation-settings: 'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 20; }
+.ms.sm { font-size: 16px; }
+.ms.lg { font-size: 24px; }

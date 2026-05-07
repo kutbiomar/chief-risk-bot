@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Briefings — ChiefRiskBot</title>
+  <link rel="icon" href="data:,"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_tokens.css"/>
+  <link rel="stylesheet" href="_shell.css"/>
+  <style>
+    .generate-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 20px;
+      background: #fffdfb;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      box-shadow: var(--shadow);
+    }
+    .generate-bar .gl { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .generate-bar .gs { font-size: 11px; color: var(--ink-mute); margin-top: 2px; }
+    .generate-bar .spacer { flex: 1; }
+
+    /* In-progress banner */
+    .gen-banner {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 16px;
+      background: var(--ele-bg);
+      border: 1px solid #f0dfc1;
+      border-radius: 6px;
+      font-size: 12px; color: var(--ele-fg);
+    }
+    .gen-banner .spacer { flex: 1; }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 999px;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Table row clickable */
+    table.list tbody tr { cursor: pointer; }
+    table.list tbody tr:hover td { background: var(--paper-3); }
+    table.list td.summary { max-width: 340px; color: var(--ink-soft); }
+    table.list td.version {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--ink-mute);
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar"></div>
+  <main>
+    <div class="top"></div>
+    <div class="content">
+
+      <div class="page-head">
+        <div>
+          <h1>Briefings</h1>
+          <div class="sub">AI-generated risk and portfolio analyses</div>
+        </div>
+      </div>
+
+      <!-- Generate bar -->
+      <div class="generate-bar">
+        <div>
+          <div class="gl">Generate a new briefing</div>
+          <div class="gs">Select scope, then generate on demand or let the weekly schedule run.</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="seg" id="scope-seg">
+          <button class="on" data-value="full">Full</button>
+          <button data-value="risk">Risk</button>
+          <button data-value="assets">Assets</button>
+          <button data-value="liquidity">Liquidity</button>
+        </div>
+        <button class="btn primary"><span class="ms sm">auto_awesome</span> Generate</button>
+      </div>
+
+      <!-- In-progress banner -->
+      <div class="gen-banner">
+        <div class="spinner"></div>
+        <span>Generating <strong>full briefing</strong> for week of 5 May 2026 — usually takes 20–30 seconds.</span>
+        <div class="spacer"></div>
+        <button class="btn ghost" style="padding:4px 10px;font-size:11px">Cancel</button>
+      </div>
+
+      <!-- Briefings list -->
+      <div class="table-card">
+        <div class="table-head">
+          <h2>All Briefings</h2>
+          <span class="uplabel">6 briefings</span>
+        </div>
+        <table class="list">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Scope</th>
+              <th>Version</th>
+              <th>Summary</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr onclick="location.href='briefing.html'">
+              <td style="font-weight:600;color:var(--ink);white-space:nowrap">5 May 2026</td>
+              <td><span class="pill accent">Full</span></td>
+              <td class="version">v1</td>
+              <td class="summary">US equity overweight remains priority. Two PE capital calls due within 30 days. Rate sensitivity elevated on fixed income sleeve.</td>
+              <td><span class="ms sm" style="color:var(--ink-mute)">chevron_right</span></td>
+            </tr>
+            <tr onclick="location.href='briefing.html'">
+              <td style="font-weight:600;color:var(--ink);white-space:nowrap">28 Apr 2026</td>
+              <td><span class="pill mute">Risk</span></td>
+              <td class="version">v1</td>
+              <td class="summary">Three elevated flags, down from five. EUR/USD exposure flagged as new watch item. No priority flags this week.</td>
+              <td><span class="ms sm" style="color:var(--ink-mute)">chevron_right</span></td>
+            </tr>
+            <tr onclick="location.href='briefing.html'">
+              <td style="font-weight:600;color:var(--ink);white-space:nowrap">21 Apr 2026</td>
+              <td><span class="pill accent">Full</span></td>
+              <td class="version">v2</td>
+              <td class="summary">Regenerated after Blackstone NAV update. PE allocation revised to 18.0% from 16.4%. Liquidity runway extended to 14 months.</td>
+              <td><span class="ms sm" style="color:var(--ink-mute)">chevron_right</span></td>
+            </tr>
+            <tr onclick="location.href='briefing.html'">
+              <td style="font-weight:600;color:var(--ink);white-space:nowrap">21 Apr 2026</td>
+              <td><span class="pill accent">Full</span></td>
+              <td class="version">v1</td>
+              <td class="summary">Portfolio VaR at cycle highs. Correlation between equity and credit approaching 0.7. Consider rebalancing into fixed income.</td>
+              <td><span class="ms sm" style="color:var(--ink-mute)">chevron_right</span></td>
+            </tr>
+            <tr onclick="location.href='briefing.html'">
+              <td style="font-weight:600;color:var(--ink);white-space:nowrap">14 Apr 2026</td>
+              <td><span class="pill mute">Liquidity</span></td>
+              <td class="version">v1</td>
+              <td class="summary">Cash runway reduced to 11 months following Vista distribution delay. Near-term pressure from two overlapping capital calls in May.</td>
+              <td><span class="ms sm" style="color:var(--ink-mute)">chevron_right</span></td>
+            </tr>
+            <tr onclick="location.href='briefing.html'">
+              <td style="font-weight:600;color:var(--ink);white-space:nowrap">7 Apr 2026</td>
+              <td><span class="pill accent">Full</span></td>
+              <td class="version">v1</td>
+              <td class="summary">Clean sheet — no priority flags. Equity allocation within target band. PE deployment pace on track. Recommend maintaining current positioning.</td>
+              <td><span class="ms sm" style="color:var(--ink-mute)">chevron_right</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="sidebar-backdrop"></div>
+<script src="_api.js?v=2"></script>
+<script src="_shell.js?v=2"></script>
+<script>API.redirectIfUnauth(); Shell.mount('briefings.html', ['Briefings']);</script>
+<script src="_app.js?v=2"></script>
+</body>
+</html>

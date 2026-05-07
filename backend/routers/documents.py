@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, Response, status
+from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -35,6 +36,11 @@ DOCUMENT_UPLOAD_MIME_TYPES = {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 }
+
+
+class FieldReviewUpdateRequest(BaseModel):
+    field_id: str
+    approved: bool
 
 
 def _serialize(document: Document) -> DocumentResponse:
@@ -223,6 +229,15 @@ def get_review(
     return ExtractionReviewResponse(**payload)
 
 
+@router.get("/{document_id}/fields", response_model=ExtractionReviewResponse)
+def get_fields(
+    document_id: str,
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> ExtractionReviewResponse:
+    return get_review(document_id, auth, db)
+
+
 @router.patch(
     "/{document_id}/review",
     response_model=ExtractionReviewResponse,
@@ -251,6 +266,26 @@ def patch_review(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     db.commit()
     return ExtractionReviewResponse(**review)
+
+
+@router.put(
+    "/{document_id}/fields",
+    response_model=ExtractionReviewResponse,
+    dependencies=[Depends(require_cookie_csrf)],
+)
+def put_field_review(
+    document_id: str,
+    payload: FieldReviewUpdateRequest,
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> ExtractionReviewResponse:
+    existing = get_review(document_id, auth, db)
+    resolved_fields = [field.field for field in existing.field_reviews if field.resolved]
+    if payload.approved and payload.field_id not in resolved_fields:
+        resolved_fields.append(payload.field_id)
+    if not payload.approved:
+        resolved_fields = [field for field in resolved_fields if field != payload.field_id]
+    return patch_review(document_id, ReviewUpdateRequest(resolved_fields=resolved_fields), auth, db)
 
 
 @router.post(
@@ -294,6 +329,19 @@ def approve_document(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     db.commit()
     return MessageResponse(detail=f"Document extraction approved into snapshot {snapshot.id}")
+
+
+@router.post(
+    "/{document_id}/apply",
+    response_model=MessageResponse,
+    dependencies=[Depends(require_cookie_csrf)],
+)
+def apply_document(
+    document_id: str,
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    return approve_document(document_id, auth, db)
 
 
 @router.delete(

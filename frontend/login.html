@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Sign in — ChiefRiskBot</title>
+  <link rel="icon" href="data:,"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_tokens.css"/>
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--paper);
+      padding: 24px;
+    }
+
+    .auth-wrap {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* Brand header */
+    .auth-brand {
+      text-align: center;
+    }
+    .auth-logo {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      background: var(--accent);
+      display: inline-grid;
+      place-items: center;
+      font-family: var(--font-serif);
+      font-size: 20px; font-weight: 900;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+    .auth-headline {
+      font-family: var(--font-serif);
+      font-size: 28px; font-weight: 900;
+      letter-spacing: -.02em;
+      color: var(--ink);
+    }
+    .auth-sub {
+      font-size: 13px;
+      color: var(--ink-mute);
+      margin-top: 4px;
+    }
+
+    /* Tab toggle */
+    .auth-tabs {
+      display: flex;
+      background: var(--paper-3);
+      border: 1px solid var(--rule);
+      border-radius: 7px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .auth-tabs button {
+      flex: 1;
+      padding: 7px 12px;
+      border: none;
+      background: transparent;
+      border-radius: 5px;
+      font: 600 12px/1 var(--font-sans);
+      color: var(--ink-mute);
+      cursor: pointer;
+      transition: background 80ms, color 80ms, box-shadow 80ms;
+    }
+    .auth-tabs button.on {
+      background: #fffdfb;
+      color: var(--ink);
+      box-shadow: 0 1px 2px rgba(30,27,26,.08);
+    }
+
+    /* Card */
+    .auth-card {
+      background: #fffdfb;
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      box-shadow: var(--shadow-md);
+      padding: 28px 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* Form rows */
+    .form-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .form-row label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-soft);
+      cursor: pointer;
+    }
+    .form-row input[type="checkbox"] {
+      width: 14px; height: 14px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .form-row a {
+      font-size: 12px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .form-row a:hover { text-decoration: underline; }
+
+    /* Submit button full-width */
+    .btn-full {
+      width: 100%;
+      justify-content: center;
+      padding: 10px 16px;
+      font-size: 13px;
+    }
+
+    /* Footer link */
+    .auth-footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--ink-mute);
+    }
+    .auth-footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    /* Panel show/hide */
+    [data-panel] { display: none; flex-direction: column; gap: 18px; }
+    [data-panel].visible { display: flex; }
+  </style>
+</head>
+<body>
+
+<div class="auth-wrap">
+
+  <div class="auth-brand">
+    <div class="auth-logo serif">R</div>
+    <div class="auth-headline">Welcome back.</div>
+    <div class="auth-sub">ChiefRiskBot — Family Office Risk Platform</div>
+  </div>
+
+  <div class="auth-tabs" role="tablist">
+    <button class="on" data-tab="sign-in">Sign in</button>
+    <button data-tab="register">Create workspace</button>
+  </div>
+
+  <div class="auth-card">
+
+    <!-- Sign in panel -->
+    <div data-panel="sign-in" class="visible">
+      <div class="field">
+        <label>Email address</label>
+        <input type="email" placeholder="you@family-office.com" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" placeholder="••••••••••••" autocomplete="current-password"/>
+      </div>
+      <div class="form-row">
+        <label><input type="checkbox"/> Keep me signed in</label>
+        <a href="#" id="forgot-link">Forgot password?</a>
+      </div>
+      <button class="btn primary btn-full">
+        Sign in <span class="ms sm">arrow_forward</span>
+      </button>
+    </div>
+
+    <!-- Register panel -->
+    <div data-panel="register">
+      <div class="field">
+        <label>Full name</label>
+        <input type="text" placeholder="Your full name" autocomplete="name"/>
+      </div>
+      <div class="field">
+        <label>Workspace name</label>
+        <input type="text" placeholder="e.g. Aldridge Family Office"/>
+        <span class="hint">This will be the name of your risk workspace.</span>
+      </div>
+      <div class="field">
+        <label>Email address</label>
+        <input type="email" placeholder="you@family-office.com" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" placeholder="At least 12 characters" autocomplete="new-password"/>
+      </div>
+      <button class="btn primary btn-full">
+        Create workspace <span class="ms sm">arrow_forward</span>
+      </button>
+    </div>
+
+    <!-- Forgot password panel -->
+    <div data-panel="forgot">
+      <div style="font-size:13px;color:var(--ink-soft);line-height:1.55;">
+        Enter your email and we'll send a reset link.
+      </div>
+      <div class="field">
+        <label>Email address</label>
+        <input type="email" placeholder="you@family-office.com" autocomplete="email"/>
+      </div>
+      <button class="btn primary btn-full">
+        Send reset link <span class="ms sm">mail</span>
+      </button>
+      <button class="btn ghost btn-full" id="back-to-signin" style="justify-content:center">
+        <span class="ms sm">arrow_back</span> Back to sign in
+      </button>
+    </div>
+
+  </div><!-- /auth-card -->
+
+  <div class="auth-footer">
+    By continuing you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+  </div>
+
+</div><!-- /auth-wrap -->
+
+<script src="_api.js?v=2"></script>
+<script src="_app.js?v=2"></script>
+<script>
+  (function() {
+    const tabs   = document.querySelectorAll('.auth-tabs button');
+    const panels = document.querySelectorAll('[data-panel]');
+
+    function show(panelId) {
+      panels.forEach(p => p.classList.toggle('visible', p.dataset.panel === panelId));
+    }
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('on'));
+        tab.classList.add('on');
+        show(tab.dataset.tab);
+      });
+    });
+
+    document.getElementById('forgot-link').addEventListener('click', e => {
+      e.preventDefault();
+      tabs.forEach(t => t.classList.remove('on'));
+      show('forgot');
+    });
+
+    document.getElementById('back-to-signin').addEventListener('click', () => {
+      tabs[0].classList.add('on');
+      show('sign-in');
+    });
+  })();
+</script>
+</body>
+</html>

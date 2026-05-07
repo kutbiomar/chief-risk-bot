@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Settings — ChiefRiskBot</title>
+  <link rel="icon" href="data:,"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_tokens.css"/>
+  <link rel="stylesheet" href="_shell.css"/>
+  <style>
+    /* ── Two-column layout ── */
+    .settings-layout {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    /* ── Side nav ── */
+    .settings-nav {
+      position: sticky;
+      top: 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .settings-nav h4 {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--ink-mute);
+      padding: 4px 8px 8px;
+    }
+    .settings-nav a {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; border-radius: 5px;
+      font-size: 12px; font-weight: 500;
+      color: var(--ink-soft); text-decoration: none;
+      transition: background 80ms, color 80ms;
+    }
+    .settings-nav a .ms { font-size: 16px; color: var(--ink-mute); }
+    .settings-nav a:hover { background: var(--paper-3); color: var(--ink); }
+    .settings-nav a.active { background: var(--paper-3); color: var(--accent); font-weight: 600; }
+    .settings-nav a.active .ms { color: var(--accent); }
+
+    /* ── Settings panels ── */
+    .panels { display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── Section card ── */
+    .sec {
+      background: #fffdfb;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .sec > header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--rule);
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+    }
+    .sec > header h2 {
+      font-family: var(--font-serif);
+      font-size: 16px; font-weight: 700;
+      letter-spacing: -.01em; color: var(--ink);
+      margin-bottom: 3px;
+    }
+    .sec > header p { font-size: 12px; color: var(--ink-mute); line-height: 1.5; }
+    .sec .body {
+      padding: 20px 24px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .sec footer {
+      padding: 12px 24px;
+      border-top: 1px solid var(--rule);
+      background: var(--paper-2);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 11px; color: var(--ink-mute);
+    }
+
+    /* ── Field row (2-col) ── */
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+    /* ── API key table ── */
+    .key-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--rule);
+    }
+    .key-row:last-child { border-bottom: none; }
+    .key-name { font-size: 12px; font-weight: 600; color: var(--ink); flex: 1; }
+    .key-token {
+      font-family: var(--font-mono); font-size: 11px; color: var(--ink-mute);
+      background: var(--paper-3); padding: 3px 8px; border-radius: 3px;
+      border: 1px solid var(--rule);
+      letter-spacing: .05em;
+    }
+    .key-meta { font-size: 10px; color: var(--ink-mute); min-width: 100px; text-align: right; }
+
+    /* ── New key banner ── */
+    .new-key-banner {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      background: #eef8f0; border: 1px solid #b8dfc4;
+      border-radius: 6px; font-size: 12px; color: #1e5c33;
+    }
+    .new-key-banner .key-reveal {
+      font-family: var(--font-mono); font-size: 11px;
+      background: #fff; border: 1px solid #b8dfc4;
+      border-radius: 3px; padding: 4px 8px;
+      letter-spacing: .06em; flex: 1;
+    }
+
+    /* ── Account section ── */
+    .account-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0; border-bottom: 1px solid var(--rule);
+    }
+    .account-row:last-child { border-bottom: none; }
+    .account-row .ar-label { font-size: 11px; font-weight: 700; letter-spacing:.08em; text-transform:uppercase; color: var(--ink-mute); margin-bottom: 3px; }
+    .account-row .ar-value { font-size: 13px; font-weight: 500; color: var(--ink); }
+
+    /* ── Member rows ── */
+    .member-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--rule);
+    }
+    .member-row:last-child { border-bottom: none; }
+    .member-ava {
+      width: 32px; height: 32px; border-radius: 999px;
+      display: grid; place-items: center; flex-shrink: 0;
+      font-size: 11px; font-weight: 700; color: #fff;
+    }
+    .member-info { flex: 1; min-width: 0; }
+    .member-name { font-size: 12px; font-weight: 600; color: var(--ink); }
+    .member-email { font-size: 11px; color: var(--ink-mute); margin-top: 1px; }
+    .member-meta { font-size: 10px; color: var(--ink-mute); min-width: 90px; text-align: right; }
+
+    /* Role badge */
+    .role-badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: 3px;
+      font-size: 10px; font-weight: 700; letter-spacing:.06em; text-transform: uppercase;
+    }
+    .role-badge.owner { background: #eef0f7; color: var(--accent); }
+    .role-badge.admin { background: var(--paper-3); color: var(--ink-soft); }
+    .role-badge.viewer { background: var(--paper-3); color: var(--ink-mute); }
+
+    /* Invite row */
+    .invite-row {
+      display: flex; gap: 10px; align-items: flex-end;
+      padding: 14px 16px;
+      background: var(--paper-2);
+      border: 1px dashed var(--rule-strong);
+      border-radius: 6px;
+    }
+    .invite-row .field { flex: 1; }
+    .invite-row .field:last-of-type { flex: 0 0 140px; }
+
+    /* ── Security section ── */
+    .security-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 13px 0; border-bottom: 1px solid var(--rule);
+    }
+    .security-row:last-child { border-bottom: none; }
+    .security-row .sr-label { font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+    .security-row .sr-sub { font-size: 11px; color: var(--ink-mute); }
+
+    /* 2FA status badge */
+    .twofa-off {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600;
+      color: var(--ele-fg); background: var(--ele-bg);
+      padding: 3px 8px; border-radius: 4px;
+    }
+    .twofa-on {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600;
+      color: var(--good-fg); background: var(--good-bg);
+      padding: 3px 8px; border-radius: 4px;
+    }
+
+    /* Session rows */
+    .session-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 0; border-bottom: 1px solid var(--rule);
+    }
+    .session-row:last-child { border-bottom: none; }
+    .session-ico {
+      width: 30px; height: 30px; border-radius: 5px;
+      background: var(--paper-3); display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .session-ico .ms { font-size: 16px; color: var(--ink-mute); }
+    .session-info { flex: 1; min-width: 0; }
+    .session-device { font-size: 12px; font-weight: 600; color: var(--ink); }
+    .session-detail { font-size: 10px; color: var(--ink-mute); margin-top: 2px; }
+    .session-current {
+      font-size: 10px; font-weight: 700; letter-spacing:.06em;
+      color: var(--good-fg); text-transform: uppercase;
+    }
+
+    /* Login history table */
+    .login-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 11px;
+    }
+    .login-table thead th {
+      text-align: left; padding: 6px 0;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--ink-mute);
+      border-bottom: 1px solid var(--rule);
+    }
+    .login-table tbody td {
+      padding: 9px 0;
+      border-bottom: 1px solid var(--rule);
+      color: var(--ink-soft);
+    }
+    .login-table tbody tr:last-child td { border-bottom: none; }
+    .login-table .mono { font-family: var(--font-mono); font-size: 10px; }
+
+    /* ── Payment section ── */
+    .plan-card {
+      display: flex; align-items: center; gap: 16px;
+      padding: 16px 18px;
+      background: linear-gradient(135deg, #1B2B5E 0%, #2d4080 100%);
+      border-radius: 6px;
+      color: #fff;
+    }
+    .plan-card .plan-icon {
+      width: 40px; height: 40px; border-radius: 8px;
+      background: rgba(255,255,255,.15);
+      display: grid; place-items: center; flex-shrink: 0;
+    }
+    .plan-card .plan-icon .ms { font-size: 20px; color: #fff; }
+    .plan-card .plan-name { font-family: var(--font-serif); font-size: 16px; font-weight: 700; }
+    .plan-card .plan-desc { font-size: 11px; opacity: .75; margin-top: 2px; }
+    .plan-card .plan-price {
+      font-family: var(--font-mono); font-size: 22px; font-weight: 600;
+      margin-left: auto;
+    }
+    .plan-card .plan-cycle { font-size: 10px; opacity: .65; margin-top: 2px; text-align: right; }
+
+    .payment-method-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 0; border-bottom: 1px solid var(--rule);
+    }
+    .payment-method-row:last-child { border-bottom: none; }
+    .card-art {
+      width: 44px; height: 28px; border-radius: 4px;
+      border: 1px solid var(--rule);
+      background: var(--paper-3);
+      display: grid; place-items: center; flex-shrink: 0;
+      font-size: 9px; font-weight: 700; letter-spacing:.05em; color: var(--ink-mute);
+    }
+    .card-art.visa { background: #1a1f71; color: #fff; font-size: 10px; letter-spacing:.02em; }
+    .card-art.mastercard {
+      background: var(--paper);
+      position: relative; overflow: hidden;
+    }
+    .pm-info { flex: 1; }
+    .pm-label { font-size: 12px; font-weight: 600; color: var(--ink); }
+    .pm-sub { font-size: 11px; color: var(--ink-mute); margin-top: 1px; }
+
+    .invoice-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid var(--rule);
+    }
+    .invoice-row:last-child { border-bottom: none; }
+    .invoice-date { font-size: 11px; color: var(--ink-mute); min-width: 80px; font-family: var(--font-mono); }
+    .invoice-desc { font-size: 12px; color: var(--ink-soft); flex: 1; }
+    .invoice-amount { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--ink); min-width: 60px; text-align: right; }
+
+    /* Danger zone */
+    .danger-zone {
+      padding: 14px 16px;
+      background: var(--pri-bg);
+      border: 1px solid #f3d4d0;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .danger-zone .dz-label { font-size: 12px; font-weight: 600; color: var(--pri-fg); margin-bottom: 2px; }
+    .danger-zone .dz-sub { font-size: 11px; color: var(--ink-mute); }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar"></div>
+  <main>
+    <div class="top"></div>
+    <div class="content">
+
+      <div class="page-head">
+        <div>
+          <h1>Settings</h1>
+          <div class="sub">Workspace, team, security, and billing</div>
+        </div>
+      </div>
+
+      <div class="settings-layout">
+
+        <!-- Side nav -->
+        <nav class="settings-nav">
+          <h4>Settings</h4>
+          <a href="#workspace" class="active">
+            <span class="ms">tune</span> Workspace
+          </a>
+          <a href="#schedule">
+            <span class="ms">schedule</span> Briefing Schedule
+          </a>
+          <a href="#api-keys">
+            <span class="ms">key</span> API Keys
+          </a>
+          <a href="#access">
+            <span class="ms">group</span> Access
+          </a>
+          <a href="#security">
+            <span class="ms">shield</span> Security
+          </a>
+          <a href="#payment">
+            <span class="ms">credit_card</span> Payment
+          </a>
+          <a href="#account">
+            <span class="ms">person</span> Account
+          </a>
+        </nav>
+
+        <div class="panels">
+
+          <!-- Workspace -->
+          <div class="sec" id="workspace">
+            <header>
+              <div>
+                <h2>Workspace</h2>
+                <p>Name and reporting currency for this workspace.</p>
+              </div>
+            </header>
+            <div class="body">
+              <div class="field-row">
+                <div class="field">
+                  <label>Workspace name</label>
+                  <input type="text" value="Aldridge Family Office"/>
+                </div>
+                <div class="field">
+                  <label>Reporting currency</label>
+                  <select>
+                    <option selected>USD — US Dollar</option>
+                    <option>EUR — Euro</option>
+                    <option>GBP — British Pound</option>
+                    <option>CHF — Swiss Franc</option>
+                    <option>SGD — Singapore Dollar</option>
+                    <option>AED — UAE Dirham</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <footer>
+              <span>Last updated 28 Mar 2026</span>
+              <button class="btn primary">Save changes</button>
+            </footer>
+          </div>
+
+          <!-- Briefing Schedule -->
+          <div class="sec" id="schedule">
+            <header>
+              <div>
+                <h2>Briefing Schedule</h2>
+                <p>Automated weekly briefing generation. Runs in the background and is ready before market open.</p>
+              </div>
+            </header>
+            <div class="body">
+              <div class="toggle-row">
+                <div class="lbl">
+                  <b>Enable automated briefing</b>
+                  <small>Generate a full briefing on a fixed weekly schedule.</small>
+                </div>
+                <div class="sw on"></div>
+              </div>
+
+              <div class="field-row">
+                <div class="field">
+                  <label>Day of week</label>
+                  <select>
+                    <option>Sunday</option>
+                    <option selected>Monday</option>
+                    <option>Tuesday</option>
+                    <option>Wednesday</option>
+                    <option>Thursday</option>
+                    <option>Friday</option>
+                    <option>Saturday</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Time (UTC)</label>
+                  <select>
+                    <option>05:00</option>
+                    <option>06:00</option>
+                    <option selected>07:00</option>
+                    <option>08:00</option>
+                    <option>09:00</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="font-size:11px;color:var(--ink-mute);padding:10px 12px;background:var(--paper-2);border:1px solid var(--rule);border-radius:5px;">
+                <span class="ms sm" style="vertical-align:middle;margin-right:4px">info</span>
+                Next scheduled run: <strong style="color:var(--ink)">Monday 11 May 2026 at 07:00 UTC</strong>
+              </div>
+            </div>
+            <footer>
+              <span>Schedule active</span>
+              <button class="btn primary">Save changes</button>
+            </footer>
+          </div>
+
+          <!-- API Keys -->
+          <div class="sec" id="api-keys">
+            <header>
+              <div>
+                <h2>API Keys</h2>
+                <p>Use API keys to access ChiefRiskBot programmatically or integrate with external systems.</p>
+              </div>
+              <button class="btn"><span class="ms sm">add</span> Create key</button>
+            </header>
+            <div class="body">
+
+              <!-- Newly created key banner -->
+              <div class="new-key-banner">
+                <span class="ms sm">check_circle</span>
+                <div style="flex:1">
+                  <div style="font-weight:600;margin-bottom:4px">New key created — copy it now. It will not be shown again.</div>
+                  <div class="key-reveal">crb_live_8f2a91bc4d7e3f50a1c6e92d18b4f730</div>
+                </div>
+                <button class="btn" style="background:#fff;border-color:#b8dfc4;color:#1e5c33;flex-shrink:0">
+                  <span class="ms sm">content_copy</span> Copy
+                </button>
+              </div>
+
+              <!-- Keys list -->
+              <div>
+                <div class="key-row">
+                  <div>
+                    <div class="key-name">Production key</div>
+                    <div style="font-size:10px;color:var(--ink-mute);margin-top:2px">Created 12 Jan 2026</div>
+                  </div>
+                  <span class="key-token">crb_live_••••••••••••f730</span>
+                  <div class="key-meta">Last used 6 May 2026</div>
+                  <button class="btn danger" style="padding:5px 10px;font-size:11px">Revoke</button>
+                </div>
+                <div class="key-row">
+                  <div>
+                    <div class="key-name">Staging / testing</div>
+                    <div style="font-size:10px;color:var(--ink-mute);margin-top:2px">Created 2 Mar 2026</div>
+                  </div>
+                  <span class="key-token">crb_live_••••••••••••a4c2</span>
+                  <div class="key-meta">Last used 1 May 2026</div>
+                  <button class="btn danger" style="padding:5px 10px;font-size:11px">Revoke</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Access Management -->
+          <div class="sec" id="access">
+            <header>
+              <div>
+                <h2>Access Management</h2>
+                <p>Manage who can access this workspace and their permission level.</p>
+              </div>
+              <button class="btn primary"><span class="ms sm">person_add</span> Invite member</button>
+            </header>
+            <div class="body">
+
+              <!-- Member list -->
+              <div>
+                <div class="member-row">
+                  <div class="member-ava" style="background:var(--accent)">CIO</div>
+                  <div class="member-info">
+                    <div class="member-name">Chief Investment Officer</div>
+                    <div class="member-email">cio@aldridge.fo</div>
+                  </div>
+                  <span class="role-badge owner">Owner</span>
+                  <div class="member-meta">You</div>
+                </div>
+                <div class="member-row">
+                  <div class="member-ava" style="background:#4a6fa1">SA</div>
+                  <div class="member-info">
+                    <div class="member-name">Sarah Aldridge</div>
+                    <div class="member-email">sarah@aldridge.fo</div>
+                  </div>
+                  <span class="role-badge admin">Admin</span>
+                  <div class="member-meta">Active today</div>
+                  <button class="btn ghost" style="padding:4px 10px;font-size:11px">Manage</button>
+                </div>
+                <div class="member-row">
+                  <div class="member-ava" style="background:#72594c">RK</div>
+                  <div class="member-info">
+                    <div class="member-name">Richard Keane</div>
+                    <div class="member-email">rkeane@aldridge.fo</div>
+                  </div>
+                  <span class="role-badge viewer">Viewer</span>
+                  <div class="member-meta">2 days ago</div>
+                  <button class="btn ghost" style="padding:4px 10px;font-size:11px">Manage</button>
+                </div>
+                <div class="member-row">
+                  <div class="member-ava" style="background:#8d7c76">PW</div>
+                  <div class="member-info">
+                    <div class="member-name">Patricia Walsh</div>
+                    <div class="member-email">pwalsh@externaladvisor.com</div>
+                  </div>
+                  <span class="role-badge viewer">Viewer</span>
+                  <div class="member-meta">Last week</div>
+                  <button class="btn ghost" style="padding:4px 10px;font-size:11px">Manage</button>
+                </div>
+              </div>
+
+              <!-- Pending invite -->
+              <div>
+                <div class="uplabel" style="margin-bottom:8px">Pending invites</div>
+                <div class="member-row" style="opacity:.65">
+                  <div class="member-ava" style="background:var(--paper-3);border:1.5px dashed var(--rule-strong)">
+                    <span class="ms" style="font-size:16px;color:var(--ink-mute)">person</span>
+                  </div>
+                  <div class="member-info">
+                    <div class="member-name" style="color:var(--ink-mute)">jsmith@lpcapital.com</div>
+                    <div class="member-email">Invited 3 May 2026</div>
+                  </div>
+                  <span class="role-badge viewer">Viewer</span>
+                  <div class="member-meta">Expires 10 May</div>
+                  <button class="btn ghost" style="padding:4px 10px;font-size:11px">Resend</button>
+                  <button class="btn danger" style="padding:4px 10px;font-size:11px">Cancel</button>
+                </div>
+              </div>
+
+              <!-- Invite form -->
+              <div class="invite-row">
+                <div class="field">
+                  <label>Email address</label>
+                  <input type="email" placeholder="colleague@example.com"/>
+                </div>
+                <div class="field">
+                  <label>Role</label>
+                  <select>
+                    <option>Viewer — read-only access</option>
+                    <option>Admin — full access</option>
+                  </select>
+                </div>
+                <button class="btn primary" style="white-space:nowrap;flex-shrink:0">
+                  <span class="ms sm">send</span> Send invite
+                </button>
+              </div>
+
+            </div>
+            <footer>
+              <span>4 members · 1 pending invite</span>
+              <span>Plan allows up to 10 members</span>
+            </footer>
+          </div>
+
+          <!-- Security -->
+          <div class="sec" id="security">
+            <header>
+              <div>
+                <h2>Security</h2>
+                <p>Two-factor authentication, active sessions, and login history.</p>
+              </div>
+            </header>
+            <div class="body">
+
+              <!-- 2FA -->
+              <div>
+                <div class="uplabel" style="margin-bottom:10px">Two-factor authentication</div>
+                <div class="security-row">
+                  <div>
+                    <div class="sr-label">Authenticator app</div>
+                    <div class="sr-sub">TOTP via Google Authenticator, Authy, or 1Password.</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span class="twofa-off"><span class="ms sm">warning</span> Not enabled</span>
+                    <button class="btn primary" style="font-size:11px;padding:5px 12px">Set up</button>
+                  </div>
+                </div>
+                <div class="security-row">
+                  <div>
+                    <div class="sr-label">SMS backup</div>
+                    <div class="sr-sub">Receive a one-time code via SMS as a fallback method.</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span class="twofa-off"><span class="ms sm">warning</span> Not enabled</span>
+                    <button class="btn" style="font-size:11px;padding:5px 12px;opacity:.5" disabled>Set up</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Active sessions -->
+              <div>
+                <div class="uplabel" style="margin-bottom:10px">Active sessions</div>
+                <div class="session-row">
+                  <div class="session-ico"><span class="ms">laptop_mac</span></div>
+                  <div class="session-info">
+                    <div class="session-device">MacBook Pro · Safari 17</div>
+                    <div class="session-detail">London, UK · 192.168.1.1 · Started 28 Apr 2026</div>
+                  </div>
+                  <span class="session-current">Current</span>
+                </div>
+                <div class="session-row">
+                  <div class="session-ico"><span class="ms">phone_iphone</span></div>
+                  <div class="session-info">
+                    <div class="session-device">iPhone 15 · Safari Mobile</div>
+                    <div class="session-detail">London, UK · Last active 5 May 2026</div>
+                  </div>
+                  <button class="btn danger" style="padding:4px 10px;font-size:11px;flex-shrink:0">Revoke</button>
+                </div>
+                <div class="session-row">
+                  <div class="session-ico"><span class="ms">desktop_windows</span></div>
+                  <div class="session-info">
+                    <div class="session-device">Windows PC · Chrome 124</div>
+                    <div class="session-detail">New York, US · Last active 1 May 2026</div>
+                  </div>
+                  <button class="btn danger" style="padding:4px 10px;font-size:11px;flex-shrink:0">Revoke</button>
+                </div>
+              </div>
+
+              <!-- Login history -->
+              <div>
+                <div class="uplabel" style="margin-bottom:10px">Recent login history</div>
+                <table class="login-table">
+                  <thead>
+                    <tr>
+                      <th>Date & time</th>
+                      <th>Device</th>
+                      <th>Location</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="mono">6 May 2026 08:14</td>
+                      <td>MacBook Pro · Safari 17</td>
+                      <td>London, UK</td>
+                      <td><span class="pill good">Success</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">4 May 2026 19:02</td>
+                      <td>iPhone 15 · Safari Mobile</td>
+                      <td>London, UK</td>
+                      <td><span class="pill good">Success</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">1 May 2026 11:47</td>
+                      <td>Windows PC · Chrome 124</td>
+                      <td>New York, US</td>
+                      <td><span class="pill good">Success</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">28 Apr 2026 08:01</td>
+                      <td>MacBook Pro · Safari 17</td>
+                      <td>London, UK</td>
+                      <td><span class="pill good">Success</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">22 Apr 2026 16:33</td>
+                      <td>Unknown device</td>
+                      <td>Lagos, NG</td>
+                      <td><span class="pill pri">Failed</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Revoke all sessions -->
+              <div style="display:flex;justify-content:flex-end">
+                <button class="btn danger">
+                  <span class="ms sm">logout</span> Sign out all other sessions
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Payment -->
+          <div class="sec" id="payment">
+            <header>
+              <div>
+                <h2>Payment &amp; Billing</h2>
+                <p>Subscription plan, payment method, and invoice history.</p>
+              </div>
+              <button class="btn"><span class="ms sm">open_in_new</span> Manage plan</button>
+            </header>
+            <div class="body">
+
+              <!-- Current plan -->
+              <div class="plan-card">
+                <div class="plan-icon"><span class="ms">workspace_premium</span></div>
+                <div>
+                  <div class="plan-name">Professional</div>
+                  <div class="plan-desc">Up to 10 members · Unlimited briefings · API access</div>
+                </div>
+                <div style="margin-left:auto;text-align:right">
+                  <div class="plan-price">$299</div>
+                  <div class="plan-cycle">per month · renews 1 Jun 2026</div>
+                </div>
+              </div>
+
+              <!-- Payment methods -->
+              <div>
+                <div class="uplabel" style="margin-bottom:10px">Payment methods</div>
+                <div class="payment-method-row">
+                  <div class="card-art visa">VISA</div>
+                  <div class="pm-info">
+                    <div class="pm-label">Visa ending in 4242</div>
+                    <div class="pm-sub">Expires 09 / 2028 · <span style="color:var(--good-fg);font-weight:600">Default</span></div>
+                  </div>
+                  <button class="btn ghost" style="padding:4px 10px;font-size:11px">Update</button>
+                  <button class="btn danger" style="padding:4px 10px;font-size:11px">Remove</button>
+                </div>
+                <div class="payment-method-row" style="opacity:.6">
+                  <div class="card-art" style="border-style:dashed">
+                    <span class="ms sm" style="color:var(--ink-mute)">add</span>
+                  </div>
+                  <div class="pm-info">
+                    <div class="pm-label" style="color:var(--ink-mute)">Add a payment method</div>
+                    <div class="pm-sub">Card, bank transfer, or wire</div>
+                  </div>
+                  <button class="btn" style="padding:4px 10px;font-size:11px">Add</button>
+                </div>
+              </div>
+
+              <!-- Invoices -->
+              <div>
+                <div class="uplabel" style="margin-bottom:10px">Invoice history</div>
+                <div>
+                  <div class="invoice-row">
+                    <div class="invoice-date">1 May 2026</div>
+                    <div class="invoice-desc">Professional · May 2026</div>
+                    <div class="invoice-amount">$299</div>
+                    <span class="pill good" style="margin-left:8px">Paid</span>
+                    <button class="iconbtn" title="Download PDF" style="margin-left:4px"><span class="ms sm">download</span></button>
+                  </div>
+                  <div class="invoice-row">
+                    <div class="invoice-date">1 Apr 2026</div>
+                    <div class="invoice-desc">Professional · Apr 2026</div>
+                    <div class="invoice-amount">$299</div>
+                    <span class="pill good" style="margin-left:8px">Paid</span>
+                    <button class="iconbtn" title="Download PDF" style="margin-left:4px"><span class="ms sm">download</span></button>
+                  </div>
+                  <div class="invoice-row">
+                    <div class="invoice-date">1 Mar 2026</div>
+                    <div class="invoice-desc">Professional · Mar 2026</div>
+                    <div class="invoice-amount">$299</div>
+                    <span class="pill good" style="margin-left:8px">Paid</span>
+                    <button class="iconbtn" title="Download PDF" style="margin-left:4px"><span class="ms sm">download</span></button>
+                  </div>
+                  <div class="invoice-row">
+                    <div class="invoice-date">1 Feb 2026</div>
+                    <div class="invoice-desc">Professional · Feb 2026</div>
+                    <div class="invoice-amount">$299</div>
+                    <span class="pill good" style="margin-left:8px">Paid</span>
+                    <button class="iconbtn" title="Download PDF" style="margin-left:4px"><span class="ms sm">download</span></button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+            <footer>
+              <span>Next charge of $299 on 1 Jun 2026</span>
+              <button class="btn danger">Cancel subscription</button>
+            </footer>
+          </div>
+
+          <!-- Account -->
+          <div class="sec" id="account">
+            <header>
+              <div>
+                <h2>Account</h2>
+                <p>Your login credentials and personal settings.</p>
+              </div>
+            </header>
+            <div class="body">
+              <div class="account-row">
+                <div>
+                  <div class="ar-label">Email address</div>
+                  <div class="ar-value">cio@aldridge.fo</div>
+                </div>
+                <button class="btn">Change email</button>
+              </div>
+              <div class="account-row">
+                <div>
+                  <div class="ar-label">Password</div>
+                  <div class="ar-value">Last changed 3 months ago</div>
+                </div>
+                <button class="btn">Change password</button>
+              </div>
+              <div class="account-row">
+                <div>
+                  <div class="ar-label">Session</div>
+                  <div class="ar-value">Signed in since 28 Apr 2026</div>
+                </div>
+                <button class="btn danger">Sign out</button>
+              </div>
+
+              <!-- Danger zone -->
+              <div class="danger-zone" style="margin-top:8px">
+                <div>
+                  <div class="dz-label">Delete account</div>
+                  <div class="dz-sub">Permanently delete your account and all associated data. This cannot be undone.</div>
+                </div>
+                <button class="btn danger">Delete account</button>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /panels -->
+      </div><!-- /settings-layout -->
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<div class="sidebar-backdrop"></div>
+<script src="_api.js?v=2"></script>
+<script src="_shell.js?v=2"></script>
+<script>
+  API.redirectIfUnauth();
+  Shell.mount('settings.html', ['Settings']);
+
+  // Highlight active section on scroll
+  const sections = document.querySelectorAll('.sec[id]');
+  const navLinks = document.querySelectorAll('.settings-nav a');
+
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(sec => {
+      if (sec.getBoundingClientRect().top < 120) current = sec.id;
+    });
+    if (!current) current = sections[0]?.id;
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  }, { passive: true });
+</script>
+<script src="_app.js?v=2"></script>
+</body>
+</html>

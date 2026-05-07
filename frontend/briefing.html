@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Briefing — ChiefRiskBot</title>
+  <link rel="icon" href="data:,"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_tokens.css"/>
+  <link rel="stylesheet" href="_shell.css"/>
+  <style>
+    /* ── Briefing content column ── */
+    .briefing-wrap {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* ── Briefing header ── */
+    .briefing-header {
+      padding-bottom: 24px;
+      border-bottom: 2px solid var(--rule);
+      margin-bottom: 32px;
+    }
+    .briefing-back {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 600;
+      color: var(--ink-mute);
+      text-decoration: none;
+      margin-bottom: 20px;
+    }
+    .briefing-back:hover { color: var(--accent); }
+    .briefing-meta {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px;
+    }
+    .briefing-title {
+      font-family: var(--font-serif);
+      font-size: 32px; font-weight: 900;
+      letter-spacing: -.025em;
+      color: var(--ink);
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+    .briefing-dateline {
+      font-size: 12px; color: var(--ink-mute);
+    }
+    .briefing-actions {
+      display: flex; gap: 8px;
+      margin-top: 18px;
+    }
+
+    /* ── Briefing body ── */
+    .briefing-body {
+      font-size: 14px;
+      line-height: 1.75;
+      color: var(--ink-soft);
+    }
+
+    .briefing-section {
+      margin-bottom: 36px;
+    }
+    .briefing-section .section-label {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--ink-mute);
+      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .briefing-section .section-label::after {
+      content: ''; flex: 1; height: 1px; background: var(--rule);
+    }
+    .briefing-section h2 {
+      font-family: var(--font-serif);
+      font-size: 20px; font-weight: 700;
+      letter-spacing: -.015em;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+    .briefing-section p {
+      margin-bottom: 14px;
+    }
+    .briefing-section p:last-child { margin-bottom: 0; }
+
+    /* ── Risk items ── */
+    .risk-item {
+      display: flex; gap: 14px;
+      padding: 14px 16px;
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    .risk-item .ri-sev { flex-shrink: 0; padding-top: 2px; }
+    .risk-item .ri-headline {
+      font-size: 13px; font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 4px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .risk-item .ri-body { font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
+
+    /* ── Action list ── */
+    .action-list {
+      display: flex; flex-direction: column; gap: 8px;
+      list-style: none;
+    }
+    .action-list li {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 14px;
+      background: #fffdfb;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      font-size: 13px; color: var(--ink-soft);
+      line-height: 1.55;
+    }
+    .action-list li .ms { color: var(--accent); margin-top: 1px; flex-shrink: 0; }
+
+    /* ── Data table in briefing ── */
+    .briefing-table {
+      width: 100%;
+      border-collapse: separate; border-spacing: 0;
+      font-size: 12px;
+      margin: 14px 0;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .briefing-table thead th {
+      background: var(--paper-2);
+      padding: 8px 14px;
+      text-align: left;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--ink-mute);
+      border-bottom: 1px solid var(--rule);
+    }
+    .briefing-table tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--rule);
+      color: var(--ink-soft);
+    }
+    .briefing-table tbody tr:last-child td { border-bottom: none; }
+    .briefing-table .num {
+      text-align: right;
+      font-family: var(--font-mono); font-feature-settings:"tnum";
+      font-weight: 600; color: var(--ink);
+    }
+
+    @media print {
+      .sidebar, .top, .briefing-actions, .briefing-back { display: none !important; }
+      .app { grid-template-columns: 1fr; }
+      .content { padding: 0; }
+      .briefing-wrap { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar"></div>
+  <main>
+    <div class="top"></div>
+    <div class="content">
+      <div class="briefing-wrap">
+
+        <!-- Briefing header -->
+        <div class="briefing-header">
+          <a href="briefings.html" class="briefing-back">
+            <span class="ms sm">arrow_back</span> All briefings
+          </a>
+          <div class="briefing-meta">
+            <span class="pill accent">Full briefing</span>
+            <span class="pill mute">v1</span>
+          </div>
+          <div class="briefing-title">Week of 5 May 2026</div>
+          <div class="briefing-dateline">Generated Monday 5 May 2026 at 07:00 UTC · Aldridge Family Office</div>
+          <div class="briefing-actions">
+            <button class="btn primary"><span class="ms sm">picture_as_pdf</span> Export PDF</button>
+            <button class="btn"><span class="ms sm">refresh</span> Regenerate</button>
+          </div>
+        </div>
+
+        <!-- Briefing body -->
+        <div class="briefing-body">
+
+          <!-- Executive Summary -->
+          <div class="briefing-section">
+            <div class="section-label">Executive Summary</div>
+            <p>The portfolio enters the week with <strong>$487.3M AUM</strong> in USD terms, up 0.43% week-on-week. The overall risk posture is <strong>cautiously elevated</strong>: US equity concentration at 41% is above the 35% target band and represents the primary drawdown exposure. Two private equity capital calls totalling $6.2M are due within 30 days, requiring active liquidity monitoring.</p>
+            <p>Fixed income duration of 5.8 years remains a watch item in the context of persistent rate uncertainty. The EUR/USD exposure of approximately 12% is currently unhedged. No material changes to the private markets book this week.</p>
+          </div>
+
+          <!-- Top Risks -->
+          <div class="briefing-section">
+            <div class="section-label">Priority Risks</div>
+
+            <div class="risk-item">
+              <div class="ri-sev"><span class="sev-dot pri"></span></div>
+              <div>
+                <div class="ri-headline">
+                  US equity overweight at 41% of AUM
+                  <span class="pill pri">Priority</span>
+                </div>
+                <div class="ri-body">Current allocation exceeds the 35% upper target band by 6 percentage points, representing approximately $29M in excess exposure. At current correlation levels, a 10% drawdown in US equities would impact the portfolio by approximately $20M. Rebalancing into fixed income or international equity is the recommended mitigation path.</div>
+              </div>
+            </div>
+
+            <div class="risk-item">
+              <div class="ri-sev"><span class="sev-dot pri"></span></div>
+              <div>
+                <div class="ri-headline">
+                  PE capital calls due within 30 days
+                  <span class="pill pri">Priority</span>
+                </div>
+                <div class="ri-body">Blackstone Real Estate Partners VI has a $2.4M capital call due 10 May. KKR Infrastructure IV has a $3.8M call due 22 May. Combined $6.2M in the next 30 days against a liquid position of $39M. Cash runway remains adequate at 14 months but these calls should be pre-funded from the money market sleeve to avoid selling liquid equities at an inopportune time.</div>
+              </div>
+            </div>
+
+            <div class="risk-item">
+              <div class="ri-sev"><span class="sev-dot ele"></span></div>
+              <div>
+                <div class="ri-headline">
+                  Fixed income duration elevated at 5.8 years
+                  <span class="pill ele">Elevated</span>
+                </div>
+                <div class="ri-body">The aggregate duration of the fixed income sleeve is 5.8 years, implying approximately $6.2M in market value sensitivity per 100bps rate move. In the current environment of persistent above-target inflation and hawkish central bank commentary, this exposure warrants active monitoring. A shift toward shorter-duration instruments could reduce sensitivity without materially changing the allocation.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Allocation Commentary -->
+          <div class="briefing-section">
+            <div class="section-label">Allocation Commentary</div>
+            <h2>Portfolio Composition</h2>
+            <p>The portfolio's asset class breakdown remained stable week-on-week, with the main change being a $1.1M distribution received from Vista Equity Partners which was redeployed into the money market sleeve pending rebalancing decisions.</p>
+
+            <table class="briefing-table">
+              <thead>
+                <tr>
+                  <th>Asset Class</th>
+                  <th class="num">Market Value</th>
+                  <th class="num">Weight</th>
+                  <th class="num">Target</th>
+                  <th class="num">Deviation</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>US Equity</td>
+                  <td class="num">$199.8M</td>
+                  <td class="num">41.0%</td>
+                  <td class="num">35.0%</td>
+                  <td class="num" style="color:var(--pri-fg)">+6.0%</td>
+                </tr>
+                <tr>
+                  <td>Fixed Income</td>
+                  <td class="num">$107.2M</td>
+                  <td class="num">22.0%</td>
+                  <td class="num">25.0%</td>
+                  <td class="num" style="color:var(--ele-fg)">−3.0%</td>
+                </tr>
+                <tr>
+                  <td>Private Equity</td>
+                  <td class="num">$87.7M</td>
+                  <td class="num">18.0%</td>
+                  <td class="num">20.0%</td>
+                  <td class="num" style="color:var(--wat-fg)">−2.0%</td>
+                </tr>
+                <tr>
+                  <td>Real Estate</td>
+                  <td class="num">$53.6M</td>
+                  <td class="num">11.0%</td>
+                  <td class="num">10.0%</td>
+                  <td class="num" style="color:var(--good-fg)">+1.0%</td>
+                </tr>
+                <tr>
+                  <td>Other / Cash</td>
+                  <td class="num">$39.0M</td>
+                  <td class="num">8.0%</td>
+                  <td class="num">10.0%</td>
+                  <td class="num" style="color:var(--wat-fg)">−2.0%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Recommended Actions -->
+          <div class="briefing-section">
+            <div class="section-label">Recommended Actions</div>
+            <ul class="action-list">
+              <li>
+                <span class="ms sm">arrow_forward</span>
+                <span><strong>Pre-fund PE capital calls.</strong> Move $6.5M from money market sleeve to a dedicated settlement account ahead of the 10 May Blackstone call. Keeps liquid equity untouched.</span>
+              </li>
+              <li>
+                <span class="ms sm">arrow_forward</span>
+                <span><strong>Initiate rebalancing discussion.</strong> Reduce US equity by approximately 4–6% ($20–29M) by shifting into fixed income or international equity to bring allocation within target band before next IC meeting.</span>
+              </li>
+              <li>
+                <span class="ms sm">arrow_forward</span>
+                <span><strong>Review fixed income duration.</strong> Consider rotating approximately 20% of the AGG/TLT positions into shorter-duration instruments (1–3yr Treasuries) to reduce rate sensitivity from 5.8 to approximately 4.2 years.</span>
+              </li>
+              <li>
+                <span class="ms sm">arrow_forward</span>
+                <span><strong>Evaluate EUR/USD hedge.</strong> Current 12% EUR exposure is unhedged. Obtain FX forward quotes to hedge 50–75% of the exposure for a 6–12 month tenor. Cost estimate: 0.3–0.5% annualised.</span>
+              </li>
+            </ul>
+          </div>
+
+        </div><!-- /briefing-body -->
+      </div><!-- /briefing-wrap -->
+    </div>
+  </main>
+</div>
+
+<div class="sidebar-backdrop"></div>
+<script src="_api.js?v=2"></script>
+<script src="_shell.js?v=2"></script>
+<script>API.redirectIfUnauth(); Shell.mount('briefings.html', ['Briefings', 'Week of 5 May 2026']);</script>
+<script src="_app.js?v=2"></script>
+</body>
+</html>

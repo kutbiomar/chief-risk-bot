@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Documents — ChiefRiskBot</title>
+  <link rel="icon" href="data:,"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_tokens.css"/>
+  <link rel="stylesheet" href="_shell.css"/>
+  <style>
+    /* ── Uploading row ── */
+    .upload-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+    }
+    .upload-row .file-ico {
+      width: 32px; height: 32px; border-radius: 5px;
+      background: #eef0f7; display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .upload-row .file-ico .ms { color: var(--accent); font-size: 18px; }
+    .upload-row .fname { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .upload-row .fsize { font-size: 11px; color: var(--ink-mute); margin-top: 2px; }
+    .upload-row .spacer { flex: 1; }
+    .upload-row .pct {
+      font-family: var(--font-mono); font-feature-settings:"tnum";
+      font-size: 11px; font-weight: 600; color: var(--accent);
+    }
+
+    /* ── File type icons in table ── */
+    .ftype-ico {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600;
+    }
+    .ftype-ico .ms { font-size: 16px; }
+    .ftype-ico.pdf .ms { color: var(--pri-fg); }
+    .ftype-ico.csv .ms { color: var(--good-fg); }
+    .ftype-ico.xls .ms { color: #217346; }
+
+    /* ── Drawer: extraction review ── */
+    .extraction-field {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--rule);
+    }
+    .extraction-field:last-child { border-bottom: none; }
+    .ef-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .ef-label { font-size: 10px; font-weight: 700; letter-spacing:.1em; text-transform:uppercase; color: var(--ink-mute); }
+    .ef-value { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+    .ef-confidence {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ef-confidence .bar {
+      flex: 1; height: 3px;
+      background: var(--paper-3); border-radius: 999px; overflow: hidden;
+    }
+    .ef-confidence .fill { height: 100%; border-radius: 999px; }
+    .ef-confidence .fill.hi  { background: var(--good-fg); }
+    .ef-confidence .fill.mid { background: var(--wat-fg); }
+    .ef-confidence .fill.lo  { background: var(--ele-fg); }
+    .ef-confidence .conf-pct { font-family:var(--font-mono); font-size:10px; color:var(--ink-mute); flex-shrink:0; }
+
+    /* Approve/reject per field */
+    .ef-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .ef-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 4px; border: 1px solid var(--rule);
+      font: 600 10px var(--font-sans); cursor: pointer; background: var(--paper-3);
+      color: var(--ink-mute); letter-spacing:.03em; text-transform: uppercase;
+      transition: background 80ms, color 80ms, border-color 80ms;
+    }
+    .ef-btn.approve { background: var(--good-bg); color: var(--good-fg); border-color: #cfe1d3; }
+    .ef-btn.approve:hover { background: #d4ead9; }
+    .ef-btn.reject { background: var(--pri-bg); color: var(--pri-fg); border-color: #f3d4d0; }
+    .ef-btn.reject:hover { background: #f5d5d2; }
+    .ef-btn .ms { font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar"></div>
+  <main>
+    <div class="top"></div>
+    <div class="content">
+
+      <div class="page-head">
+        <div>
+          <h1>Documents</h1>
+          <div class="sub">Upload statements and fund documents — AI extracts positions automatically</div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" onclick="document.getElementById('upload-zone').scrollIntoView({behavior:'smooth'})">
+            <span class="ms sm">upload_file</span> Upload
+          </button>
+        </div>
+      </div>
+
+      <!-- Upload zone -->
+      <div class="upload-zone" id="upload-zone">
+        <span class="ms">upload_file</span>
+        <div class="primary-text">Drag documents here, or click to browse</div>
+        <div class="hint-text">PDF, CSV, Excel — custodian statements, fund NAV reports, capital call notices</div>
+      </div>
+
+      <!-- Uploading in progress -->
+      <div class="upload-row">
+        <div class="file-ico"><span class="ms">picture_as_pdf</span></div>
+        <div>
+          <div class="fname">JPMorgan_April_2026_Statement.pdf</div>
+          <div class="fsize">3.2 MB · Uploading…</div>
+          <div class="progress-bar" style="width:220px;margin-top:6px">
+            <div class="fill" style="width:65%"></div>
+          </div>
+        </div>
+        <div class="spacer"></div>
+        <div class="pct">65%</div>
+        <button class="iconbtn"><span class="ms sm">close</span></button>
+      </div>
+
+      <!-- Documents table -->
+      <div class="table-card">
+        <div class="table-head">
+          <h2>All Documents</h2>
+          <span class="uplabel">5 documents</span>
+        </div>
+        <table class="list">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Type</th>
+              <th>Uploaded</th>
+              <th>Status</th>
+              <th>Rows</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-drawer-open="review-drawer">
+              <td style="font-weight:600;color:var(--ink)">Schwab_Q1_2026_Statement.pdf</td>
+              <td><span class="ftype-ico pdf"><span class="ms">picture_as_pdf</span>PDF</span></td>
+              <td class="muted">5 Apr 2026</td>
+              <td><span class="pill good">Approved</span></td>
+              <td class="num muted">24</td>
+              <td><button class="btn ghost" style="padding:4px 10px;font-size:11px" data-drawer-open="review-drawer">Review</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--ink)">JPM_Positions_Apr2026.csv</td>
+              <td><span class="ftype-ico csv"><span class="ms">table_view</span>CSV</span></td>
+              <td class="muted">1 Apr 2026</td>
+              <td><span class="pill good">Approved</span></td>
+              <td class="num muted">12</td>
+              <td><button class="btn ghost" style="padding:4px 10px;font-size:11px" data-drawer-open="review-drawer">Review</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--ink)">Blackstone_NAV_Q1_2026.pdf</td>
+              <td><span class="ftype-ico pdf"><span class="ms">picture_as_pdf</span>PDF</span></td>
+              <td class="muted">10 Apr 2026</td>
+              <td><span class="pill ele">Needs review</span></td>
+              <td class="num muted">4</td>
+              <td><button class="btn ghost" style="padding:4px 10px;font-size:11px" data-drawer-open="review-drawer">Review</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--ink)">Vista_Distribution_Notice.pdf</td>
+              <td><span class="ftype-ico pdf"><span class="ms">picture_as_pdf</span>PDF</span></td>
+              <td class="muted">15 Apr 2026</td>
+              <td><span class="pill mute">Extracting…</span></td>
+              <td class="num muted">—</td>
+              <td><button class="btn ghost" style="padding:4px 10px;font-size:11px;opacity:.4" disabled>Review</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--ink)">KKR_Capital_Call_May2026.pdf</td>
+              <td><span class="ftype-ico pdf"><span class="ms">picture_as_pdf</span>PDF</span></td>
+              <td class="muted">2 May 2026</td>
+              <td><span class="pill pri">Failed</span></td>
+              <td class="num muted">—</td>
+              <td><button class="btn ghost" style="padding:4px 10px;font-size:11px">Retry</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<!-- Review drawer backdrop -->
+<div class="drawer-backdrop" id="review-drawer-backdrop"></div>
+
+<!-- Review drawer -->
+<div class="drawer" id="review-drawer">
+  <header>
+    <h3>Extraction Review</h3>
+    <button class="iconbtn" data-drawer-close="review-drawer"><span class="ms sm">close</span></button>
+  </header>
+
+  <div class="drawer-body">
+
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--paper-2);border:1px solid var(--rule);border-radius:6px;">
+      <span class="ms sm" style="color:var(--pri-fg)">picture_as_pdf</span>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--ink)">Schwab_Q1_2026_Statement.pdf</div>
+        <div style="font-size:10px;color:var(--ink-mute)">Extracted 5 Apr 2026 · 24 rows · 18 pages</div>
+      </div>
+      <span class="pill good" style="margin-left:auto">Approved</span>
+    </div>
+
+    <div>
+      <div class="uplabel" style="margin-bottom:10px">Extracted fields</div>
+
+      <div class="extraction-field">
+        <div class="ef-header">
+          <span class="ef-label">Account holder</span>
+        </div>
+        <div class="ef-value">Aldridge Family Office LP</div>
+        <div class="ef-confidence">
+          <div class="bar"><div class="fill hi" style="width:97%"></div></div>
+          <span class="conf-pct">97%</span>
+        </div>
+        <div class="ef-actions">
+          <button class="ef-btn approve"><span class="ms">check</span> Approved</button>
+        </div>
+      </div>
+
+      <div class="extraction-field">
+        <div class="ef-header">
+          <span class="ef-label">Statement date</span>
+        </div>
+        <div class="ef-value">31 March 2026</div>
+        <div class="ef-confidence">
+          <div class="bar"><div class="fill hi" style="width:99%"></div></div>
+          <span class="conf-pct">99%</span>
+        </div>
+        <div class="ef-actions">
+          <button class="ef-btn approve"><span class="ms">check</span> Approved</button>
+        </div>
+      </div>
+
+      <div class="extraction-field">
+        <div class="ef-header">
+          <span class="ef-label">Total portfolio value</span>
+        </div>
+        <div class="ef-value">$312,440,182.00</div>
+        <div class="ef-confidence">
+          <div class="bar"><div class="fill hi" style="width:95%"></div></div>
+          <span class="conf-pct">95%</span>
+        </div>
+        <div class="ef-actions">
+          <button class="ef-btn approve"><span class="ms">check</span> Approved</button>
+        </div>
+      </div>
+
+      <div class="extraction-field">
+        <div class="ef-header">
+          <span class="ef-label">Reporting currency</span>
+        </div>
+        <div class="ef-value">USD</div>
+        <div class="ef-confidence">
+          <div class="bar"><div class="fill mid" style="width:72%"></div></div>
+          <span class="conf-pct">72%</span>
+        </div>
+        <div class="ef-actions">
+          <button class="ef-btn approve"><span class="ms">check</span> Approve</button>
+          <button class="ef-btn reject"><span class="ms">close</span> Reject</button>
+        </div>
+      </div>
+
+      <div class="extraction-field">
+        <div class="ef-header">
+          <span class="ef-label">Position count</span>
+        </div>
+        <div class="ef-value">24 positions</div>
+        <div class="ef-confidence">
+          <div class="bar"><div class="fill lo" style="width:58%"></div></div>
+          <span class="conf-pct">58%</span>
+        </div>
+        <div class="ef-actions">
+          <button class="ef-btn approve"><span class="ms">check</span> Approve</button>
+          <button class="ef-btn reject"><span class="ms">close</span> Reject</button>
+        </div>
+      </div>
+
+    </div><!-- /fields -->
+
+  </div><!-- /drawer-body -->
+
+  <footer>
+    <button class="btn ghost" data-drawer-close="review-drawer">Close</button>
+    <button class="btn"><span class="ms sm">done_all</span> Approve all</button>
+    <button class="btn primary"><span class="ms sm">merge</span> Apply to portfolio</button>
+  </footer>
+</div>
+
+<div class="sidebar-backdrop"></div>
+<script src="_api.js?v=2"></script>
+<script src="_shell.js?v=2"></script>
+<script>
+  API.redirectIfUnauth();
+  Shell.mount('documents.html', ['Documents']);
+</script>
+<script src="_app.js?v=2"></script>
+</body>
+</html>

@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from backend.config import get_settings
 from backend.routers import (
@@ -62,7 +63,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.allowed_origins_list(),
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
 
@@ -128,6 +129,8 @@ def create_app() -> FastAPI:
     app.include_router(risk_router, prefix="/api")
     app.include_router(settings_router, prefix="/api")
     app.include_router(var_router, prefix="/api")
+    if os.path.isdir("static"):
+        app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
     return app
 

@@ -6,6 +6,7 @@ from datetime import timedelta
 from typing import Optional, Tuple
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
+from pydantic import BaseModel
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
@@ -50,6 +51,15 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 AuthContext = Tuple[Optional[UserSession], User]
 AUTH_RATE_LIMIT_MAX_REQUESTS = 10
 AUTH_RATE_LIMIT_WINDOW_SECONDS = 60
+
+
+class ChangeEmailRequest(BaseModel):
+    email: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: Optional[str] = None
+    new_password: str
 
 
 def _serialize_user(db: Session, user: User) -> UserResponse:
@@ -475,6 +485,53 @@ def logout_all(
     db.commit()
     _clear_auth_cookies(response)
     return MessageResponse(detail="All sessions revoked")
+
+
+@router.put("/email", response_model=SessionResponse, dependencies=[Depends(require_cookie_csrf)])
+def change_email(
+    payload: ChangeEmailRequest,
+    auth: AuthContext = Depends(require_session),
+    db: Session = Depends(get_db),
+) -> SessionResponse:
+    _, user = auth
+    normalized = payload.email.strip().lower()
+    if not normalized:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is required")
+    existing = db.scalar(select(User).where(User.email == normalized, User.id != user.id))
+    if existing is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A user with that email already exists")
+    user.email = normalized
+    db.commit()
+    db.refresh(user)
+    return SessionResponse(user=_serialize_user(db, user))
+
+
+@router.put("/password", response_model=MessageResponse, dependencies=[Depends(require_cookie_csrf)])
+def change_password(
+    payload: ChangePasswordRequest,
+    auth: AuthContext = Depends(require_session),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    _, user = auth
+    if user.password_hash is not None and not verify_password(payload.current_password or "", user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Current password is incorrect")
+    if is_supabase_auth_enabled():
+        try:
+            identity = update_supabase_password(
+                subject=user.auth_subject,
+                email=user.email,
+                password=payload.new_password,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        user.auth_provider = "supabase"
+        user.auth_subject = identity.subject
+    else:
+        user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    return MessageResponse(detail="Password changed")
 
 
 @router.post(

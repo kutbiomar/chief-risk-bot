@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Home — ChiefRiskBot</title>
+  <link rel="icon" href="data:,"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_tokens.css"/>
+  <link rel="stylesheet" href="_shell.css"/>
+  <style>
+    /* ── Greeting ── */
+    .greeting h1 {
+      font-family: var(--font-serif);
+      font-size: 32px; font-weight: 900;
+      letter-spacing: -.025em;
+      color: var(--ink);
+      line-height: 1.1;
+    }
+    .greeting .date-line {
+      font-size: 12px;
+      color: var(--ink-mute);
+      margin-top: 5px;
+    }
+
+    /* ── Risk summary strip ── */
+    .risk-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      background: #fffdfb;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      box-shadow: var(--shadow);
+    }
+    .risk-row .risk-label {
+      font-size: 11px; font-weight: 600;
+      color: var(--ink-mute);
+      margin-right: 4px;
+    }
+    .risk-row .spacer { flex: 1; }
+    .risk-row .view-link {
+      font-size: 12px; font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .risk-row .view-link:hover { text-decoration: underline; }
+
+    /* ── Main grid ── */
+    .home-grid {
+      display: grid;
+      grid-template-columns: 7fr 5fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* ── Briefing card ── */
+    .briefing-card .scope-row {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 12px;
+    }
+    .briefing-card .bdate {
+      font-size: 11px; color: var(--ink-mute);
+    }
+    .briefing-card .summary-text {
+      font-size: 13px; color: var(--ink-soft);
+      line-height: 1.6;
+      margin-bottom: 16px;
+      border-left: 2px solid var(--rule-strong);
+      padding-left: 12px;
+    }
+    .briefing-card .stale-notice {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--ele-fg);
+      background: var(--ele-bg); border: 1px solid #f0dfc1;
+      border-radius: 4px; padding: 7px 10px;
+      margin-bottom: 14px;
+    }
+    .briefing-card .btn-row {
+      display: flex; gap: 8px;
+    }
+
+    /* ── Events table ── */
+    .events-card .event-empty {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--ink-mute);
+      font-size: 12px;
+    }
+    .events-card table.list .amount.pos { color: var(--good-fg); font-family: var(--font-mono); font-feature-settings:"tnum"; font-size:12px; font-weight:600; }
+    .events-card table.list .amount.neg { color: var(--pri-fg);  font-family: var(--font-mono); font-feature-settings:"tnum"; font-size:12px; font-weight:600; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar"></div>
+  <main>
+    <div class="top"></div>
+    <div class="content">
+
+      <!-- Greeting -->
+      <div class="greeting">
+        <h1>Good morning.</h1>
+        <div class="date-line">Tuesday, 6 May 2026 · Aldridge Family Office</div>
+      </div>
+
+      <!-- KPI Strip -->
+      <div class="kpi-strip cols-4">
+        <div class="kpi-tile">
+          <div class="kpi-label">Total AUM</div>
+          <div class="kpi-value mono">$487.3M</div>
+          <div class="kpi-sub">USD · as of today</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="kpi-label">Weekly P&amp;L</div>
+          <div class="kpi-value mono">+$2.1M</div>
+          <div class="kpi-delta pos"><span class="ms sm">trending_up</span> +0.43% this week</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="kpi-label">Portfolio VaR 95%</div>
+          <div class="kpi-value mono">$4.2M</div>
+          <div class="kpi-sub">1-day, 95% confidence</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="kpi-label">Cash Runway</div>
+          <div class="kpi-value mono">14</div>
+          <div class="kpi-sub">months at current burn</div>
+        </div>
+      </div>
+
+      <!-- Risk Summary -->
+      <div class="risk-row">
+        <span class="risk-label">Active risks</span>
+        <span class="pill pri"><span class="dot"></span>2 priority</span>
+        <span class="pill ele"><span class="dot"></span>3 elevated</span>
+        <span class="pill wat"><span class="dot"></span>4 watch</span>
+        <div class="spacer"></div>
+        <a href="cockpit.html" class="view-link">View cockpit <span class="ms sm">arrow_forward</span></a>
+      </div>
+
+      <!-- Home grid -->
+      <div class="home-grid">
+
+        <!-- Latest Briefing -->
+        <div class="card briefing-card">
+          <div class="card-head">
+            <h2>Latest Briefing</h2>
+          </div>
+          <div class="scope-row">
+            <span class="pill accent">Full briefing</span>
+            <span class="bdate">Generated Mon 5 May 2026 at 07:00</span>
+          </div>
+          <div class="stale-notice">
+            <span class="ms sm">schedule</span>
+            Data is 1 day old. Consider regenerating before your IC meeting.
+          </div>
+          <p class="summary-text">
+            Portfolio remains defensively positioned. US equity concentration at 41% poses the primary drawdown risk given elevated rate uncertainty. PE capital calls of $6.2M due within 30 days require liquidity attention. Two new flags added since last week — see Risk Cockpit for full detail.
+          </p>
+          <div class="btn-row">
+            <a href="briefing.html" class="btn primary"><span class="ms sm">description</span> Read briefing</a>
+            <a href="briefings.html" class="btn"><span class="ms sm">add</span> Generate new</a>
+          </div>
+        </div>
+
+        <!-- Upcoming Events -->
+        <div class="card events-card">
+          <div class="card-head">
+            <h2>Upcoming Events</h2>
+            <span class="uplabel">Next 30 days</span>
+          </div>
+          <table class="list">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th class="num">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="muted">May 10</td>
+                <td>Blackstone PE VI — capital call</td>
+                <td class="amount neg">−$2.4M</td>
+              </tr>
+              <tr>
+                <td class="muted">May 15</td>
+                <td>Vista Equity — distribution</td>
+                <td class="amount pos">+$1.1M</td>
+              </tr>
+              <tr>
+                <td class="muted">May 22</td>
+                <td>KKR Infrastructure — capital call</td>
+                <td class="amount neg">−$3.8M</td>
+              </tr>
+              <tr>
+                <td class="muted">May 28</td>
+                <td>T-bill maturity — Schwab</td>
+                <td class="amount pos">+$5.0M</td>
+              </tr>
+              <tr>
+                <td class="muted">Jun 1</td>
+                <td>Apollo Credit — interest payment</td>
+                <td class="amount pos">+$0.4M</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div><!-- /home-grid -->
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<div class="sidebar-backdrop"></div>
+<script src="_api.js?v=2"></script>
+<script src="_shell.js?v=2"></script>
+<script>API.redirectIfUnauth(); Shell.mount('index.html', ['Home']);</script>
+<script src="_app.js?v=2"></script>
+</body>
+</html>

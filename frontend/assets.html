@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Assets — ChiefRiskBot</title>
+  <link rel="icon" href="data:,"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_tokens.css"/>
+  <link rel="stylesheet" href="_shell.css"/>
+  <style>
+    /* ── AUM Hero ── */
+    .aum-hero {
+      display: flex; align-items: baseline; gap: 12px;
+      padding: 20px 24px;
+      background: #fffdfb;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      box-shadow: var(--shadow);
+    }
+    .aum-hero .aum-value {
+      font-family: var(--font-mono); font-feature-settings:"tnum";
+      font-size: 36px; font-weight: 700; letter-spacing:-.03em; color: var(--ink);
+    }
+    .aum-hero .aum-currency {
+      font-size: 14px; font-weight: 600; color: var(--ink-mute);
+    }
+    .aum-hero .aum-date {
+      font-size: 12px; color: var(--ink-mute);
+      margin-left: auto;
+      align-self: center;
+    }
+
+    /* ── Mid grid ── */
+    .mid-grid {
+      display: grid;
+      grid-template-columns: 5fr 7fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* ── Chart + legend ── */
+    .chart-wrap {
+      display: flex; gap: 24px; align-items: center;
+      margin-top: 14px;
+    }
+    .legend { display: flex; flex-direction: column; gap: 9px; flex: 1; }
+    .legend-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
+    .legend-label { flex: 1; color: var(--ink-soft); }
+    .legend-pct { font-family:var(--font-mono);font-feature-settings:"tnum";font-size:12px;font-weight:600;color:var(--ink); }
+    .legend-val { font-family:var(--font-mono);font-feature-settings:"tnum";font-size:11px;color:var(--ink-mute);min-width:64px;text-align:right; }
+
+    /* ── Holdings table ── */
+    .group-header td {
+      background: var(--paper-2) !important;
+      font-size: 10px; font-weight: 700; letter-spacing:.08em; text-transform: uppercase;
+      color: var(--ink-mute);
+      padding: 6px 14px !important;
+      height: 28px !important;
+    }
+    .group-total td {
+      background: var(--paper-2);
+      font-weight: 700; color: var(--ink);
+      border-top: 1px solid var(--rule);
+    }
+
+    /* ── Cash flow bar chart ── */
+    .cashflow-card { }
+    .chart-legend-row {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 12px;
+    }
+    .cl-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink-mute); }
+    .cl-dot { width: 10px; height: 10px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar"></div>
+  <main>
+    <div class="top"></div>
+    <div class="content">
+
+      <div class="page-head">
+        <div>
+          <h1>Assets Overview</h1>
+          <div class="sub">Portfolio allocation and forward cash flows</div>
+        </div>
+      </div>
+
+      <!-- AUM Hero -->
+      <div class="aum-hero">
+        <div class="aum-value">$487.3M</div>
+        <div class="aum-currency">USD</div>
+        <div class="aum-date">As of 6 May 2026 · 34 positions</div>
+      </div>
+
+      <!-- Mid grid: chart + holdings -->
+      <div class="mid-grid">
+
+        <!-- Donut + segmented control -->
+        <div class="card">
+          <div class="card-head">
+            <h2>Allocation</h2>
+            <div class="seg" id="alloc-seg">
+              <button class="on" data-value="asset">Asset Class</button>
+              <button data-value="sector">Sector</button>
+              <button data-value="geo">Geography</button>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <svg viewBox="0 0 120 120" width="120" height="120" style="flex-shrink:0">
+              <circle cx="60" cy="60" r="44" fill="none" stroke="var(--rule)" stroke-width="18"/>
+              <circle cx="60" cy="60" r="44" fill="none" stroke="#1B2B5E" stroke-width="18"
+                stroke-dasharray="113.4 163.1" stroke-dashoffset="0" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="44" fill="none" stroke="#72594c" stroke-width="18"
+                stroke-dasharray="60.8 215.7" stroke-dashoffset="-113.4" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="44" fill="none" stroke="#C9A449" stroke-width="18"
+                stroke-dasharray="49.8 226.7" stroke-dashoffset="-174.2" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="44" fill="none" stroke="#006972" stroke-width="18"
+                stroke-dasharray="30.4 246.1" stroke-dashoffset="-224.0" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="44" fill="none" stroke="#d3c3bc" stroke-width="18"
+                stroke-dasharray="22.1 254.4" stroke-dashoffset="-254.4" transform="rotate(-90 60 60)"/>
+              <text x="60" y="56" text-anchor="middle" font-size="11" font-weight="700" fill="#1e1b1a" font-family="JetBrains Mono">$487M</text>
+              <text x="60" y="69" text-anchor="middle" font-size="8" fill="#81756f" font-family="Inter Tight">AUM</text>
+            </svg>
+            <div class="legend">
+              <div class="legend-row"><span class="legend-dot" style="background:#1B2B5E"></span><span class="legend-label">US Equity</span><span class="legend-pct">41%</span><span class="legend-val">$199.8M</span></div>
+              <div class="legend-row"><span class="legend-dot" style="background:#72594c"></span><span class="legend-label">Fixed Income</span><span class="legend-pct">22%</span><span class="legend-val">$107.2M</span></div>
+              <div class="legend-row"><span class="legend-dot" style="background:#C9A449"></span><span class="legend-label">Private Equity</span><span class="legend-pct">18%</span><span class="legend-val">$87.7M</span></div>
+              <div class="legend-row"><span class="legend-dot" style="background:#006972"></span><span class="legend-label">Real Estate</span><span class="legend-pct">11%</span><span class="legend-val">$53.6M</span></div>
+              <div class="legend-row"><span class="legend-dot" style="background:#d3c3bc"></span><span class="legend-label">Other / Cash</span><span class="legend-pct">8%</span><span class="legend-val">$39.0M</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Holdings table -->
+        <div class="table-card">
+          <div class="table-head">
+            <h2>Holdings</h2>
+            <span class="uplabel">By asset class</span>
+          </div>
+          <table class="list">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Ticker</th>
+                <th class="num">Market Value</th>
+                <th class="num">Weight</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="group-header"><td colspan="4">US Equity — $199.8M · 41%</td></tr>
+              <tr><td>SPDR S&amp;P 500 ETF</td><td class="muted">SPY</td><td class="num">$21.8M</td><td class="num">4.47%</td></tr>
+              <tr><td>Microsoft Corporation</td><td class="muted">MSFT</td><td class="num">$9.4M</td><td class="num">1.92%</td></tr>
+              <tr><td>Invesco QQQ Trust</td><td class="muted">QQQ</td><td class="num">$8.6M</td><td class="num">1.75%</td></tr>
+              <tr><td>Apple Inc.</td><td class="muted">AAPL</td><td class="num">$6.9M</td><td class="num">1.41%</td></tr>
+              <tr><td style="color:var(--ink-mute);font-style:italic">+ 10 more positions</td><td></td><td class="num">$153.1M</td><td class="num">31.4%</td></tr>
+              <tr class="group-header"><td colspan="4">Fixed Income — $107.2M · 22%</td></tr>
+              <tr><td>iShares Core US Agg Bond</td><td class="muted">AGG</td><td class="num">$8.2M</td><td class="num">1.69%</td></tr>
+              <tr><td>iShares 20+ Yr Treasury</td><td class="muted">TLT</td><td class="num">$5.4M</td><td class="num">1.12%</td></tr>
+              <tr><td style="color:var(--ink-mute);font-style:italic">+ 6 more positions</td><td></td><td class="num">$93.6M</td><td class="num">19.2%</td></tr>
+              <tr class="group-header"><td colspan="4">Private Equity — $87.7M · 18%</td></tr>
+              <tr><td>Blackstone RE Partners VI</td><td class="muted">BX-PE-VI</td><td class="num">$24.5M</td><td class="num">5.03%</td></tr>
+              <tr><td>KKR Infrastructure IV</td><td class="muted">KKR-INFRA</td><td class="num">$18.2M</td><td class="num">3.73%</td></tr>
+              <tr><td style="color:var(--ink-mute);font-style:italic">+ 4 more positions</td><td></td><td class="num">$45.0M</td><td class="num">9.2%</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div><!-- /mid-grid -->
+
+      <!-- Forward cash flows -->
+      <div class="card cashflow-card">
+        <div class="card-head">
+          <h2>Forward Cash Flows</h2>
+          <span class="uplabel">12-month projection</span>
+        </div>
+        <div class="chart-legend-row">
+          <div class="cl-item"><span class="cl-dot" style="background:var(--good-fg)"></span>Inflows</div>
+          <div class="cl-item"><span class="cl-dot" style="background:var(--pri-fg)"></span>Outflows</div>
+          <div class="cl-item"><span class="cl-dot" style="background:var(--accent);border-radius:999px;width:12px;height:2px"></span>Net</div>
+        </div>
+
+        <!-- Hand-coded SVG bar chart -->
+        <svg viewBox="0 0 760 160" width="100%" preserveAspectRatio="none" style="overflow:visible">
+          <!-- Gridlines -->
+          <line x1="40" y1="10"  x2="755" y2="10"  stroke="var(--rule)" stroke-width=".5"/>
+          <line x1="40" y1="40"  x2="755" y2="40"  stroke="var(--rule)" stroke-width=".5"/>
+          <line x1="40" y1="70"  x2="755" y2="70"  stroke="var(--rule)" stroke-width=".5"/>
+          <line x1="40" y1="100" x2="755" y2="100" stroke="var(--rule)" stroke-width=".5"/>
+          <line x1="40" y1="130" x2="755" y2="130" stroke="var(--rule)" stroke-width=".5"/>
+          <!-- Y labels -->
+          <text x="36" y="13"  text-anchor="end" font-size="8" fill="#81756f" font-family="JetBrains Mono">$8M</text>
+          <text x="36" y="43"  text-anchor="end" font-size="8" fill="#81756f" font-family="JetBrains Mono">$6M</text>
+          <text x="36" y="73"  text-anchor="end" font-size="8" fill="#81756f" font-family="JetBrains Mono">$4M</text>
+          <text x="36" y="103" text-anchor="end" font-size="8" fill="#81756f" font-family="JetBrains Mono">$2M</text>
+          <text x="36" y="133" text-anchor="end" font-size="8" fill="#81756f" font-family="JetBrains Mono">$0</text>
+
+          <!-- Month groups: each group = 58px wide, 8 groups shown -->
+          <!-- May: in $3M, out $6M -->
+          <rect x="48"  y="70"  width="20" height="60" fill="#3F7A4F" rx="2"/>
+          <rect x="70"  y="10"  width="20" height="120" fill="#B91C1C" rx="2" opacity=".7"/>
+          <!-- Jun: in $5M, out $2M -->
+          <rect x="106" y="55"  width="20" height="75" fill="#3F7A4F" rx="2"/>
+          <rect x="128" y="100" width="20" height="30" fill="#B91C1C" rx="2" opacity=".7"/>
+          <!-- Jul: in $1M, out $4M -->
+          <rect x="164" y="118" width="20" height="12" fill="#3F7A4F" rx="2"/>
+          <rect x="186" y="70"  width="20" height="60" fill="#B91C1C" rx="2" opacity=".7"/>
+          <!-- Aug: in $7M, out $1M -->
+          <rect x="222" y="43"  width="20" height="87" fill="#3F7A4F" rx="2"/>
+          <rect x="244" y="118" width="20" height="12" fill="#B91C1C" rx="2" opacity=".7"/>
+          <!-- Sep: in $2M, out $5M -->
+          <rect x="280" y="100" width="20" height="30" fill="#3F7A4F" rx="2"/>
+          <rect x="302" y="55"  width="20" height="75" fill="#B91C1C" rx="2" opacity=".7"/>
+          <!-- Oct: in $4M, out $3M -->
+          <rect x="338" y="70"  width="20" height="60" fill="#3F7A4F" rx="2"/>
+          <rect x="360" y="70"  width="20" height="60" fill="#B91C1C" rx="2" opacity=".7"/>
+          <!-- Nov: in $6M, out $2M -->
+          <rect x="396" y="25"  width="20" height="105" fill="#3F7A4F" rx="2"/>
+          <rect x="418" y="100" width="20" height="30" fill="#B91C1C" rx="2" opacity=".7"/>
+          <!-- Dec: in $3M, out $4M -->
+          <rect x="454" y="70"  width="20" height="60" fill="#3F7A4F" rx="2"/>
+          <rect x="476" y="70"  width="20" height="60" fill="#B91C1C" rx="2" opacity=".7"/>
+          <!-- Jan: in $5M, out $1M -->
+          <rect x="512" y="55"  width="20" height="75" fill="#3F7A4F" rx="2"/>
+          <rect x="534" y="118" width="20" height="12" fill="#B91C1C" rx="2" opacity=".7"/>
+          <!-- Feb: in $2M, out $3M -->
+          <rect x="570" y="100" width="20" height="30" fill="#3F7A4F" rx="2"/>
+          <rect x="592" y="70"  width="20" height="60" fill="#B91C1C" rx="2" opacity=".7"/>
+          <!-- Mar: in $4M, out $2M -->
+          <rect x="628" y="70"  width="20" height="60" fill="#3F7A4F" rx="2"/>
+          <rect x="650" y="100" width="20" height="30" fill="#B91C1C" rx="2" opacity=".7"/>
+          <!-- Apr: in $6M, out $3M -->
+          <rect x="686" y="25"  width="20" height="105" fill="#3F7A4F" rx="2"/>
+          <rect x="708" y="70"  width="20" height="60" fill="#B91C1C" rx="2" opacity=".7"/>
+
+          <!-- Net flow line (midpoints of each group) -->
+          <polyline points="69,100 127,85 185,105 243,43 301,95 359,70 417,25 475,80 533,55 591,95 649,80 707,25"
+            fill="none" stroke="#1B2B5E" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="none"/>
+
+          <!-- X labels -->
+          <text x="69"  y="148" text-anchor="middle" font-size="8" fill="#81756f" font-family="JetBrains Mono">May</text>
+          <text x="127" y="148" text-anchor="middle" font-size="8" fill="#81756f" font-family="JetBrains Mono">Jun</text>
+          <text x="185" y="148" text-anchor="middle" font-size="8" fill="#81756f" font-family="JetBrains Mono">Jul</text>
+          <text x="243" y="148" text-anchor="middle" font-size="8" fill="#81756f" font-family="JetBrains Mono">Aug</text>
+          <text x="301" y="148" text-anchor="middle" font-size="8" fill="#81756f" font-family="JetBrains Mono">Sep</text>
+          <text x="359" y="148" text-anchor="middle" font-size="8" fill="#81756f" font-family="JetBrains Mono">Oct</text>
+          <text x="417" y="148" text-anchor="middle" font-size="8" fill="#81756f" font-family="JetBrains Mono">Nov</text>
+          <text x="475" y="148" text-anchor="middle" font-size="8" fill="#81756f" font-family="JetBrains Mono">Dec</text>
+          <text x="533" y="148" text-anchor="middle" font-size="8" fill="#81756f" font-family="JetBrains Mono">Jan</text>
+          <text x="591" y="148" text-anchor="middle" font-size="8" fill="#81756f" font-family="JetBrains Mono">Feb</text>
+          <text x="649" y="148" text-anchor="middle" font-size="8" fill="#81756f" font-family="JetBrains Mono">Mar</text>
+          <text x="707" y="148" text-anchor="middle" font-size="8" fill="#81756f" font-family="JetBrains Mono">Apr</text>
+        </svg>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<div class="sidebar-backdrop"></div>
+<script src="_api.js?v=2"></script>
+<script src="_shell.js?v=2"></script>
+<script>API.redirectIfUnauth(); Shell.mount('assets.html', ['Assets']);</script>
+<script src="_app.js?v=2"></script>
+</body>
+</html>

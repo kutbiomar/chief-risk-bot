@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Workspace Setup — ChiefRiskBot</title>
+  <link rel="icon" href="data:,"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_tokens.css"/>
+  <style>
+    body {
+      min-height: 100vh;
+      background: var(--paper);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 24px 60px;
+    }
+
+    /* ── Wordmark ── */
+    .wordmark {
+      display: flex; align-items: center; gap: 9px;
+      margin-bottom: 40px;
+    }
+    .wordmark .logo {
+      width: 32px; height: 32px; border-radius: 7px;
+      background: var(--accent);
+      display: grid; place-items: center;
+      font-family: var(--font-serif); font-size: 15px; font-weight: 900; color: #fff;
+    }
+    .wordmark .name {
+      font-family: var(--font-serif); font-size: 16px; font-weight: 900;
+      letter-spacing: -.02em; color: var(--ink);
+    }
+
+    /* ── Panel ── */
+    .panel {
+      width: 100%; max-width: 560px;
+      background: #fffdfb;
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(30,27,26,.06), 0 1px 2px rgba(30,27,26,.04);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 28px 32px 20px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .panel-head h1 {
+      font-family: var(--font-serif);
+      font-size: 24px; font-weight: 900;
+      letter-spacing: -.02em; color: var(--ink);
+      margin-bottom: 6px;
+    }
+    .panel-head .sub { font-size: 13px; color: var(--ink-mute); }
+
+    /* ── Stepper ── */
+    .stepper {
+      display: flex; align-items: center;
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--rule);
+      background: var(--paper-2);
+      gap: 0;
+    }
+    .step {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--ink-mute);
+      font-size: 12px; font-weight: 600;
+      flex-shrink: 0;
+    }
+    .step .n {
+      width: 26px; height: 26px; border-radius: 999px;
+      border: 1.5px solid var(--rule);
+      background: var(--paper-3);
+      display: grid; place-items: center;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink-mute);
+      transition: all 200ms;
+    }
+    .step.done .n {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+    }
+    .step.done .n .ms { font-size: 14px; }
+    .step.active .n {
+      border-color: var(--accent); color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(27,43,94,.1);
+    }
+    .step.active { color: var(--ink); }
+    .step.done { color: var(--ink-soft); }
+    .connector {
+      flex: 1; height: 1px;
+      background: var(--rule); margin: 0 8px;
+      transition: background 300ms;
+    }
+    .connector.done { background: var(--accent); }
+
+    /* ── Step panels ── */
+    .step-body {
+      padding: 28px 32px;
+      display: none; flex-direction: column; gap: 20px;
+    }
+    .step-body.active { display: flex; }
+
+    /* Eyebrow */
+    .eyebrow { font-size: 10px; font-weight: 700; letter-spacing:.12em; text-transform:uppercase; color: var(--ink-mute); margin-bottom: 4px; }
+
+    /* Uploaded file row */
+    .file-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+    }
+    .file-row .ficon {
+      width: 32px; height: 32px; border-radius: 5px;
+      background: var(--good-bg);
+      display: grid; place-items: center; flex-shrink: 0;
+    }
+    .file-row .ficon .ms { color: var(--good-fg); font-size: 18px; }
+    .file-row .fname { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .file-row .fmeta { font-size: 11px; color: var(--ink-mute); margin-top: 2px; }
+    .file-row .spacer { flex: 1; }
+
+    /* Enrichment loading */
+    .enrich-status {
+      display: flex; flex-direction: column; gap: 14px;
+      padding: 20px 24px;
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      text-align: center;
+    }
+    .enrich-status .spinner {
+      width: 28px; height: 28px; margin: 0 auto;
+      border: 2.5px solid var(--rule-strong);
+      border-top-color: var(--accent);
+      border-radius: 999px;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .enrich-status .msg { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .enrich-status .detail { font-size: 11px; color: var(--ink-mute); }
+    .enrich-status .progress-bar { max-width: 240px; margin: 0 auto; }
+
+    /* Generation scope */
+    .scope-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .scope-row .seg button { padding: 5px 13px; }
+
+    /* Panel footer */
+    .panel-foot {
+      padding: 16px 32px;
+      border-top: 1px solid var(--rule);
+      background: var(--paper-2);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .panel-foot .step-counter { font-size: 11px; color: var(--ink-mute); }
+    .panel-foot .foot-actions { display: flex; gap: 8px; align-items: center; }
+    .skip-link {
+      font-size: 11px; color: var(--ink-mute); text-decoration: none; cursor: pointer;
+    }
+    .skip-link:hover { color: var(--ink); }
+
+    /* Success state (step 3 complete) */
+    .success-card {
+      display: none;
+      flex-direction: column; align-items: center;
+      text-align: center; gap: 12px;
+      padding: 32px 24px;
+    }
+    .success-card.visible { display: flex; }
+    .success-icon {
+      width: 52px; height: 52px; border-radius: 999px;
+      background: var(--good-bg);
+      display: grid; place-items: center;
+    }
+    .success-icon .ms { font-size: 28px; color: var(--good-fg); }
+    .success-card h2 { font-family: var(--font-serif); font-size: 20px; font-weight: 700; color: var(--ink); }
+    .success-card p { font-size: 13px; color: var(--ink-mute); max-width: 340px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<div class="wordmark">
+  <div class="logo serif">R</div>
+  <span class="name">ChiefRiskBot</span>
+</div>
+
+<div class="panel">
+
+  <div class="panel-head">
+    <div class="eyebrow">Getting started</div>
+    <h1>Set up your workspace.</h1>
+    <div class="sub">Three steps to your first AI-generated risk briefing.</div>
+  </div>
+
+  <!-- Stepper -->
+  <div class="stepper">
+    <div class="step done" id="step-1-indicator">
+      <div class="n"><span class="ms">check</span></div>
+      <span>Upload</span>
+    </div>
+    <div class="connector done" id="conn-1"></div>
+    <div class="step active" id="step-2-indicator">
+      <div class="n">2</div>
+      <span>Enrich</span>
+    </div>
+    <div class="connector" id="conn-2"></div>
+    <div class="step" id="step-3-indicator">
+      <div class="n">3</div>
+      <span>Generate</span>
+    </div>
+  </div>
+
+  <!-- Step 1: Upload (shown as completed) -->
+  <div class="step-body" id="step-1">
+    <div>
+      <div class="eyebrow">Step 1 — Upload positions</div>
+      <div style="font-size:13px;color:var(--ink-soft);margin-top:4px;">Upload a CSV or paste positions manually to get started.</div>
+    </div>
+    <div class="upload-zone" style="text-align:center;padding:28px 24px">
+      <span class="ms" style="font-size:28px;color:var(--ink-mute);display:block;margin-bottom:8px">upload_file</span>
+      <div style="font-size:13px;font-weight:600;color:var(--ink)">Drag a CSV here, or click to browse</div>
+      <div style="font-size:11px;color:var(--ink-mute);margin-top:4px">Standard custodian export format — Schwab, Fidelity, JPMorgan, IBKR</div>
+    </div>
+  </div>
+
+  <!-- Step 2: Enrichment (active) -->
+  <div class="step-body active" id="step-2">
+    <div>
+      <div class="eyebrow">Step 2 — Enriching positions</div>
+      <div style="font-size:13px;color:var(--ink-soft);margin-top:4px;">Fetching live prices, sector classifications, and risk factor data for your positions.</div>
+    </div>
+
+    <!-- Uploaded file summary -->
+    <div class="file-row">
+      <div class="ficon"><span class="ms">table_view</span></div>
+      <div>
+        <div class="fname">Schwab_Q1_2026_Positions.csv</div>
+        <div class="fmeta">34 positions · 2.1 MB · Uploaded just now</div>
+      </div>
+      <div class="spacer"></div>
+      <span class="pill good"><span class="dot"></span>Parsed</span>
+    </div>
+
+    <!-- Enrichment loading -->
+    <div class="enrich-status">
+      <div class="spinner"></div>
+      <div class="msg">Fetching live prices for 34 positions…</div>
+      <div class="detail">Pulling market data from yFinance and FRED. This usually takes 15–30 seconds.</div>
+      <div class="progress-bar">
+        <div class="fill" style="width:58%" id="enrich-progress"></div>
+      </div>
+      <div style="font-size:10px;color:var(--ink-mute);font-family:var(--font-mono)">20 / 34 positions enriched</div>
+    </div>
+  </div>
+
+  <!-- Step 3: Generate briefing -->
+  <div class="step-body" id="step-3">
+    <div>
+      <div class="eyebrow">Step 3 — Generate your first briefing</div>
+      <div style="font-size:13px;color:var(--ink-soft);margin-top:4px;">All 34 positions have been enriched with live market data. Ready to generate your first AI risk briefing.</div>
+    </div>
+
+    <!-- Enrichment complete summary -->
+    <div class="file-row" style="background:var(--good-bg);border-color:#cfe1d3">
+      <div class="ficon" style="background:var(--good-bg)"><span class="ms" style="color:var(--good-fg)">check_circle</span></div>
+      <div>
+        <div class="fname" style="color:var(--good-fg)">Enrichment complete</div>
+        <div class="fmeta">34 positions · prices, sectors, and risk factors loaded</div>
+      </div>
+    </div>
+
+    <div class="scope-row">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:2px">Briefing scope</div>
+        <div style="font-size:11px;color:var(--ink-mute)">Choose what to include in your first briefing.</div>
+      </div>
+      <div class="seg">
+        <button class="on">Full</button>
+        <button>Risk</button>
+        <button>Liquidity</button>
+      </div>
+    </div>
+
+    <button class="btn primary" style="justify-content:center;padding:12px 20px;font-size:13px;">
+      <span class="ms sm">auto_awesome</span> Generate my first briefing
+    </button>
+  </div>
+
+  <!-- Success state -->
+  <div class="success-card" id="success">
+    <div class="success-icon"><span class="ms">check</span></div>
+    <h2>Your briefing is ready.</h2>
+    <p>Your first AI risk briefing has been generated. You'll receive a new briefing every Monday at 07:00 UTC.</p>
+    <a href="briefing.html" class="btn primary" style="justify-content:center;padding:11px 20px;font-size:13px;text-decoration:none;">
+      <span class="ms sm">description</span> Read your first briefing
+    </a>
+    <a href="index.html" style="font-size:12px;color:var(--ink-mute);text-decoration:none;margin-top:4px;">
+      Go to dashboard
+    </a>
+  </div>
+
+  <!-- Footer nav -->
+  <div class="panel-foot" id="panel-foot">
+    <span class="skip-link" id="skip-link">Skip — I'll finish setup later</span>
+    <div class="foot-actions">
+      <button class="btn" id="back-btn" style="display:none">
+        <span class="ms sm">arrow_back</span> Back
+      </button>
+      <button class="btn primary" id="next-btn">
+        Continue <span class="ms sm">arrow_forward</span>
+      </button>
+    </div>
+    <div class="step-counter" id="step-counter" style="display:none">Step 2 of 3</div>
+  </div>
+
+</div><!-- /panel -->
+
+<script src="_api.js?v=2"></script>
+<script src="_app.js?v=2"></script>
+</body>
+</html>

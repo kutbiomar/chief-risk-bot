@@ -38,6 +38,28 @@ def _serialize(result: VarResult) -> VarResponse:
     )
 
 
+@router.get("", response_model=VarResponse)
+def get_var(
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> VarResponse:
+    _, user = auth
+    snapshot = db.scalar(
+        select(PortfolioSnapshot).where(
+            PortfolioSnapshot.workspace_id == user.workspace_id,
+            PortfolioSnapshot.is_current.is_(True),
+        )
+    )
+    if snapshot is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio snapshot not found")
+    result = db.scalar(select(VarResult).where(VarResult.snapshot_id == snapshot.id).order_by(VarResult.computed_at.desc()))
+    if result is None:
+        result = compute_var_for_snapshot(db, snapshot)
+        db.commit()
+        db.refresh(result)
+    return _serialize(result)
+
+
 @router.post("/compute", response_model=VarResponse, dependencies=[Depends(require_cookie_csrf)])
 def compute_var(
     auth=Depends(require_session),

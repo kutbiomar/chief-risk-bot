@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Liquidity — ChiefRiskBot</title>
+  <link rel="icon" href="data:,"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_tokens.css"/>
+  <link rel="stylesheet" href="_shell.css"/>
+  <style>
+    /* ── Liquidity buckets ── */
+    .buckets {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1px;
+      background: var(--rule);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .bucket {
+      background: #fffdfb;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .bucket .bkt-label {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--ink-mute);
+    }
+    .bucket .bkt-value {
+      font-family: var(--font-mono); font-feature-settings:"tnum";
+      font-size: 22px; font-weight: 700;
+      color: var(--ink); letter-spacing: -.02em;
+    }
+    .bucket .bkt-pct {
+      font-size: 11px; color: var(--ink-mute);
+    }
+    .bucket .bkt-bar {
+      height: 4px; background: var(--paper-3);
+      border-radius: 999px; overflow: hidden;
+      margin-top: 2px;
+    }
+    .bucket .bkt-bar .fill { height: 100%; border-radius: 999px; }
+    .bucket.liquid   .bkt-bar .fill { background: var(--good-fg); }
+    .bucket.semiliq  .bkt-bar .fill { background: var(--wat-fg); }
+    .bucket.illiquid .bkt-bar .fill { background: var(--ele-fg); }
+    .bucket .bkt-def { font-size: 10px; color: var(--ink-mute); line-height: 1.4; }
+
+    /* ── Runway hero ── */
+    .runway-card {
+      display: flex; align-items: center; gap: 24px;
+      padding: 20px 24px;
+      background: #fffdfb;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      box-shadow: var(--shadow);
+    }
+    .runway-card .rw-number {
+      font-family: var(--font-mono); font-feature-settings:"tnum";
+      font-size: 48px; font-weight: 700;
+      color: var(--ink); letter-spacing: -.04em;
+      line-height: 1;
+    }
+    .runway-card .rw-unit {
+      font-size: 16px; font-weight: 600; color: var(--ink-mute);
+      align-self: flex-end; padding-bottom: 6px;
+    }
+    .runway-card .rw-divider { width: 1px; background: var(--rule); align-self: stretch; }
+    .runway-card .rw-detail { display: flex; flex-direction: column; gap: 4px; }
+    .runway-card .rw-label { font-family: var(--font-serif); font-size: 16px; font-weight: 700; color: var(--ink); }
+    .runway-card .rw-basis { font-size: 12px; color: var(--ink-mute); line-height: 1.5; }
+    .runway-card .rw-badge { margin-top: 6px; }
+
+    /* ── Cash flow chart ── */
+    .chart-legend-row {
+      display: flex; align-items: center; gap: 16px; margin-bottom: 14px;
+    }
+    .cl-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink-mute); }
+    .cl-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+    /* ── Near-term events ── */
+    .amount-cell {
+      font-family: var(--font-mono); font-feature-settings:"tnum";
+      font-size: 12px; font-weight: 600;
+      text-align: right;
+    }
+    .amount-cell.inflow  { color: var(--good-fg); }
+    .amount-cell.outflow { color: var(--pri-fg); }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar"></div>
+  <main>
+    <div class="top"></div>
+    <div class="content">
+
+      <div class="page-head">
+        <div>
+          <h1>Liquidity</h1>
+          <div class="sub">Cash availability, runway, and forward cash flow projections</div>
+        </div>
+      </div>
+
+      <!-- Liquidity Buckets -->
+      <div class="buckets">
+        <div class="bucket liquid">
+          <div class="bkt-label">Liquid</div>
+          <div class="bkt-value">$39.0M</div>
+          <div class="bkt-pct">8.0% of AUM</div>
+          <div class="bkt-bar"><div class="fill" style="width:8%"></div></div>
+          <div class="bkt-def">Cash, money market, T-bills &lt; 7 days</div>
+        </div>
+        <div class="bucket semiliq">
+          <div class="bkt-label">Semi-liquid</div>
+          <div class="bkt-value">$243.6M</div>
+          <div class="bkt-pct">50.0% of AUM</div>
+          <div class="bkt-bar"><div class="fill" style="width:50%"></div></div>
+          <div class="bkt-def">Listed equities, ETFs, IG bonds · 7–90 day settlement</div>
+        </div>
+        <div class="bucket illiquid">
+          <div class="bkt-label">Illiquid</div>
+          <div class="bkt-value">$204.7M</div>
+          <div class="bkt-pct">42.0% of AUM</div>
+          <div class="bkt-bar"><div class="fill" style="width:42%"></div></div>
+          <div class="bkt-def">PE, real estate, lock-up hedge funds &gt; 90 days</div>
+        </div>
+      </div>
+
+      <!-- Cash Runway -->
+      <div class="runway-card">
+        <div class="rw-number">14</div>
+        <div class="rw-unit">months</div>
+        <div class="rw-divider"></div>
+        <div class="rw-detail">
+          <div class="rw-label">Cash Runway</div>
+          <div class="rw-basis">Based on $2.8M/month average net outflows (operating expenses,<br>management fees, scheduled obligations). Liquid assets only.</div>
+          <div class="rw-badge">
+            <span class="pill good"><span class="dot"></span>Comfortable</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cash Flow Ladder -->
+      <div class="card">
+        <div class="card-head">
+          <h2>Cash Flow Ladder</h2>
+          <span class="uplabel">24-month projection · base scenario</span>
+        </div>
+
+        <div class="chart-legend-row">
+          <div class="cl-item"><span class="cl-dot" style="background:var(--good-fg)"></span>Inflows</div>
+          <div class="cl-item"><span class="cl-dot" style="background:var(--pri-fg)"></span>Outflows</div>
+          <div class="cl-item"><span style="display:inline-block;width:20px;height:2px;background:var(--accent);border-radius:999px"></span>Cumulative balance</div>
+        </div>
+
+        <svg viewBox="0 0 800 160" width="100%" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="cumFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1B2B5E" stop-opacity=".12"/>
+              <stop offset="100%" stop-color="#1B2B5E" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- Gridlines -->
+          <line x1="32" y1="10"  x2="795" y2="10"  stroke="var(--rule)" stroke-width=".5"/>
+          <line x1="32" y1="45"  x2="795" y2="45"  stroke="var(--rule)" stroke-width=".5"/>
+          <line x1="32" y1="80"  x2="795" y2="80"  stroke="var(--rule)" stroke-width=".5"/>
+          <line x1="32" y1="115" x2="795" y2="115" stroke="var(--rule)" stroke-width=".5"/>
+          <!-- Y labels -->
+          <text x="28" y="13"  text-anchor="end" font-size="7" fill="#81756f" font-family="JetBrains Mono">$8M</text>
+          <text x="28" y="48"  text-anchor="end" font-size="7" fill="#81756f" font-family="JetBrains Mono">$5M</text>
+          <text x="28" y="83"  text-anchor="end" font-size="7" fill="#81756f" font-family="JetBrains Mono">$3M</text>
+          <text x="28" y="118" text-anchor="end" font-size="7" fill="#81756f" font-family="JetBrains Mono">$0</text>
+
+          <!-- 24 months of bars. Each slot = 32px wide. Inflow (green) left, outflow (red) right (14px each, gap 2px) -->
+          <!-- Month data: [inH, outH] where H is bar height in SVG units (max 105 = $8M) -->
+          <!-- May: in $3M=40, out $6.2M=82 | Jun: in $5M=66, out $2M=26 | Jul: in $1.5M=20, out $4M=53 -->
+          <!-- Aug: in $7M=92, out $1M=13 | Sep: in $2M=26, out $5M=66 | Oct: in $4M=53, out $3M=40 -->
+          <!-- Nov: in $6M=79, out $2M=26 | Dec: in $3M=40, out $4M=53 | Jan: in $5M=66, out $1.5M=20 -->
+          <!-- Feb: in $2M=26, out $3M=40 | Mar: in $4M=53, out $2M=26 | Apr: in $6M=79, out $3M=40 -->
+          <!-- May27-Apr28: repeat similar pattern -->
+
+          <!-- Bar groups: x start for each month -->
+          <!-- May -->  <rect x="35"  y="75"  width="12" height="40"  fill="#3F7A4F" rx="1.5"/><rect x="49"  y="33"  width="12" height="82"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Jun -->  <rect x="68"  y="49"  width="12" height="66"  fill="#3F7A4F" rx="1.5"/><rect x="82"  y="89"  width="12" height="26"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Jul -->  <rect x="101" y="95"  width="12" height="20"  fill="#3F7A4F" rx="1.5"/><rect x="115" y="62"  width="12" height="53"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Aug -->  <rect x="134" y="23"  width="12" height="92"  fill="#3F7A4F" rx="1.5"/><rect x="148" y="102" width="12" height="13"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Sep -->  <rect x="167" y="89"  width="12" height="26"  fill="#3F7A4F" rx="1.5"/><rect x="181" y="49"  width="12" height="66"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Oct -->  <rect x="200" y="62"  width="12" height="53"  fill="#3F7A4F" rx="1.5"/><rect x="214" y="75"  width="12" height="40"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Nov -->  <rect x="233" y="36"  width="12" height="79"  fill="#3F7A4F" rx="1.5"/><rect x="247" y="89"  width="12" height="26"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Dec -->  <rect x="266" y="75"  width="12" height="40"  fill="#3F7A4F" rx="1.5"/><rect x="280" y="62"  width="12" height="53"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Jan27 --> <rect x="299" y="49"  width="12" height="66"  fill="#3F7A4F" rx="1.5"/><rect x="313" y="95"  width="12" height="20"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Feb -->  <rect x="332" y="89"  width="12" height="26"  fill="#3F7A4F" rx="1.5"/><rect x="346" y="75"  width="12" height="40"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Mar -->  <rect x="365" y="62"  width="12" height="53"  fill="#3F7A4F" rx="1.5"/><rect x="379" y="89"  width="12" height="26"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Apr -->  <rect x="398" y="36"  width="12" height="79"  fill="#3F7A4F" rx="1.5"/><rect x="412" y="75"  width="12" height="40"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- May27 --> <rect x="431" y="75"  width="12" height="40"  fill="#3F7A4F" rx="1.5"/><rect x="445" y="49"  width="12" height="66"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Jun27 --> <rect x="464" y="55"  width="12" height="60"  fill="#3F7A4F" rx="1.5"/><rect x="478" y="82"  width="12" height="33"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Jul27 --> <rect x="497" y="89"  width="12" height="26"  fill="#3F7A4F" rx="1.5"/><rect x="511" y="62"  width="12" height="53"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Aug27 --> <rect x="530" y="29"  width="12" height="86"  fill="#3F7A4F" rx="1.5"/><rect x="544" y="95"  width="12" height="20"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Sep27 --> <rect x="563" y="82"  width="12" height="33"  fill="#3F7A4F" rx="1.5"/><rect x="577" y="55"  width="12" height="60"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Oct27 --> <rect x="596" y="62"  width="12" height="53"  fill="#3F7A4F" rx="1.5"/><rect x="610" y="75"  width="12" height="40"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Nov27 --> <rect x="629" y="42"  width="12" height="73"  fill="#3F7A4F" rx="1.5"/><rect x="643" y="89"  width="12" height="26"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Dec27 --> <rect x="662" y="75"  width="12" height="40"  fill="#3F7A4F" rx="1.5"/><rect x="676" y="68"  width="12" height="47"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Jan28 --> <rect x="695" y="49"  width="12" height="66"  fill="#3F7A4F" rx="1.5"/><rect x="709" y="89"  width="12" height="26"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Feb28 --> <rect x="728" y="82"  width="12" height="33"  fill="#3F7A4F" rx="1.5"/><rect x="742" y="75"  width="12" height="40"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+          <!-- Mar28 --> <rect x="761" y="62"  width="12" height="53"  fill="#3F7A4F" rx="1.5"/><rect x="775" y="89"  width="12" height="26"  fill="#B91C1C" rx="1.5" opacity=".75"/>
+
+          <!-- Cumulative balance line (net positive trend) -->
+          <path d="M48,85 L81,68 L114,85 L147,42 L180,75 L213,62 L246,48 L279,55 L312,45 L345,58 L378,48 L411,30 L444,52 L477,42 L510,60 L543,28 L576,55 L609,45 L642,35 L675,50 L708,38 L741,48 L774,38"
+            fill="none" stroke="#1B2B5E" stroke-width="1.5" stroke-linejoin="round"/>
+
+          <!-- X axis labels (every 2 months) -->
+          <text x="48"  y="148" text-anchor="middle" font-size="7" fill="#81756f" font-family="JetBrains Mono">May</text>
+          <text x="114" y="148" text-anchor="middle" font-size="7" fill="#81756f" font-family="JetBrains Mono">Jul</text>
+          <text x="180" y="148" text-anchor="middle" font-size="7" fill="#81756f" font-family="JetBrains Mono">Sep</text>
+          <text x="246" y="148" text-anchor="middle" font-size="7" fill="#81756f" font-family="JetBrains Mono">Nov</text>
+          <text x="312" y="148" text-anchor="middle" font-size="7" fill="#81756f" font-family="JetBrains Mono">Jan '27</text>
+          <text x="378" y="148" text-anchor="middle" font-size="7" fill="#81756f" font-family="JetBrains Mono">Mar</text>
+          <text x="444" y="148" text-anchor="middle" font-size="7" fill="#81756f" font-family="JetBrains Mono">May</text>
+          <text x="510" y="148" text-anchor="middle" font-size="7" fill="#81756f" font-family="JetBrains Mono">Jul</text>
+          <text x="576" y="148" text-anchor="middle" font-size="7" fill="#81756f" font-family="JetBrains Mono">Sep</text>
+          <text x="642" y="148" text-anchor="middle" font-size="7" fill="#81756f" font-family="JetBrains Mono">Nov</text>
+          <text x="708" y="148" text-anchor="middle" font-size="7" fill="#81756f" font-family="JetBrains Mono">Jan '28</text>
+          <text x="774" y="148" text-anchor="middle" font-size="7" fill="#81756f" font-family="JetBrains Mono">Mar</text>
+        </svg>
+      </div>
+
+      <!-- Near-Term Events -->
+      <div class="table-card">
+        <div class="table-head">
+          <h2>Near-Term Events</h2>
+          <span class="uplabel">Next 90 days</span>
+        </div>
+        <table class="list">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Type</th>
+              <th>Source / Fund</th>
+              <th class="num">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;color:var(--ink);white-space:nowrap">10 May 2026</td>
+              <td>Capital call — tranche 3 of 5</td>
+              <td><span class="pill pri">Outflow</span></td>
+              <td class="muted">Blackstone RE Partners VI</td>
+              <td class="amount-cell outflow">−$2,400,000</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--ink);white-space:nowrap">15 May 2026</td>
+              <td>Quarterly distribution</td>
+              <td><span class="pill good">Inflow</span></td>
+              <td class="muted">Vista Equity Partners VII</td>
+              <td class="amount-cell inflow">+$1,100,000</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--ink);white-space:nowrap">22 May 2026</td>
+              <td>Capital call — tranche 2 of 4</td>
+              <td><span class="pill pri">Outflow</span></td>
+              <td class="muted">KKR Infrastructure Fund IV</td>
+              <td class="amount-cell outflow">−$3,800,000</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--ink);white-space:nowrap">28 May 2026</td>
+              <td>T-bill maturity — 3-month</td>
+              <td><span class="pill good">Inflow</span></td>
+              <td class="muted">Schwab · Money Market</td>
+              <td class="amount-cell inflow">+$5,000,000</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--ink);white-space:nowrap">1 Jun 2026</td>
+              <td>Semi-annual interest</td>
+              <td><span class="pill good">Inflow</span></td>
+              <td class="muted">Apollo Credit Fund III</td>
+              <td class="amount-cell inflow">+$420,000</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--ink);white-space:nowrap">30 Jul 2026</td>
+              <td>Bond maturity — iBoxx IG</td>
+              <td><span class="pill good">Inflow</span></td>
+              <td class="muted">LQD position · Schwab</td>
+              <td class="amount-cell inflow">+$8,200,000</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<div class="sidebar-backdrop"></div>
+<script src="_api.js?v=2"></script>
+<script src="_shell.js?v=2"></script>
+<script>API.redirectIfUnauth(); Shell.mount('liquidity.html', ['Liquidity']);</script>
+<script src="_app.js?v=2"></script>
+</body>
+</html>

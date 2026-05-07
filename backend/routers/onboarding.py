@@ -7,9 +7,11 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from backend.deps import get_db
 from backend.models.onboarding import OnboardingProgress
+from backend.models.portfolio import PortfolioSnapshot
 from backend.routers.auth import require_cookie_csrf, require_session
 
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
@@ -72,6 +74,28 @@ def get_onboarding_state(
         is_complete=progress.completed_at is not None,
         next_step=remaining[0] if remaining else None,
     )
+
+
+@router.get("/status")
+def get_onboarding_status(
+    auth=Depends(require_session),
+    db: Session = Depends(get_db),
+) -> dict:
+    _, user = auth
+    snapshot = db.scalar(
+        select(PortfolioSnapshot).where(
+            PortfolioSnapshot.workspace_id == user.workspace_id,
+            PortfolioSnapshot.is_current.is_(True),
+        )
+    )
+    total = snapshot.position_count if snapshot is not None else 0
+    enriched = total if snapshot is not None and snapshot.enriched_at is not None else 0
+    return {
+        "state": "complete" if total and enriched >= total else "pending",
+        "enriched": enriched,
+        "total": total,
+        "snapshot_id": snapshot.id if snapshot is not None else None,
+    }
 
 
 @router.post("/step", response_model=OnboardingStepResponse, dependencies=[Depends(require_cookie_csrf)])

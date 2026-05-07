@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Positions — ChiefRiskBot</title>
+  <link rel="icon" href="data:,"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link rel="stylesheet" href="_tokens.css"/>
+  <link rel="stylesheet" href="_shell.css"/>
+  <style>
+    /* Override content padding for full-bleed spreadsheet */
+    .content { padding: 0; gap: 0; }
+
+    /* ── 3-panel work area ── */
+    .work {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .work.panel-open { grid-template-columns: 200px 1fr 300px; }
+
+    /* ── Sources sidebar ── */
+    .sources {
+      border-right: 1px solid var(--rule);
+      background: var(--paper-2);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .sources header {
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid var(--rule);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .sources header .ttl {
+      font-family: var(--font-serif);
+      font-size: 13px; font-weight: 700;
+    }
+    .sources .upload-btn {
+      display: flex; align-items: center; gap: 6px;
+      margin: 8px 10px;
+      padding: 8px 10px;
+      border: 1px dashed var(--rule-strong);
+      border-radius: 5px;
+      font-size: 11px; font-weight: 600;
+      color: var(--ink-mute);
+      cursor: pointer;
+      background: transparent;
+      transition: background 80ms, color 80ms;
+    }
+    .sources .upload-btn:hover { background: var(--paper-3); color: var(--ink); }
+
+    .src-item {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--rule);
+      cursor: pointer;
+      transition: background 80ms;
+    }
+    .src-item:hover { background: var(--paper-3); }
+    .src-item.active {
+      background: var(--paper);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+    .src-item .top-row {
+      display: flex; align-items: center; gap: 7px;
+      margin-bottom: 3px;
+    }
+    .src-item .ico {
+      width: 20px; height: 20px; border-radius: 3px;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      background: var(--paper-3);
+    }
+    .src-item .ico .ms { font-size: 14px; color: var(--ink-mute); }
+    .src-item .ico.pdf { background: #fce8e8; }
+    .src-item .ico.pdf .ms { color: var(--pri-fg); }
+    .src-item .ico.csv { background: var(--good-bg); }
+    .src-item .ico.csv .ms { color: var(--good-fg); }
+    .src-item .ico.all { background: #eef0f7; }
+    .src-item .ico.all .ms { color: var(--accent); }
+    .src-item .fname {
+      font-size: 11px; font-weight: 600; color: var(--ink);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 130px;
+    }
+    .src-item .meta { font-size: 10px; color: var(--ink-mute); }
+    .src-item .badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+    .src-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+      padding: 1px 5px; border-radius: 999px;
+      background: var(--paper-3); color: var(--ink-mute); border: 1px solid var(--rule);
+    }
+    .src-badge.ok { background: var(--good-bg); color: var(--good-fg); border-color: #cfe1d3; }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--rule);
+      background: var(--paper);
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .toolbar .row-count { font-size: 11px; color: var(--ink-mute); font-weight: 500; }
+    .toolbar .chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 9px; border-radius: 999px;
+      font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+      border: 1px solid var(--rule);
+      background: var(--paper-3); color: var(--ink-mute);
+      cursor: pointer;
+    }
+    .toolbar .chip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .toolbar .spacer { flex: 1; }
+    .toolbar .search {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 10px;
+      border: 1px solid var(--rule);
+      border-radius: 5px;
+      background: var(--paper-2);
+    }
+    .toolbar .search input {
+      border: none; background: transparent;
+      font: 500 12px var(--font-sans); color: var(--ink);
+      outline: none; width: 160px;
+    }
+    .toolbar .search input::placeholder { color: var(--ink-mute); }
+    .toolbar .search .ms { font-size: 15px; color: var(--ink-mute); }
+    .toolbar .snap-select {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 10px;
+      border: 1px solid var(--rule); border-radius: 5px;
+      background: var(--paper-2);
+      font: 600 11px var(--font-sans); color: var(--ink-soft);
+      cursor: pointer;
+    }
+
+    /* ── Grid wrap + sheet ── */
+    .grid-wrap {
+      overflow: auto;
+      flex: 1;
+    }
+    .sheet-area {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 56px - 44px); /* full height minus topbar and toolbar */
+    }
+
+    table.sheet {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 12px;
+      table-layout: fixed;
+    }
+    table.sheet thead th {
+      position: sticky; top: 0; z-index: 3;
+      background: var(--paper-2);
+      border-bottom: 1px solid var(--rule);
+      border-right: 1px solid var(--rule);
+      padding: 0 10px;
+      height: 32px;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: .07em; text-transform: uppercase;
+      color: var(--ink-mute);
+      text-align: left;
+      white-space: nowrap;
+      user-select: none;
+    }
+    table.sheet thead th.num { text-align: right; }
+    table.sheet tbody td {
+      border-bottom: 1px solid var(--rule);
+      border-right: 1px solid var(--rule);
+      padding: 0 10px;
+      height: 36px;
+      color: var(--ink-soft);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    table.sheet tbody tr:hover td { background: var(--paper-2); cursor: pointer; }
+    table.sheet tbody tr.sel td { background: #f0f1fa; }
+    table.sheet tbody tr.dirty td:first-child { box-shadow: inset 3px 0 0 var(--wat-fg); }
+    table.sheet .num {
+      text-align: right;
+      font-family: var(--font-mono); font-feature-settings: "tnum";
+      font-size: 12px; font-weight: 600; color: var(--ink);
+    }
+    table.sheet .ticker {
+      font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--ink);
+    }
+    table.sheet .rownum {
+      width: 36px; min-width: 36px; text-align: center;
+      font-size: 10px; color: var(--ink-mute);
+    }
+    table.sheet .ac-badge {
+      display: inline-block; padding: 1px 6px; border-radius: 3px;
+      font-size: 10px; font-weight: 700; letter-spacing: .03em;
+      background: #eef0f7; color: var(--accent);
+    }
+    table.sheet .ac-badge.fi  { background: var(--good-bg); color: var(--good-fg); }
+    table.sheet .ac-badge.pe  { background: #fef6e4; color: #92690a; }
+    table.sheet .ac-badge.re  { background: #e6f4f4; color: var(--teal); }
+    table.sheet .ac-badge.alt { background: var(--paper-3); color: var(--ink-mute); }
+
+    /* Inline editing row */
+    table.sheet .edit-input {
+      border: 1px solid var(--accent);
+      background: var(--paper);
+      border-radius: 3px;
+      padding: 3px 6px;
+      font: 500 12px var(--font-sans);
+      color: var(--ink);
+      outline: none;
+      width: 90%;
+    }
+
+    /* ── Detail panel ── */
+    .detail-panel {
+      border-left: 1px solid var(--rule);
+      background: #fffdfb;
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+    .detail-panel header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--rule);
+      flex-shrink: 0;
+    }
+    .detail-panel .ticker-big {
+      font-family: var(--font-serif);
+      font-size: 20px; font-weight: 900; letter-spacing: -.02em;
+      color: var(--ink);
+    }
+    .detail-panel .sec-name { font-size: 11px; color: var(--ink-mute); margin-top: 2px; }
+    .detail-panel .body { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+    .detail-panel .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .detail-panel .prov-row {
+      display: flex; justify-content: space-between;
+      padding: 6px 0; border-bottom: 1px solid var(--rule);
+      font-size: 11px;
+    }
+    .detail-panel .prov-row:last-child { border-bottom: none; }
+    .detail-panel .prov-row span { color: var(--ink-mute); }
+    .detail-panel .prov-row b { color: var(--ink); font-weight: 600; }
+    .detail-panel .sparkbox {
+      background: var(--paper-2); border: 1px solid var(--rule);
+      border-radius: 5px; padding: 10px 12px;
+    }
+    .detail-panel .spark-lbl {
+      display: flex; justify-content: space-between;
+      font-size: 10px; color: var(--ink-mute); margin-bottom: 4px;
+    }
+    .detail-panel .spark-val {
+      font-family: var(--font-mono); font-feature-settings:"tnum";
+      font-size: 15px; font-weight: 700; color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    /* ── Statusbar ── */
+    .statusbar {
+      height: 24px;
+      border-top: 1px solid var(--rule);
+      background: var(--paper-2);
+      display: flex; align-items: center;
+      padding: 0 14px; gap: 16px;
+      font-size: 10px; color: var(--ink-mute);
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar"></div>
+  <main>
+    <div class="top"></div>
+
+    <div class="work panel-open" id="work-area">
+
+      <!-- Sources sidebar -->
+      <div class="sources">
+        <header>
+          <span class="ttl">Sources</span>
+          <span style="font-size:10px;color:var(--ink-mute)">3 files</span>
+        </header>
+        <button class="upload-btn">
+          <span class="ms sm">upload_file</span> Upload document
+        </button>
+        <div class="src-item active">
+          <div class="top-row">
+            <span class="ico all"><span class="ms">all_inbox</span></span>
+            <span class="fname">All sources</span>
+          </div>
+          <div class="meta">34 positions · 3 documents</div>
+        </div>
+        <div class="src-item">
+          <div class="top-row">
+            <span class="ico pdf"><span class="ms">picture_as_pdf</span></span>
+            <span class="fname">Schwab_Q1_2026.pdf</span>
+          </div>
+          <div class="meta">2026-04-05 · 18 rows</div>
+          <div class="badges"><span class="src-badge ok">parsed</span></div>
+        </div>
+        <div class="src-item">
+          <div class="top-row">
+            <span class="ico csv"><span class="ms">table_view</span></span>
+            <span class="fname">JPM_positions.csv</span>
+          </div>
+          <div class="meta">2026-04-01 · 12 rows</div>
+          <div class="badges"><span class="src-badge ok">parsed</span></div>
+        </div>
+        <div class="src-item">
+          <div class="top-row">
+            <span class="ico pdf"><span class="ms">picture_as_pdf</span></span>
+            <span class="fname">Blackstone_NAV_Q1.pdf</span>
+          </div>
+          <div class="meta">2026-04-10 · 4 rows</div>
+          <div class="badges"><span class="src-badge">pending</span></div>
+        </div>
+      </div>
+
+      <!-- Main grid area -->
+      <div class="sheet-area">
+        <div class="toolbar">
+          <span class="row-count">34 positions</span>
+          <span class="chip on">All · 34</span>
+          <span class="chip">US Equity · 14</span>
+          <span class="chip">Fixed Income · 8</span>
+          <span class="chip">PE · 6</span>
+          <div class="spacer"></div>
+          <div class="snap-select">
+            <span class="ms sm">history</span>
+            Current (May 6, 2026)
+            <span class="ms sm">expand_more</span>
+          </div>
+          <button class="btn"><span class="ms sm">add</span> Add row</button>
+          <div class="search">
+            <span class="ms">search</span>
+            <input type="text" placeholder="Search positions…"/>
+          </div>
+        </div>
+
+        <div class="grid-wrap">
+          <table class="sheet">
+            <thead>
+              <tr>
+                <th class="rownum">#</th>
+                <th style="min-width:70px">Ticker</th>
+                <th style="min-width:200px">Name</th>
+                <th style="min-width:120px">Asset Class</th>
+                <th class="num" style="min-width:110px">Quantity</th>
+                <th class="num" style="min-width:130px">Market Value</th>
+                <th class="num" style="min-width:80px">Weight %</th>
+                <th style="min-width:70px">Currency</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="sel" onclick="document.getElementById('detail-panel').style.display='flex'">
+                <td class="rownum">1</td>
+                <td class="ticker">SPY</td>
+                <td>SPDR S&amp;P 500 ETF Trust</td>
+                <td><span class="ac-badge">US Equity</span></td>
+                <td class="num">42,500</td>
+                <td class="num">$21,795,700</td>
+                <td class="num">4.47%</td>
+                <td>USD</td>
+              </tr>
+              <tr>
+                <td class="rownum">2</td>
+                <td class="ticker">QQQ</td>
+                <td>Invesco QQQ Trust</td>
+                <td><span class="ac-badge">US Equity</span></td>
+                <td class="num">18,200</td>
+                <td class="num">$8,554,740</td>
+                <td class="num">1.75%</td>
+                <td>USD</td>
+              </tr>
+              <tr class="dirty">
+                <td class="rownum">3</td>
+                <td class="ticker">BRK.B</td>
+                <td><input class="edit-input" value="Berkshire Hathaway Inc. Class B"/></td>
+                <td><span class="ac-badge">US Equity</span></td>
+                <td class="num"><input class="edit-input" value="12,400" style="width:70px;text-align:right"/></td>
+                <td class="num">$5,287,400</td>
+                <td class="num">1.08%</td>
+                <td>USD</td>
+              </tr>
+              <tr>
+                <td class="rownum">4</td>
+                <td class="ticker">AGG</td>
+                <td>iShares Core US Aggregate Bond ETF</td>
+                <td><span class="ac-badge fi">Fixed Income</span></td>
+                <td class="num">85,000</td>
+                <td class="num">$8,246,500</td>
+                <td class="num">1.69%</td>
+                <td>USD</td>
+              </tr>
+              <tr>
+                <td class="rownum">5</td>
+                <td class="ticker">TLT</td>
+                <td>iShares 20+ Year Treasury Bond ETF</td>
+                <td><span class="ac-badge fi">Fixed Income</span></td>
+                <td class="num">60,000</td>
+                <td class="num">$5,442,000</td>
+                <td class="num">1.12%</td>
+                <td>USD</td>
+              </tr>
+              <tr>
+                <td class="rownum">6</td>
+                <td class="ticker">BX-PE-VI</td>
+                <td>Blackstone Real Estate Partners VI</td>
+                <td><span class="ac-badge pe">Private Equity</span></td>
+                <td class="num">1</td>
+                <td class="num">$24,500,000</td>
+                <td class="num">5.03%</td>
+                <td>USD</td>
+              </tr>
+              <tr>
+                <td class="rownum">7</td>
+                <td class="ticker">MSFT</td>
+                <td>Microsoft Corporation</td>
+                <td><span class="ac-badge">US Equity</span></td>
+                <td class="num">22,000</td>
+                <td class="num">$9,361,800</td>
+                <td class="num">1.92%</td>
+                <td>USD</td>
+              </tr>
+              <tr>
+                <td class="rownum">8</td>
+                <td class="ticker">LQD</td>
+                <td>iShares iBoxx $ Inv Grade Corp Bond</td>
+                <td><span class="ac-badge fi">Fixed Income</span></td>
+                <td class="num">72,000</td>
+                <td class="num">$7,646,400</td>
+                <td class="num">1.57%</td>
+                <td>USD</td>
+              </tr>
+              <tr>
+                <td class="rownum">9</td>
+                <td class="ticker">KKR-INFRA</td>
+                <td>KKR Infrastructure Fund IV</td>
+                <td><span class="ac-badge re">Real Estate</span></td>
+                <td class="num">1</td>
+                <td class="num">$18,200,000</td>
+                <td class="num">3.73%</td>
+                <td>USD</td>
+              </tr>
+              <tr>
+                <td class="rownum">10</td>
+                <td class="ticker">AAPL</td>
+                <td>Apple Inc.</td>
+                <td><span class="ac-badge">US Equity</span></td>
+                <td class="num">31,500</td>
+                <td class="num">$6,874,200</td>
+                <td class="num">1.41%</td>
+                <td>USD</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="statusbar">
+          <span>34 rows · 3 sources</span>
+          <span>Last updated: May 6, 2026 at 06:45 UTC</span>
+          <span style="color:var(--wat-fg)">1 unsaved change</span>
+        </div>
+      </div>
+
+      <!-- Detail panel -->
+      <div class="detail-panel" id="detail-panel">
+        <header>
+          <div>
+            <div class="ticker-big">SPY</div>
+            <div class="sec-name">SPDR S&amp;P 500 ETF Trust · Schwab</div>
+          </div>
+          <button class="iconbtn" onclick="this.closest('.detail-panel').style.display='none'">
+            <span class="ms sm">close</span>
+          </button>
+        </header>
+        <div class="body">
+          <div class="grid2">
+            <div class="field">
+              <label>Quantity</label>
+              <input value="42,500" readonly/>
+            </div>
+            <div class="field">
+              <label>Price (USD)</label>
+              <input value="512.84" readonly/>
+            </div>
+            <div class="field">
+              <label>Market Value</label>
+              <input value="$21,795,700" readonly/>
+            </div>
+            <div class="field">
+              <label>Currency</label>
+              <input value="USD" readonly/>
+            </div>
+          </div>
+
+          <div>
+            <div class="uplabel" style="margin-bottom:8px;">Source</div>
+            <div>
+              <div class="prov-row"><span>File</span><b>Schwab_Q1_2026.pdf</b></div>
+              <div class="prov-row"><span>Extracted</span><b>Apr 5, 2026 · 09:14</b></div>
+              <div class="prov-row"><span>Status</span><b style="color:var(--good-fg)">Approved</b></div>
+            </div>
+          </div>
+
+          <div class="sparkbox">
+            <div class="spark-lbl">
+              <span>Market value · 90 days</span>
+              <span style="color:var(--good-fg);font-weight:600">+6.2%</span>
+            </div>
+            <div class="spark-val">$21,795,700</div>
+            <svg viewBox="0 0 260 48" width="100%" height="40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="spkFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#3F7A4F" stop-opacity=".2"/>
+                  <stop offset="100%" stop-color="#3F7A4F" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,38 L30,34 L60,30 L90,28 L120,32 L150,24 L180,20 L210,16 L240,18 L260,14 L260,48 L0,48 Z" fill="url(#spkFill)"/>
+              <path d="M0,38 L30,34 L60,30 L90,28 L120,32 L150,24 L180,20 L210,16 L240,18 L260,14" fill="none" stroke="#3F7A4F" stroke-width="1.5"/>
+            </svg>
+          </div>
+
+          <div>
+            <div class="uplabel" style="margin-bottom:6px;">Linked risks</div>
+            <a href="cockpit.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--rule);border-radius:5px;text-decoration:none;color:var(--ink-soft);font-size:12px;background:var(--paper-2);">
+              <span class="ms sm" style="color:var(--ele-fg)">warning</span>
+              US equity overweight
+              <span style="flex:1"></span>
+              <span class="pill ele">Elevated</span>
+            </a>
+          </div>
+
+          <div style="display:flex;gap:8px;padding-top:4px;">
+            <button class="btn danger" style="flex:1;justify-content:center">
+              <span class="ms sm">delete</span> Delete
+            </button>
+            <button class="btn primary" style="flex:1;justify-content:center">
+              <span class="ms sm">edit</span> Edit
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /work -->
+  </main>
+</div>
+
+<div class="sidebar-backdrop"></div>
+<script src="_api.js?v=2"></script>
+<script src="_shell.js?v=2"></script>
+<script>API.redirectIfUnauth(); Shell.mount('table.html', ['Positions']);</script>
+<script src="_app.js?v=2"></script>
+</body>
+</html>
