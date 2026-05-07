@@ -235,34 +235,5 @@
 
 <script src="_api.js?v=2"></script>
 <script src="_app.js?v=2"></script>
-<script>
-  (function() {
-    const tabs   = document.querySelectorAll('.auth-tabs button');
-    const panels = document.querySelectorAll('[data-panel]');
-
-    function show(panelId) {
-      panels.forEach(p => p.classList.toggle('visible', p.dataset.panel === panelId));
-    }
-
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('on'));
-        tab.classList.add('on');
-        show(tab.dataset.tab);
-      });
-    });
-
-    document.getElementById('forgot-link').addEventListener('click', e => {
-      e.preventDefault();
-      tabs.forEach(t => t.classList.remove('on'));
-      show('forgot');
-    });
-
-    document.getElementById('back-to-signin').addEventListener('click', () => {
-      tabs[0].classList.add('on');
-      show('sign-in');
-    });
-  })();
-</script>
 </body>
 </html>

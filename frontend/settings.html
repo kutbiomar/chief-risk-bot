@@ -826,25 +826,6 @@
 <div class="sidebar-backdrop"></div>
 <script src="_api.js?v=2"></script>
 <script src="_shell.js?v=2"></script>
-<script>
-  API.redirectIfUnauth();
-  Shell.mount('settings.html', ['Settings']);
-
-  // Highlight active section on scroll
-  const sections = document.querySelectorAll('.sec[id]');
-  const navLinks = document.querySelectorAll('.settings-nav a');
-
-  window.addEventListener('scroll', () => {
-    let current = '';
-    sections.forEach(sec => {
-      if (sec.getBoundingClientRect().top < 120) current = sec.id;
-    });
-    if (!current) current = sections[0]?.id;
-    navLinks.forEach(a => {
-      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
-    });
-  }, { passive: true });
-</script>
 <script src="_app.js?v=2"></script>
 </body>
 </html>

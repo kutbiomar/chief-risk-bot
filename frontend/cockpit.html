@@ -17,15 +17,34 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 20px;
+      align-items: start;
     }
     .cockpit-grid .span-full { grid-column: 1 / -1; }
-    .cockpit-grid .span-7 { grid-column: span 1; }
 
-    /* Bottom row: 7/5 split */
+    /* Bottom row: 7/5 asymmetric split */
     .cockpit-bottom {
       display: grid;
       grid-template-columns: 7fr 5fr;
       gap: 20px;
+      align-items: start;
+    }
+
+    /* ── Risk register scroll ── */
+    .risk-card {
+      overflow: hidden;
+      padding-bottom: 0;
+    }
+    .risk-scroll {
+      max-height: 400px;
+      overflow-y: auto;
+      margin: 0 -22px;
+      padding: 0 22px 20px;
+    }
+    .risk-table thead th {
+      position: sticky;
+      top: 0;
+      background: var(--paper-2);
+      z-index: 1;
     }
 
     /* ── Composition chart ── */
@@ -246,11 +265,12 @@
         </div>
 
         <!-- Q2: Risk register -->
-        <div class="card">
+        <div class="card risk-card">
           <div class="card-head">
             <h2>Risk Register</h2>
             <span class="pill pri"><span class="dot"></span>2 priority</span>
           </div>
+          <div class="risk-scroll">
           <table class="list risk-table">
             <thead>
               <tr>
@@ -293,6 +313,7 @@
               </tr>
             </tbody>
           </table>
+          </div><!-- /risk-scroll -->
         </div>
 
       </div><!-- /cockpit-grid -->
@@ -428,7 +449,6 @@
 <div class="sidebar-backdrop"></div>
 <script src="_api.js?v=2"></script>
 <script src="_shell.js?v=2"></script>
-<script>API.redirectIfUnauth(); Shell.mount('cockpit.html', ['Risk Cockpit']);</script>
 <script src="_app.js?v=2"></script>
 </body>
 </html>

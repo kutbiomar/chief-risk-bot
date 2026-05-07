@@ -480,7 +480,7 @@
             <div class="ticker-big">SPY</div>
             <div class="sec-name">SPDR S&amp;P 500 ETF Trust · Schwab</div>
           </div>
-          <button class="iconbtn" onclick="this.closest('.detail-panel').style.display='none'">
+          <button class="iconbtn" id="detail-close">
             <span class="ms sm">close</span>
           </button>
         </header>
@@ -559,7 +559,7 @@
 <div class="sidebar-backdrop"></div>
 <script src="_api.js?v=2"></script>
 <script src="_shell.js?v=2"></script>
-<script>API.redirectIfUnauth(); Shell.mount('table.html', ['Positions']);</script>
+
 <script src="_app.js?v=2"></script>
 </body>
 </html>

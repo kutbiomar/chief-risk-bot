@@ -98,7 +98,7 @@
           <div class="sub">Upload statements and fund documents — AI extracts positions automatically</div>
         </div>
         <div class="actions">
-          <button class="btn primary" onclick="document.getElementById('upload-zone').scrollIntoView({behavior:'smooth'})">
+          <button class="btn primary" id="scroll-to-upload">
             <span class="ms sm">upload_file</span> Upload
           </button>
         </div>
@@ -302,10 +302,6 @@
 <div class="sidebar-backdrop"></div>
 <script src="_api.js?v=2"></script>
 <script src="_shell.js?v=2"></script>
-<script>
-  API.redirectIfUnauth();
-  Shell.mount('documents.html', ['Documents']);
-</script>
 <script src="_app.js?v=2"></script>
 </body>
 </html>

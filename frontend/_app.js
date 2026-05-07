@@ -134,6 +134,29 @@
   }
 
   async function initLogin() {
+    // Wire auth-tab switching (sync, no CSP inline needed)
+    const authTabs = document.querySelectorAll('.auth-tabs button');
+    const authPanels = document.querySelectorAll('[data-panel]');
+    function showPanel(id) {
+      authPanels.forEach(p => p.classList.toggle('visible', p.dataset.panel === id));
+    }
+    authTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        authTabs.forEach(t => t.classList.remove('on'));
+        tab.classList.add('on');
+        showPanel(tab.dataset.tab);
+      });
+    });
+    document.getElementById('forgot-link')?.addEventListener('click', e => {
+      e.preventDefault();
+      authTabs.forEach(t => t.classList.remove('on'));
+      showPanel('forgot');
+    });
+    document.getElementById('back-to-signin')?.addEventListener('click', () => {
+      authTabs[0]?.classList.add('on');
+      showPanel('sign-in');
+    });
+
     try {
       await API.get('/auth/me', { redirectOnUnauthorized: false });
       API.markLoggedIn();
@@ -428,6 +451,9 @@
         }
       }, { once: true });
     }
+    document.getElementById('detail-close')?.addEventListener('click', () => {
+      document.getElementById('detail-panel').style.display = 'none';
+    });
     document.querySelector('.upload-btn')?.addEventListener('click', () => {
       const input = document.createElement('input');
       input.type = 'file';
@@ -487,6 +513,9 @@
       };
       input.click();
     });
+    document.getElementById('scroll-to-upload')?.addEventListener('click', () => {
+      document.getElementById('upload-zone')?.scrollIntoView({ behavior: 'smooth' });
+    });
     document.querySelector('#review-drawer footer .btn.primary')?.addEventListener('click', async () => {
       if (!activeDocumentId) return;
       try { await API.post(`/documents/${activeDocumentId}/apply`, {}); toast('Applied to portfolio', 'success'); drawer.classList.remove('open'); backdrop.classList.remove('open'); await load(); }
@@ -524,6 +553,22 @@
   }
 
   async function initSettings() {
+    // Wire settings-nav scroll-spy (sync)
+    const settingSections = document.querySelectorAll('.sec[id]');
+    const settingNavLinks = document.querySelectorAll('.settings-nav a');
+    if (settingSections.length && settingNavLinks.length) {
+      window.addEventListener('scroll', () => {
+        let current = '';
+        settingSections.forEach(sec => {
+          if (sec.getBoundingClientRect().top < 120) current = sec.id;
+        });
+        if (!current && settingSections[0]) current = settingSections[0].id;
+        settingNavLinks.forEach(a => {
+          a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+        });
+      }, { passive: true });
+    }
+
     if (!(await API.redirectIfUnauth())) return;
     try {
       const [settings, keys, session] = await Promise.all([
@@ -633,10 +678,27 @@
     '/onboarding.html': initOnboarding,
   };
 
+  // Shell config — href must match a nav entry in _shell.js NAV array
+  const SHELL_CONFIG = {
+    '/index.html':     ['index.html',     ['Home']],
+    '/cockpit.html':   ['cockpit.html',   ['Risk Cockpit']],
+    '/assets.html':    ['assets.html',    ['Assets']],
+    '/table.html':     ['table.html',     ['Positions']],
+    '/briefings.html': ['briefings.html', ['Briefings']],
+    '/briefing.html':  ['briefings.html', ['Briefings', 'View']],
+    '/documents.html': ['documents.html', ['Documents']],
+    '/liquidity.html': ['liquidity.html', ['Liquidity']],
+    '/settings.html':  ['settings.html',  ['Settings']],
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
     const path = location.pathname === '/'
       ? '/index.html'
       : location.pathname.includes('.') ? location.pathname : `${location.pathname}.html`;
+
+    const shellConf = SHELL_CONFIG[path];
+    if (shellConf && window.Shell) Shell.mount(shellConf[0], shellConf[1]);
+
     const init = routes[path];
     if (init) init();
   });
