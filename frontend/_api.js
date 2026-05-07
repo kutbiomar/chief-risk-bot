@@ -3,6 +3,8 @@
 
   const TOKEN_KEY = 'crb_token';
   const SESSION_KEY = 'crb_logged_in';
+  const API_BASE_OVERRIDE_KEY = 'crb.api_base_override';
+  const PROD_API_BASE = 'https://api.chiefriskbot.com/api';
 
   function getCookie(name) {
     return document.cookie
@@ -14,8 +16,37 @@
   }
 
   function normalizePath(path) {
-    if (!path) return '/api';
-    return path.startsWith('/api/') || path === '/api' ? path : '/api' + (path.startsWith('/') ? path : '/' + path);
+    if (!path) return apiBase();
+    if (/^https?:\/\//i.test(path)) return path;
+    const apiPath = path.startsWith('/api/') || path === '/api' ? path : '/api' + (path.startsWith('/') ? path : '/' + path);
+    return apiBase() + apiPath.slice('/api'.length);
+  }
+
+  function apiBase() {
+    const query = new URLSearchParams(window.location.search).get('api_base');
+    if (query) return query.trim().replace(/\/$/, '');
+    const runtime = String(window.CRB_API_BASE || '').trim();
+    if (runtime) return runtime.replace(/\/$/, '');
+    try {
+      const stored = String(window.localStorage.getItem(API_BASE_OVERRIDE_KEY) || '').trim();
+      if (stored) return stored.replace(/\/$/, '');
+    } catch (_error) {
+      // Storage can be unavailable in strict/private browser modes.
+    }
+    const host = window.location.hostname;
+    const protocol = window.location.protocol;
+    const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '' || protocol === 'file:';
+    if (isLocal) return '/api';
+    if (host === 'app.chiefriskbot.com' || host.endsWith('.pages.dev')) return PROD_API_BASE;
+    return window.location.origin + '/api';
+  }
+
+  function credentialsMode(url) {
+    try {
+      return new URL(url, window.location.href).origin === window.location.origin ? 'include' : 'omit';
+    } catch (_error) {
+      return 'include';
+    }
   }
 
   async function parseResponse(response) {
@@ -45,8 +76,9 @@
       headers.set('X-CSRF-Token', decodeURIComponent(csrf));
     }
 
-    const response = await fetch(normalizePath(path), {
-      credentials: 'include',
+    const url = normalizePath(path);
+    const response = await fetch(url, {
+      credentials: credentialsMode(url),
       ...opts,
       headers,
       body: hasBody && !isFormData && typeof opts.body !== 'string' ? JSON.stringify(opts.body) : opts.body,

@@ -34,8 +34,9 @@ jobs:
 
       - name: JS syntax checks
         run: |
-          node --check frontend-mvp/_app.js
-          node --check frontend-mvp/_shell.js
+          node --check frontend/_api.js
+          node --check frontend/_app.js
+          node --check frontend/_shell.js
 
   migration_guard:
     runs-on: ubuntu-latest
@@ -99,7 +100,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_PAGES_PROJECT: ${{ secrets.CLOUDFLARE_PAGES_PROJECT }}
         run: |
-          npx wrangler pages deploy frontend-mvp --project-name "$CLOUDFLARE_PAGES_PROJECT" --branch staging
+          npx wrangler pages deploy frontend --project-name "$CLOUDFLARE_PAGES_PROJECT" --branch staging
 
   deploy_production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
@@ -126,7 +127,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_PAGES_PROJECT: ${{ secrets.CLOUDFLARE_PAGES_PROJECT }}
         run: |
-          npx wrangler pages deploy frontend-mvp --project-name "$CLOUDFLARE_PAGES_PROJECT" --branch main
+          npx wrangler pages deploy frontend --project-name "$CLOUDFLARE_PAGES_PROJECT" --branch main
 
   release_check_staging:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
