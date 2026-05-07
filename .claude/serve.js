@@ -63,7 +63,9 @@ function readFileFromRoots(requestedPath, callback) {
 
 function sendFile(req, res) {
   const cleanUrl = decodeURIComponent(req.url.split('?')[0]);
-  const requested = cleanUrl === '/' ? '/index.html' : cleanUrl;
+  const requested = cleanUrl === '/'
+    ? '/index.html'
+    : path.extname(cleanUrl) ? cleanUrl : `${cleanUrl}.html`;
 
   readFileFromRoots(requested, (err, result) => {
     if (err || !result) {

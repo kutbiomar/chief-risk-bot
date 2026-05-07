@@ -634,7 +634,9 @@
   };
 
   document.addEventListener('DOMContentLoaded', () => {
-    const path = location.pathname === '/' ? '/index.html' : location.pathname;
+    const path = location.pathname === '/'
+      ? '/index.html'
+      : location.pathname.includes('.') ? location.pathname : `${location.pathname}.html`;
     const init = routes[path];
     if (init) init();
   });
