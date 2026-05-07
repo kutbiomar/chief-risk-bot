@@ -9,13 +9,25 @@ PYTEST_BIN="${PYTEST_BIN:-.venv/bin/pytest}"
 ALEMBIC_BIN="${ALEMBIC_BIN:-.venv/bin/alembic}"
 
 if [[ ! -x "$PYTHON_BIN" ]]; then
-  PYTHON_BIN="python3"
+  if [[ -x "$ROOT_DIR/../../../.venv/bin/python" ]]; then
+    PYTHON_BIN="$ROOT_DIR/../../../.venv/bin/python"
+  else
+    PYTHON_BIN="python3"
+  fi
 fi
 if [[ ! -x "$PYTEST_BIN" ]]; then
-  PYTEST_BIN="pytest"
+  if [[ -x "$ROOT_DIR/../../../.venv/bin/pytest" ]]; then
+    PYTEST_BIN="$ROOT_DIR/../../../.venv/bin/pytest"
+  else
+    PYTEST_BIN="pytest"
+  fi
 fi
 if [[ ! -x "$ALEMBIC_BIN" ]]; then
-  ALEMBIC_BIN="alembic"
+  if [[ -x "$ROOT_DIR/../../../.venv/bin/alembic" ]]; then
+    ALEMBIC_BIN="$ROOT_DIR/../../../.venv/bin/alembic"
+  else
+    ALEMBIC_BIN="alembic"
+  fi
 fi
 
 section() {
@@ -38,8 +50,9 @@ if (( ${#python_files[@]} )); then
 fi
 
 section "JavaScript syntax"
-node --check frontend-mvp/_app.js
-node --check frontend-mvp/_shell.js
+node --check frontend/_api.js
+node --check frontend/_app.js
+node --check frontend/_shell.js
 
 section "Shell syntax"
 bash -n scripts/release_check.sh scripts/staging_smoke.sh scripts/prod_smoke.sh scripts/observability_smoke.sh
@@ -61,6 +74,8 @@ SECRET_KEY=release-check-local-secret \
 section "Staging smoke"
 if [[ "${CRB_SKIP_STAGING_SMOKE:-}" == "1" ]]; then
   echo "Skipping staging smoke because CRB_SKIP_STAGING_SMOKE=1."
+elif [[ -z "${CRB_SMOKE_EMAIL:-}" || -z "${CRB_SMOKE_PASSWORD:-}" ]]; then
+  echo "Skipping staging smoke because CRB_SMOKE_EMAIL and CRB_SMOKE_PASSWORD are not configured."
 else
   scripts/staging_smoke.sh
 fi
@@ -68,6 +83,8 @@ fi
 section "Observability smoke"
 if [[ "${CRB_SKIP_OBSERVABILITY_SMOKE:-}" == "1" ]]; then
   echo "Skipping observability smoke because CRB_SKIP_OBSERVABILITY_SMOKE=1."
+elif [[ -z "${CRB_API_BASE:-}" ]]; then
+  echo "Skipping observability smoke because CRB_API_BASE is not configured."
 else
   scripts/observability_smoke.sh
 fi
