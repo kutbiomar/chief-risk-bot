@@ -83,6 +83,10 @@
     .ef-btn.reject { background: var(--pri-bg); color: var(--pri-fg); border-color: #f3d4d0; }
     .ef-btn.reject:hover { background: #f5d5d2; }
     .ef-btn .ms { font-size: 13px; }
+    .upload-zone.drag-over {
+      border-style: dashed;
+      background: var(--paper-2);
+    }
   </style>
 </head>
 <body>
@@ -112,7 +116,7 @@
       </div>
 
       <!-- Uploading in progress -->
-      <div class="upload-row">
+      <div class="upload-row" style="display:none">
         <div class="file-ico"><span class="ms">picture_as_pdf</span></div>
         <div>
           <div class="fname">JPMorgan_April_2026_Statement.pdf</div>

@@ -98,26 +98,62 @@
     return data;
   }
 
+  function storageGet(storage, key) {
+    try {
+      return storage.getItem(key);
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function storageSet(storage, key, value) {
+    try {
+      storage.setItem(key, value);
+    } catch (_error) {
+      // Ignore unavailable storage.
+    }
+  }
+
+  function storageRemove(storage, key) {
+    try {
+      storage.removeItem(key);
+    } catch (_error) {
+      // Ignore unavailable storage.
+    }
+  }
+
   const API = {
     fetch: apiFetch,
+    url(path) { return normalizePath(path); },
     get(path, opts = {}) { return apiFetch(path, { ...opts, method: 'GET' }); },
     post(path, body, opts = {}) { return apiFetch(path, { ...opts, method: 'POST', body }); },
     patch(path, body, opts = {}) { return apiFetch(path, { ...opts, method: 'PATCH', body }); },
     put(path, body, opts = {}) { return apiFetch(path, { ...opts, method: 'PUT', body }); },
     del(path, opts = {}) { return apiFetch(path, { ...opts, method: 'DELETE' }); },
 
-    getToken() { return sessionStorage.getItem(TOKEN_KEY); },
-    setToken(token) {
-      if (token) sessionStorage.setItem(TOKEN_KEY, token);
-      sessionStorage.setItem(SESSION_KEY, '1');
+    getToken() {
+      return storageGet(sessionStorage, TOKEN_KEY) || storageGet(localStorage, TOKEN_KEY);
     },
-    markLoggedIn() { sessionStorage.setItem(SESSION_KEY, '1'); },
+    setToken(token, persist) {
+      if (token) {
+        if (persist) {
+          storageSet(localStorage, TOKEN_KEY, token);
+          storageRemove(sessionStorage, TOKEN_KEY);
+        } else {
+          storageSet(sessionStorage, TOKEN_KEY, token);
+          storageRemove(localStorage, TOKEN_KEY);
+        }
+      }
+      storageSet(sessionStorage, SESSION_KEY, '1');
+    },
+    markLoggedIn() { storageSet(sessionStorage, SESSION_KEY, '1'); },
     clearToken() {
-      sessionStorage.removeItem(TOKEN_KEY);
-      sessionStorage.removeItem(SESSION_KEY);
+      storageRemove(sessionStorage, TOKEN_KEY);
+      storageRemove(localStorage, TOKEN_KEY);
+      storageRemove(sessionStorage, SESSION_KEY);
     },
     isLoggedIn() {
-      return !!(sessionStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(SESSION_KEY));
+      return !!(API.getToken() || storageGet(sessionStorage, SESSION_KEY));
     },
     async redirectIfUnauth() {
       if (API.isLoggedIn()) return true;
@@ -148,7 +184,9 @@
       }
     },
     detail(error) {
-      return (error && error.data && error.data.detail) || (error && error.message) || 'Something went wrong';
+      const detail = error && error.data && error.data.detail;
+      if (Array.isArray(detail)) return detail.map(item => item.msg || item.message || 'Invalid input').join(', ');
+      return detail || (error && error.message) || 'Something went wrong';
     },
   };
 
