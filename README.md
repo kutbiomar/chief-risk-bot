@@ -8,6 +8,7 @@ FastAPI serves the API; vanilla HTML/CSS/JS serves the app.
 - Live project state: `admin/status/STATUS.md`
 - Production gate checklist: `admin/status/PRODUCTION_READINESS_CHECKLIST.md`
 - Functionality gap roadmap: `admin/status/FUNCTIONALITY_ROADMAP.md`
+- Continuous improvement loop: `admin/status/IMPROVEMENT_LOOP.md`
 - Design system: `frontend-design-ideal/DESIGN.md`
 - Architecture reference: `admin/thinking/ARCHITECTURE.md`
 - Operations runbook: `admin/thinking/RUNBOOK.md`

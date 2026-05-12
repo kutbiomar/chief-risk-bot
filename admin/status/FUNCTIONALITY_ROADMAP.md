@@ -202,6 +202,8 @@ Key frontend gaps:
 
 ## Suggested next development slices
 
+Run these through `admin/status/IMPROVEMENT_LOOP.md`: pick one slice, implement it end-to-end, verify it, commit it, and update only the docs whose source of truth changed.
+
 1. Canonical frontend decision + docs/CI/deploy alignment.
 2. RBAC dependency + tests around settings/API keys/members/portfolio mutations.
 3. Real invite model and accept flow.
