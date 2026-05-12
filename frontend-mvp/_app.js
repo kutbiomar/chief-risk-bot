@@ -2845,6 +2845,7 @@
       custodian: document.getElementById('form-custodian'),
       notes: document.getElementById('form-notes'),
     };
+    const initialPositionId = new URL(window.location.href).searchParams.get('positionId') || '';
     let selected = null;
     let mutationBusy = false;
     const SUBSECTORS_BY_SECTOR = {
@@ -2903,6 +2904,16 @@
     function syncMutationButtons() {
       setEnabled(submitButton, !mutationBusy);
       setEnabled(deleteButton, !mutationBusy && Boolean(selected));
+    }
+
+    function updatePositionDeepLink(positionId = '') {
+      const url = new URL(window.location.href);
+      if (positionId) {
+        url.searchParams.set('positionId', positionId);
+      } else {
+        url.searchParams.delete('positionId');
+      }
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
     }
 
     function setForm(position) {
@@ -2985,6 +2996,7 @@
             tableBody.querySelectorAll('tr').forEach((node) => node.classList.remove('is-selected'));
             row.classList.add('is-selected');
             setForm(position || null);
+            updatePositionDeepLink(position?.id || '');
           });
         });
 
@@ -2998,6 +3010,7 @@
     document.getElementById('new-position').addEventListener('click', () => {
       tableBody.querySelectorAll('tr').forEach((node) => node.classList.remove('is-selected'));
       setForm(null);
+      updatePositionDeepLink('');
     });
 
     formNodes.sector.addEventListener('change', () => {
@@ -3007,9 +3020,27 @@
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const isEdit = Boolean(selected);
+      const nameValue = formNodes.name.value.trim();
+      const tickerValue = formNodes.ticker.value.trim();
+      const quantityValue = parseFormattedNumber(formNodes.quantity.value);
+      const marketValue = parseFormattedNumber(formNodes.marketValue.value);
+      if (!isEdit && !tickerValue && !nameValue) {
+        setStatus(status, 'Enter an identifier or name before saving a new position.', 'error');
+        formNodes.ticker.focus();
+        return;
+      }
+      if (!Number.isFinite(quantityValue) || quantityValue <= 0) {
+        setStatus(status, 'Quantity must be greater than zero.', 'error');
+        formNodes.quantity.focus();
+        return;
+      }
+      if (!Number.isFinite(marketValue) || marketValue <= 0) {
+        setStatus(status, 'Market value must be greater than zero.', 'error');
+        formNodes.marketValue.focus();
+        return;
+      }
       mutationBusy = true;
       syncMutationButtons();
-      const nameValue = formNodes.name.value.trim();
       const normalizedAssetClass = normalizeTaxonomyValue(formNodes.assetClass.value) || 'public_equity';
       const normalizedSector = normalizeTaxonomyValue(formNodes.sector.value) || null;
       const normalizedSubsector = normalizeTaxonomyValue(formNodes.subsector.value) || null;
@@ -3017,8 +3048,8 @@
       const geoRegion = normalizeTaxonomyValue(formNodes.region.value) || null;
       const basePayload = {
         name: nameValue || null,
-        quantity: parseFormattedNumber(formNodes.quantity.value) || 0,
-        market_value_usd: parseFormattedNumber(formNodes.marketValue.value) || 0,
+        quantity: quantityValue,
+        market_value_usd: marketValue,
         asset_class: normalizedAssetClass,
         geo_region: geoRegion,
         sector: normalizedSector,
@@ -3040,7 +3071,7 @@
         if (isEdit) {
           response = await api(`/portfolio/positions/${selected.id}`, { method: 'PATCH', body: basePayload });
         } else {
-          const identifier = buildPositionIdentifier(formNodes.ticker.value, nameValue);
+          const identifier = buildPositionIdentifier(tickerValue, nameValue);
           response = await api('/portfolio/positions', {
             method: 'POST',
             body: {
@@ -3051,6 +3082,7 @@
           });
         }
         await loadPositions(response.position_id);
+        updatePositionDeepLink(response.position_id || '');
         setStatus(status, isEdit ? 'Position updated.' : 'Position created.', 'success');
       } catch (error) {
         setStatus(status, error.message, 'error');
@@ -3067,6 +3099,7 @@
       try {
         await api(`/portfolio/positions/${selected.id}`, { method: 'DELETE' });
         setForm(null);
+        updatePositionDeepLink('');
         await loadPositions(null);
         setStatus(status, 'Position removed from the current portfolio.', 'success');
       } catch (error) {
@@ -3077,7 +3110,7 @@
       }
     });
 
-    await loadPositions(null);
+    await loadPositions(initialPositionId || null);
   }
 
   async function initDocuments() {

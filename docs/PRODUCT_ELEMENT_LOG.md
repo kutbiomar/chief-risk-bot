@@ -31,10 +31,10 @@ This log is the evidence register for product remediation. Each row should stay 
 | PEL-4.1 | Cockpit / Assets | Cockpit refresh fetches cockpit/liquidity APIs, shows loading state, disables the button during refresh, and updates an as-of timestamp. Assets refresh already reloads live cockpit data. | Started | 4.1 |
 | PEL-4.2 | Cockpit / Assets | Segment toggles re-render composition from live cockpit response dimensions; focused golden/contract tests still need to be added. | Started | 4.2 |
 | PEL-4.3 | Risk register | Register rows need a stable drill-down contract. | Open | 4.3 |
-| PEL-4.4 | Assets | "Add position" needs happy-path and validation coverage. | Open | 4.4 |
+| PEL-4.4 | Assets | Position creation now validates identifier/name, positive quantity, and positive market value before POST; happy-path e2e coverage still needs to be added. | Started | 4.4 |
 | PEL-5.1 | Positions | Upload document flow is unverified in CI/staging. | Open | 5.1 |
-| PEL-5.2 | Positions | Add-row modal empty-save behavior is undefined. | Open | 5.2 |
-| PEL-5.3 | Positions | Row-level links lack route/target coverage. | Open | 5.3 |
+| PEL-5.2 | Positions | Empty save behavior is defined: new rows require identifier or name plus positive quantity and market value before API mutation. | Started | 5.2 |
+| PEL-5.3 | Positions | Row selection now updates a stable `?positionId=` URL and reloads that row when linked directly. | Started | 5.3 |
 | PEL-6.1 | Briefings | Generate flow needs terminal success, error, and timeout states. | Open | 6.1 |
 | PEL-6.2 | Briefings / reader | History rows must deep-link to the same briefing in the reader. | Open | 6.2 |
 | PEL-7.1 | Documents | Upload pipeline needs visible status transitions. | Open | 7.1 |
