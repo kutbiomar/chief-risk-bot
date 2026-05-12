@@ -135,6 +135,10 @@
     return url.toString();
   }
 
+  function appRoute(path) {
+    return withApiBaseOverride(path);
+  }
+
   function getApiBase() {
     const { location } = window;
     const hostname = String(location?.hostname || '').toLowerCase();
@@ -810,7 +814,8 @@
     try {
       user = await getSession(3);
     } catch {
-      window.location.href = withApiBaseOverride(`login.html?next=${encodeURIComponent(window.location.pathname.split('/').pop() || 'cockpit.html')}`);
+      const nextPath = window.location.pathname || '/cockpit';
+      window.location.href = appRoute(`/login?next=${encodeURIComponent(nextPath)}`);
       return null;
     }
 
@@ -835,7 +840,7 @@
             // ignore
           }
           clearAuthState();
-          window.location.href = withApiBaseOverride('login.html');
+          window.location.href = appRoute('/login');
         });
       }
 
@@ -860,7 +865,7 @@
               result.innerHTML = `
                 <div style="margin-top:20px;padding:16px;background:rgba(232,241,234,.4);border-radius:4px;font-family:'Inter Tight',sans-serif;font-size:13px;color:#3F7A4F;">
                   <strong>Briefing ready.</strong><br>
-                  <a href="briefing.html?id=${encodeURIComponent(data.id || '')}" style="color:#1B2B5E;text-decoration:underline;margin-top:8px;display:inline-block;">Open full briefing →</a>
+                  <a href="/briefing?id=${encodeURIComponent(data.id || '')}" style="color:#1B2B5E;text-decoration:underline;margin-top:8px;display:inline-block;">Open full briefing →</a>
                 </div>`;
             }
           } catch (err) {
@@ -965,7 +970,7 @@
     while (attempts > 0) {
       try {
         const state = await api('/onboarding/state');
-        return withApiBaseOverride(state.is_complete ? 'cockpit.html' : 'onboarding.html');
+        return appRoute(state.is_complete ? '/cockpit' : '/onboarding');
       } catch (error) {
         attempts -= 1;
         const transient = attempts > 0
@@ -975,7 +980,7 @@
         await new Promise((resolve) => window.setTimeout(resolve, 250));
       }
     }
-    return withApiBaseOverride('onboarding.html');
+    return appRoute('/onboarding');
   }
 
   // ── Shared rendering helpers ─────────────────────────────────────────────
@@ -1086,7 +1091,7 @@
     // Check onboarding completion — redirect if not done
     try {
       const state = await api('/onboarding/state');
-      if (!state.is_complete) { window.location.href = 'onboarding.html'; return; }
+      if (!state.is_complete) { window.location.href = appRoute('/onboarding'); return; }
     } catch { /* proceed */ }
 
     // Personalise headline
@@ -1458,7 +1463,7 @@
   }
 
   async function initOnboarding() {
-    const user = await requireSession('onboarding.html', ['Workspace', 'Onboarding']);
+    const user = await requireSession('onboarding', ['Workspace', 'Onboarding']);
     if (!user) return;
     bindFileDropzones(document);
 
@@ -1568,7 +1573,7 @@
           const documentRecord = await api('/documents/upload', { method: 'POST', formData });
           await api(`/documents/${documentRecord.id}/parse`, { method: 'POST' });
           await refreshState();
-          const documentsUrl = new URL('documents.html', onboardingUrl);
+          const documentsUrl = new URL('/documents', onboardingUrl);
           documentsUrl.searchParams.set('documentId', documentRecord.id);
           documentsUrl.searchParams.set('uploaded', '1');
           window.location.href = documentsUrl.toString();
@@ -1607,7 +1612,7 @@
   }
 
   async function initSettings() {
-    const user = await requireSession('settings.html', ['Workspace', 'Settings']);
+    const user = await requireSession('settings', ['Workspace', 'Settings']);
     if (!user) return;
 
     const status = document.getElementById('settings-status');
@@ -1697,7 +1702,7 @@
   }
 
   async function initCockpit() {
-    const user = await requireSession('cockpit.html', ['Workspace', 'Risk Cockpit']);
+    const user = await requireSession('cockpit', ['Workspace', 'Risk Cockpit']);
     if (!user) return;
 
     const status = document.getElementById('cockpit-status');
@@ -2005,7 +2010,7 @@
     document.getElementById('refresh-cockpit').addEventListener('click', loadCockpit);
     kpis.addEventListener('click', (event) => {
       if (event.target.closest('[data-open-liquidity]')) {
-        window.location.href = 'liquidity.html';
+        window.location.href = appRoute('/liquidity');
       }
     });
     document.getElementById('rerun-risk').addEventListener('click', async () => {
@@ -2022,7 +2027,7 @@
   }
 
   async function initLiquidity() {
-    const user = await requireSession('liquidity.html', ['Workspace', 'Liquidity']);
+    const user = await requireSession('liquidity', ['Workspace', 'Liquidity']);
     if (!user) return;
 
     const status = document.getElementById('liquidity-status');
@@ -2314,7 +2319,7 @@
   }
 
   async function initOverlay() {
-    const user = await requireSession('scenarios.html', ['Workspace', 'Overlay']);
+    const user = await requireSession('scenarios', ['Workspace', 'Overlay']);
     if (!user) return;
 
     const status = document.getElementById('overlay-status');
@@ -2540,7 +2545,7 @@
   }
 
   async function initBriefings() {
-    const user = await requireSession('briefings.html', ['Workspace', 'Briefings']);
+    const user = await requireSession('briefings', ['Workspace', 'Briefings']);
     if (!user) return;
 
     const status = document.getElementById('briefings-status');
@@ -2613,7 +2618,7 @@
           ? visibleItems
               .map(
                 (item) => `
-                  <a class="mvp-card pad" href="briefing.html?id=${encodeURIComponent(item.id)}" style="display:block;color:inherit">
+                  <a class="mvp-card pad" href="/briefing?id=${encodeURIComponent(item.id)}" style="display:block;color:inherit">
                     <div class="mvp-metadata">
                       <span class="mvp-pill ${item.status === 'published' ? 'good' : 'elevated'}">${escapeHtml(item.status)}</span>
                       ${item.output.quality_gate ? `<span class="mvp-pill ${qualityTone(item.output.quality_gate)}">${escapeHtml(qualitySummary(item.output.quality_gate))}</span>` : ''}
@@ -2649,7 +2654,7 @@
           'Generating...',
           async () => api('/briefings/generate', { method: 'POST' })
         );
-        window.location.href = `briefing.html?id=${encodeURIComponent(briefing.id)}`;
+        window.location.href = appRoute(`/briefing?id=${encodeURIComponent(briefing.id)}`);
       } catch (error) {
         setStatus(status, error.message, 'error');
       }
@@ -2659,7 +2664,7 @@
   }
 
   async function initBriefingDetail() {
-    const user = await requireSession('briefing.html', ['Workspace', 'Briefings', 'Briefing']);
+    const user = await requireSession('briefing', ['Workspace', 'Briefings', 'Briefing']);
     if (!user) return;
 
     const status = document.getElementById('briefing-status');
@@ -2808,7 +2813,7 @@
   }
 
   async function initTable() {
-    const user = await requireSession('table.html', ['Workspace', 'Data', 'Positions']);
+    const user = await requireSession('table', ['Workspace', 'Data', 'Positions']);
     if (!user) return;
 
     const status = document.getElementById('table-status');
@@ -3068,7 +3073,7 @@
   }
 
   async function initDocuments() {
-    const user = await requireSession('documents.html', ['Workspace', 'Data', 'Documents']);
+    const user = await requireSession('documents', ['Workspace', 'Data', 'Documents']);
     if (!user) return;
     bindFileDropzones(document);
 
@@ -3794,7 +3799,7 @@
   }
 
   async function initAccess() {
-    let user = await requireSession('access.html', ['Access']);
+    let user = await requireSession('access', ['Access']);
     if (!user) return;
 
     const userName = document.getElementById('access-user-name');
