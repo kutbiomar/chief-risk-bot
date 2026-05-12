@@ -181,6 +181,15 @@ async function collectChecks(page) {
   });
 }
 
+function requestAuthState(request) {
+  const headers = request.headers();
+  return headers.authorization ? 'auth=present' : 'auth=missing';
+}
+
+function requestContext(viewportName, routeLabel, request) {
+  return `${viewportName}/${routeLabel}: ${request.method()} ${request.url()} (${request.resourceType()}, ${requestAuthState(request)})`;
+}
+
 function markdownTable(rows) {
   const header = '| Viewport | Page | Status | Findings |\n|---|---|---|---|';
   const body = rows.map((row) => {
@@ -197,6 +206,7 @@ async function main() {
   const results = [];
   const consoleEvents = [];
   const failedResponses = [];
+  const failedRequests = [];
   const browser = await chromium.launch({
     executablePath: chromePath,
     headless: true,
@@ -211,17 +221,22 @@ async function main() {
         isMobile: viewport.width < 640,
       });
       const page = await context.newPage();
+      let currentRouteLabel = 'login';
       page.on('console', (message) => {
         if (['error', 'warning'].includes(message.type())) {
-          consoleEvents.push(`${viewport.name}: console ${message.type()} ${message.text()}`);
+          consoleEvents.push(`${viewport.name}/${currentRouteLabel}: console ${message.type()} ${message.text()}`);
         }
       });
       page.on('pageerror', (error) => {
-        consoleEvents.push(`${viewport.name}: pageerror ${error.message}`);
+        consoleEvents.push(`${viewport.name}/${currentRouteLabel}: pageerror ${error.message}`);
+      });
+      page.on('requestfailed', (request) => {
+        const failure = request.failure();
+        failedRequests.push(`${requestContext(viewport.name, currentRouteLabel, request)} -> ${failure?.errorText || 'request failed'}`);
       });
       page.on('response', (response) => {
-        if (response.status() >= 500) {
-          failedResponses.push(`${viewport.name}: ${response.status()} ${response.url()}`);
+        if (response.status() >= 400) {
+          failedResponses.push(`${requestContext(viewport.name, currentRouteLabel, response.request())} -> ${response.status()}`);
         }
       });
 
@@ -229,6 +244,7 @@ async function main() {
 
       for (const route of pages) {
         const row = { viewport: viewport.name, page: route.slug, blockers: [], warnings: [] };
+        currentRouteLabel = route.slug;
         try {
           await page.goto(`${baseUrl}${route.path}`, { waitUntil: 'domcontentloaded' });
           await waitForReady(page, route.selector);
@@ -283,7 +299,8 @@ async function main() {
     `- Blocking usability failures: ${blockers.length}`,
     `- Warnings: ${warnings.length}`,
     `- Console warnings/errors: ${consoleEvents.length}`,
-    `- 5xx network responses: ${failedResponses.length}`,
+    `- 4xx/5xx network responses: ${failedResponses.length}`,
+    `- Request failures: ${failedRequests.length}`,
     '',
     '## Results',
     '',
@@ -293,9 +310,13 @@ async function main() {
     '',
     consoleEvents.length ? consoleEvents.map((item) => `- ${item}`).join('\n') : '- None',
     '',
-    '## 5xx network responses',
+    '## 4xx/5xx network responses',
     '',
     failedResponses.length ? failedResponses.map((item) => `- ${item}`).join('\n') : '- None',
+    '',
+    '## Request failures',
+    '',
+    failedRequests.length ? failedRequests.map((item) => `- ${item}`).join('\n') : '- None',
     '',
     '## Screenshot evidence',
     '',
@@ -304,7 +325,7 @@ async function main() {
   ].join('\n');
 
   await fs.writeFile(path.join(evidenceDir, 'frontend_usability_report.md'), report, 'utf8');
-  await fs.writeFile(path.join(evidenceDir, 'frontend_usability_results.json'), JSON.stringify({ results, consoleEvents, failedResponses }, null, 2), 'utf8');
+  await fs.writeFile(path.join(evidenceDir, 'frontend_usability_results.json'), JSON.stringify({ results, consoleEvents, failedResponses, failedRequests }, null, 2), 'utf8');
 
   console.log(report);
   if (blockers.length || consoleEvents.some((item) => item.includes('pageerror'))) {

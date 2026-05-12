@@ -16,7 +16,7 @@ This log is the evidence register for product remediation. Each row should stay 
 
 | ID | Surface | Symptom / evidence | Status | Plan row |
 |----|---------|--------------------|--------|----------|
-| PEL-0.1 | Authenticated app | Browser console shows an undocumented 401 during happy-path demo; failing URL still needs trace evidence. | Open | 0.1 |
+| PEL-0.1 | Authenticated app | Browser console shows an undocumented 401 during happy-path demo; failing URL still needs trace evidence. | Started: usability sweep now records 4xx/5xx response URLs with viewport/page/request/auth context. | 0.1 |
 | PEL-0.2 | Shell / auth | Logout was reported as unknown. Current repo evidence shows `frontend-mvp/_shell.js` exposes `#mvp-logout`; `_app.js` now calls server logout when a token exists, clears auth state, and redirects to login. Smoke coverage is still needed. | Started | 0.2 |
 | PEL-0.3 | Login / auth | Register and forgot-password paths have partial manual verification only. | Open | 0.3 |
 | PEL-1.1 | Delivery / browser console | CSP policy and Cloudflare Insights behavior need an explicit analytics decision. | Open | 1.1 |
@@ -48,7 +48,7 @@ This log is the evidence register for product remediation. Each row should stay 
 | PEL-11.3 | Cockpit / SVG | Donut/SVG segments need a decorative-vs-interactive accessibility decision. | Product decision needed | -1.4 / 11.3 |
 | PEL-12.1 | Repo / auth | Token key mismatch between frontend trees creates confusion. | Started: `docs/ENVIRONMENTS.md` documents active frontend and token keys. | -1.1 / 12.1 |
 | PEL-13.1 | QA | Coverage gaps remain across positions rows and settings matrix. | Open | 13.1 |
-| PEL-13.2 | Ops / QA | Scheduled smoke and alerting signals are incomplete. | Open | 13.2 |
+| PEL-13.2 | Ops / QA | Scheduled smoke and alerting signals are incomplete. | Started: usability sweep now records console route context, 4xx/5xx responses, and request failures for alert payloads. | 13.2 |
 
 ## Update rules
 
