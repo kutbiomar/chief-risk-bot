@@ -35,10 +35,10 @@ This log is the evidence register for product remediation. Each row should stay 
 | PEL-5.1 | Positions | Upload document flow is unverified in CI/staging. | Open | 5.1 |
 | PEL-5.2 | Positions | Empty save behavior is defined: new rows require identifier or name plus positive quantity and market value before API mutation. | Started | 5.2 |
 | PEL-5.3 | Positions | Row selection now updates a stable `?positionId=` URL and reloads that row when linked directly. | Started | 5.3 |
-| PEL-6.1 | Briefings | Generate flow needs terminal success, error, and timeout states. | Open | 6.1 |
-| PEL-6.2 | Briefings / reader | History rows must deep-link to the same briefing in the reader. | Open | 6.2 |
-| PEL-7.1 | Documents | Upload pipeline needs visible status transitions. | Open | 7.1 |
-| PEL-7.2 | Documents | Review action needs a documented UI state machine. | Open | 7.2 |
+| PEL-6.1 | Briefings | Generate flow has bounded terminal states: success opens/links to the reader, API errors surface in status/toast area, and a 45s timeout tells users to check history before retrying. | Started | 6.1 |
+| PEL-6.2 | Briefings / reader | Briefing list and drawer history rows deep-link to `/briefing?id=` and the reader loads that id. | Started | 6.2 |
+| PEL-7.1 | Documents | Upload pipeline shows queued/parse progress, opens the uploaded document in the review queue, and reports parse completion/errors. | Started | 7.1 |
+| PEL-7.2 | Documents | Review UI has explicit states: no selection, source preview unavailable/non-PDF/PDF, no extraction, parse progress, review fields, and approval actions; selected documents now keep `?documentId=` in sync. | Started | 7.2 |
 | PEL-8.1 | Liquidity | Liquidity is interactive in MVP: it has a configurable buffer target, stress-case toggle, refresh action, and explanatory chart caption. | OK | -1.2 / 8.1 |
 | PEL-9.1 | Settings | Full settings persistence matrix is documented in `docs/SETTINGS_MATRIX.md`; Settings now exposes stable hash sections for workspace, AI, and support panels. | Started | 9.1 |
 | PEL-10.1 | IA / routes | Scenarios and Access route visibility must match approved product IA. Both remain in MVP shell; production smoke now includes `/scenarios` and `/access`. | Started | -1.3 / 10.1 |

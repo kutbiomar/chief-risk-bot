@@ -198,6 +198,22 @@
     }
   }
 
+  async function withTimeout(task, timeoutMs, timeoutMessage) {
+    let timeoutId;
+    try {
+      return await Promise.race([
+        task(),
+        new Promise((_, reject) => {
+          timeoutId = window.setTimeout(() => {
+            reject(new Error(timeoutMessage || 'Request timed out. Please try again.'));
+          }, timeoutMs);
+        }),
+      ]);
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  }
+
   function escapeHtml(value) {
     return String(value ?? '')
       .replaceAll('&', '&amp;')
@@ -858,7 +874,11 @@
           if (progress) { progress.hidden = false; progress.textContent = 'Generating briefing…'; }
           if (result) result.hidden = true;
           try {
-            const data = await api(`/briefings/generate?scope=${encodeURIComponent(scope)}`, { method: 'POST' });
+            const data = await withTimeout(
+              () => api(`/briefings/generate?scope=${encodeURIComponent(scope)}`, { method: 'POST' }),
+              45000,
+              'Briefing generation timed out. Check history before trying again.'
+            );
             if (progress) progress.hidden = true;
             if (result) {
               result.hidden = false;
@@ -2660,8 +2680,13 @@
         const briefing = await withButtonBusy(
           document.getElementById('generate-briefing-action'),
           'Generating...',
-          async () => api('/briefings/generate', { method: 'POST' })
+          async () => withTimeout(
+            () => api('/briefings/generate', { method: 'POST' }),
+            45000,
+            'Briefing generation timed out. Check history before trying again.'
+          )
         );
+        setStatus(status, 'Briefing generated. Opening reader...', 'success');
         window.location.href = appRoute(`/briefing?id=${encodeURIComponent(briefing.id)}`);
       } catch (error) {
         setStatus(status, error.message, 'error');
@@ -3143,6 +3168,17 @@
       stageTimer: null,
       pollTimer: null,
     };
+
+    function updateDocumentDeepLink(documentId = '') {
+      const url = new URL(window.location.href);
+      if (documentId) {
+        url.searchParams.set('documentId', documentId);
+      } else {
+        url.searchParams.delete('documentId');
+      }
+      url.searchParams.delete('uploaded');
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    }
 
     async function loadExtraction(documentId) {
       try {
@@ -3652,6 +3688,7 @@
           button.addEventListener('click', () => {
             activeFolder = button.dataset.folder || '';
             selectedId = '';
+            updateDocumentDeepLink('');
             loadDocuments({ preserveStatus: true });
           });
         });
@@ -3677,6 +3714,7 @@
         list.querySelectorAll('button[data-id]').forEach((button) => {
           button.addEventListener('click', () => {
             selectedId = button.dataset.id || '';
+            updateDocumentDeepLink(selectedId);
             loadDocuments({ preserveStatus: true });
           });
         });
@@ -3685,9 +3723,7 @@
         if (!preserveStatus) {
           if (pageUrl.searchParams.get('uploaded') === '1' && selected) {
             setStatus(status, `Document uploaded and opened in the review queue: ${selected.filename}.`, 'success');
-            pageUrl.searchParams.delete('uploaded');
-            pageUrl.searchParams.set('documentId', selected.id);
-            window.history.replaceState({}, '', `${pageUrl.pathname}${pageUrl.search ? `?${pageUrl.searchParams.toString()}` : ''}`);
+            updateDocumentDeepLink(selected.id);
           } else {
             setStatus(status, '', '');
           }
