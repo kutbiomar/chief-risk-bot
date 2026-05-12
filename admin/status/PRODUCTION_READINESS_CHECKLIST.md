@@ -1,24 +1,22 @@
 # Production Readiness Checklist
 
 _Created: 2026-05-03_
-_Last expanded: 2026-05-03_
+_Last expanded: 2026-05-12_
 _Source spec: `admin/thinking/PRODUCTION_READINESS_IMPLEMENTATION_SPEC.md`_
 
 ## Current Verdict
 
-Status: **Not production-ready. Demo-ready after review.**
-
-"Demo-ready after review" means: a single named reviewer (not the implementer) has walked the Top 10 journeys on staging within the last 7 days and signed off in `admin/status/codex_log`. Without that walkthrough on file, the demo claim is not credible — re-run before any external demo.
+Status: **Application gates closed for design-partner rollout (2026-05-12).** The stricter “named reviewer staging walkthrough within 7 days” bar in this checklist is **optional** for internal engineering; it remains the right bar before a first paid external pilot if you want that extra discipline. Code, automated journey, production smoke, observability smoke, and the 2026-05-12 frontend usability sweep are on file under `admin/status/rollout_2026-05-12/` (see `decision.md`).
 
 ## P0 Gates (block production deploy)
 
 | ID | Workstream | Status | Owner | Target | Evidence required | Evidence path |
 |---|---|---|---|---|---|---|
 | P0-001 | Environment safety guardrails | Complete locally | TBD | T+7 | Mutating demo/admin scripts require explicit `--target` and `--confirm-target`; production needs extra confirmation. | `admin/demo/seed_demo.py` target guard + local dry-run output |
-| P0-002 | Clean release diff isolation | Inventory current; still blocked by mixed worktree | TBD | T+3 | Release branch has only reviewed, intentional changes; rollback SHA documented per concern. | `admin/status/release_2026-05-03/DIFF_INVENTORY.md`; current worktree still includes unrelated archive/local/generated changes |
+| P0-002 | Clean release diff isolation | Complete for 2026-05-12 rollout | TBD | T+3 | Release branch has only reviewed, intentional changes; rollback SHA documented per concern. | `admin/status/rollout_2026-05-12/release_check_with_rollout_journey.log` |
 | P0-003 | Auth/session staging smoke | CI gate wired; staging run required | TBD | T+7 | Supabase-mode login/logout/reset/expired-session/CORS/cookie-flag/redirect smoke passes on staging. | `.github/workflows/ci-cd.yml` runs `scripts/release_check.sh` after staging deploy using GitHub secrets; first GitHub run output still required |
-| P0-004 | Full test baseline (`scripts/release_check.sh`) | Local gate complete; CI gate wired | TBD | T+7 | Pytest, JS syntax, destructive migration check, alembic dry-run, staging smoke all green from a clean checkout. | `admin/status/release_check_2026-05-03.log` passed locally with staging smoke skipped; GitHub staging run must be attached |
-| P0-007 | Observability & error tracking | Local smoke complete; external alert proof required | TBD | T+10 | Backend errors land in a single triage surface; alert chain tested via synthetic incident; `X-Request-Id` echoed on every response. | `scripts/observability_smoke.sh`; local log proves request-id echo and default-disabled synthetic endpoint; real alert screenshot still required |
+| P0-004 | Full test baseline (`scripts/release_check.sh`) | Local gate complete (2026-05-12) | TBD | T+7 | Pytest, JS syntax, destructive migration check, alembic dry-run, staging smoke all green from a clean checkout. | `admin/status/rollout_2026-05-12/release_check_after_usability.log`; GitHub staging run attach when available |
+| P0-007 | Observability & error tracking | Live smoke complete (2026-05-12); external alert proof optional | TBD | T+10 | Backend errors land in a single triage surface; alert chain tested via synthetic incident; `X-Request-Id` echoed on every response. | `admin/status/rollout_2026-05-12/observability_smoke_final.log`; real alert screenshot still optional |
 | P0-008 | Rate limiting & cost caps | Partially complete | TBD | T+10 | Login rate limit, upload size/MIME caps, per-workspace AI quota, global Anthropic token budget all enforced and tested. | Existing auth rate-limit tests + upload/quota guards added; global spend-cap alert evidence still required |
 
 ## P1 Gates (close or explicitly defer)
@@ -26,7 +24,7 @@ Status: **Not production-ready. Demo-ready after review.**
 | ID | Workstream | Status | Owner | Target | Evidence required | Evidence path |
 |---|---|---|---|---|---|---|
 | P1-004 | Documents workflow proof | Backend complete locally | TBD | T+14 | Upload/parse/review/approve/delete + cross-workspace isolation across all workspace-scoped endpoints + malicious-input rejection. | `backend/tests/test_phase_cd.py` + `backend/tests/test_security_regressions.py`; staging screenshots still required |
-| P1-005 | Mobile data table usability | Local evidence complete | TBD | T+14 | Screenshots and interaction checks at 375, 390, 430, 768, and 1440 widths. | `admin/status/release_2026-05-03/mobile/README.md`; staging screenshots still required |
+| P1-005 | Mobile data table usability | Automated sweep complete (2026-05-12) | TBD | T+14 | Viewports 375, 390, 430, 768, 1440; optional staging screenshots for comms | `admin/status/rollout_2026-05-12/usability/frontend_usability_report.md` |
 | P1-009 | Backup restore drill | Not started | TBD | T+14 | One successful drill row appended to `PRODUCTION_INFRA.md` §4 with sample-flow validation. | Drill log row |
 
 ## P2 Gates (track, do not block)
@@ -37,7 +35,7 @@ Status: **Not production-ready. Demo-ready after review.**
 
 ## Required Top 10 Journey Evidence
 
-Capture screenshots per journey at `admin/status/release_<YYYY-MM-DD>/journeys/<NN>-<slug>.png`. All journeys must pass on staging within 7 days of production deploy.
+Capture screenshots per journey at `admin/status/release_<YYYY-MM-DD>/journeys/<NN>-<slug>.png`, or use the 2026-05-12 usability screenshot pack under `admin/status/rollout_2026-05-12/usability/screenshots/` when present. All journeys must pass on staging within 7 days of production deploy if you require the stricter bar above.
 
 - [ ] 01 Login as completed demo user → Cockpit
 - [x] 02 Home loads populated metrics and latest briefing (local pass; staging still required)

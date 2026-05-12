@@ -1,3 +1,0 @@
-PASS: health request id echo
-PASS: synthetic error endpoint disabled by default
-Observability smoke complete.

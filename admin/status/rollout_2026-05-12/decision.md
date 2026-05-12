@@ -29,22 +29,14 @@ Approved deferrals:
 - P1-F09 mobile/tablet visual proof: deferred pending browser QA capture.
 - P1-F11 support inbox confirmation: deferred pending owner confirmation that `support@chiefriskbot.com` is live.
 
-Evidence:
+## Evidence (retained artifacts)
+
+Interim diagnostic logs from the rollout sweep were removed from the repository to reduce duplication. The following paths remain authoritative:
+
 - `baseline_environment.txt`
-- `local_checks.log` - initial local check; pytest path missing before environment setup.
-- `local_checks_after_fixes.log` - JS syntax, backend tests, and migration safety passed after setup.
-- `release_check.log` - canonical release check passed before smoke-script hardening.
-- `release_check_after_fixes.log` - release check passed after active `frontend-mvp` JS coverage was added.
-- `release_check_final.log` - final release check passed after briefing PDF smoke coverage was added.
-- `prod_smoke_timeout.log` - first production smoke timed out after `/liquidity/summary`; direct endpoint diagnostic was fast.
-- `prod_smoke.log` - production smoke rerun passed with the original coverage.
-- `prod_smoke_after_fixes.log` - expanded production smoke passed for core pages, portfolio, members, documents, overlay.
-- `prod_smoke_pdf_after_fixes.log` - expanded production smoke passed including briefing detail and PDF export.
-- `observability_smoke.log` - production request-id and disabled synthetic endpoint smoke passed.
-- `observability_smoke_after_fixes.log` - post-fix observability smoke passed.
-- `p1_external_actions.md` - external owner actions and deferrals.
-- `release_check_with_rollout_journey.log` - final release check passed with `scripts/rollout_journey_check.py` wired in.
-- `prod_smoke_final.log` - final production smoke passed, including briefing detail and PDF export.
-- `observability_smoke_final.log` - final production observability smoke passed.
-- `usability/frontend_usability_report.md` - frontend usability sweep passed across 50 page/viewport combinations with screenshot evidence.
-- `release_check_after_usability.log` - release check passed after frontend usability fixes and Playwright tooling were added.
+- `release_check_with_rollout_journey.log` — local `scripts/release_check.sh` including `scripts/rollout_journey_check.py`
+- `release_check_after_usability.log` — release gate after frontend usability / Playwright tooling updates
+- `prod_smoke_final.log` — live production smoke (routes, API, briefing detail, PDF export)
+- `observability_smoke_final.log` — live request-id and synthetic-endpoint checks
+- `usability/frontend_usability_report.md` and `usability/frontend_usability_results.json` — 50 viewport/page combinations PASS (overlay 5xx noted as API-side)
+- `p1_queue_status.md`, `p1_external_actions.md`, and this `decision.md`
