@@ -52,6 +52,7 @@ AuthContext = Tuple[Optional[UserSession], User]
 AUTH_RATE_LIMIT_MAX_REQUESTS = 10
 AUTH_RATE_LIMIT_WINDOW_SECONDS = 60
 ADMIN_ROLES = {"owner", "admin"}
+DATA_EDITOR_ROLES = ADMIN_ROLES | {"analyst"}
 
 
 class ChangeEmailRequest(BaseModel):

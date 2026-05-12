@@ -155,6 +155,44 @@ def test_viewers_cannot_mutate_workspace_admin_settings(client: TestClient, db_s
     assert allowed.json()["briefing_day"] == "Friday"
 
 
+def test_viewers_cannot_mutate_positions_but_analysts_can(client: TestClient, db_session: Session) -> None:
+    auth = bootstrap_portfolio(client, db_session, email="portfolio-rbac-owner@example.com")
+    owner = db_session.scalar(select(User).where(User.email == "portfolio-rbac-owner@example.com"))
+    assert owner is not None
+    viewer = _add_workspace_user(db_session, owner, email="portfolio-rbac-viewer@example.com", role="viewer")
+    analyst = _add_workspace_user(db_session, owner, email="portfolio-rbac-analyst@example.com", role="analyst")
+
+    position_id = client.get("/api/portfolio/positions").json()["items"][0]["id"]
+
+    viewer_login = client.post("/api/auth/login", json={"email": viewer.email, "password": "secret123"})
+    assert viewer_login.status_code == 200
+    viewer_headers = {"X-CSRF-Token": viewer_login.cookies.get("__crb_csrf", "")}
+
+    assert client.get("/api/portfolio/positions").status_code == 200
+    assert client.post(
+        "/api/portfolio/positions",
+        json={"ticker": "TSLA", "quantity": 1, "market_value_usd": 1000, "asset_class": "public_equity"},
+        headers=viewer_headers,
+    ).status_code == 403
+    assert client.patch(
+        f"/api/portfolio/positions/{position_id}",
+        json={"market_value_usd": 1200},
+        headers=viewer_headers,
+    ).status_code == 403
+    assert client.delete(f"/api/portfolio/positions/{position_id}", headers=viewer_headers).status_code == 403
+
+    analyst_login = client.post("/api/auth/login", json={"email": analyst.email, "password": "secret123"})
+    assert analyst_login.status_code == 200
+    analyst_headers = {"X-CSRF-Token": analyst_login.cookies.get("__crb_csrf", "")}
+    create = client.post(
+        "/api/portfolio/positions",
+        json={"ticker": "TSLA", "quantity": 1, "market_value_usd": 1000, "asset_class": "public_equity"},
+        headers=analyst_headers,
+    )
+    assert create.status_code == 201
+    assert create.json()["snapshot_id"] != auth["snapshot_id"]
+
+
 def test_document_upload_rejects_oversize_payload(
     client: TestClient,
     db_session: Session,

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.deps import get_db
 from backend.models.portfolio import PortfolioSnapshot, Position
-from backend.routers.auth import require_cookie_csrf, require_session
+from backend.routers.auth import DATA_EDITOR_ROLES, require_cookie_csrf, require_roles, require_session
 from backend.schemas.portfolio import (
     PortfolioSummaryResponse,
     PositionCreateRequest,
@@ -271,7 +271,7 @@ def _recalculate_snapshot_totals(db: Session, snapshot: PortfolioSnapshot) -> No
 )
 def create_position(
     body: PositionCreateRequest,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*DATA_EDITOR_ROLES)),
     db: Session = Depends(get_db),
 ) -> PositionMutationResponse:
     _, user = auth
@@ -343,7 +343,7 @@ def create_position(
 def update_position(
     position_id: str,
     body: PositionUpdateRequest,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*DATA_EDITOR_ROLES)),
     db: Session = Depends(get_db),
 ) -> PositionMutationResponse:
     _, user = auth
@@ -442,7 +442,7 @@ def update_position(
 )
 def delete_position(
     position_id: str,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*DATA_EDITOR_ROLES)),
     db: Session = Depends(get_db),
 ) -> PositionMutationResponse:
     _, user = auth
