@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from backend.config import get_settings
 from backend.deps import get_db
 from backend.models.content import Document, ExtractionResult
-from backend.routers.auth import require_cookie_csrf, require_session
+from backend.routers.auth import DATA_EDITOR_ROLES, require_cookie_csrf, require_roles, require_session
 from backend.schemas.auth import MessageResponse
 from backend.schemas.content import (
     DocumentListResponse,
@@ -67,7 +67,7 @@ async def upload_document(
     request: Request,
     file: UploadFile = File(...),
     folder: str = Form(default="custodian_statements"),
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*DATA_EDITOR_ROLES)),
     db: Session = Depends(get_db),
 ) -> DocumentResponse:
     _, user = auth
@@ -173,7 +173,7 @@ def get_document_file(
 )
 async def parse_uploaded_document(
     document_id: str,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*DATA_EDITOR_ROLES)),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
     _, user = auth
@@ -246,7 +246,7 @@ def get_fields(
 def patch_review(
     document_id: str,
     payload: ReviewUpdateRequest,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*DATA_EDITOR_ROLES)),
     db: Session = Depends(get_db),
 ) -> ExtractionReviewResponse:
     _, user = auth
@@ -276,7 +276,7 @@ def patch_review(
 def put_field_review(
     document_id: str,
     payload: FieldReviewUpdateRequest,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*DATA_EDITOR_ROLES)),
     db: Session = Depends(get_db),
 ) -> ExtractionReviewResponse:
     existing = get_review(document_id, auth, db)
@@ -296,7 +296,7 @@ def put_field_review(
 def tag_document(
     document_id: str,
     payload: DocumentTagRequest,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*DATA_EDITOR_ROLES)),
     db: Session = Depends(get_db),
 ) -> DocumentResponse:
     _, user = auth
@@ -316,7 +316,7 @@ def tag_document(
 )
 def approve_document(
     document_id: str,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*DATA_EDITOR_ROLES)),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
     _, user = auth
@@ -338,7 +338,7 @@ def approve_document(
 )
 def apply_document(
     document_id: str,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*DATA_EDITOR_ROLES)),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
     return approve_document(document_id, auth, db)
@@ -351,7 +351,7 @@ def apply_document(
 )
 def delete_document(
     document_id: str,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*DATA_EDITOR_ROLES)),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
     _, user = auth

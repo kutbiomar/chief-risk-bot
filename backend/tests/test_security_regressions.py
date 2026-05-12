@@ -193,6 +193,66 @@ def test_viewers_cannot_mutate_positions_but_analysts_can(client: TestClient, db
     assert create.json()["snapshot_id"] != auth["snapshot_id"]
 
 
+def test_viewers_cannot_mutate_documents_but_analysts_can(client: TestClient, db_session: Session) -> None:
+    auth = bootstrap_portfolio(client, db_session, email="documents-rbac-owner@example.com")
+    owner = db_session.scalar(select(User).where(User.email == "documents-rbac-owner@example.com"))
+    assert owner is not None
+    viewer = _add_workspace_user(db_session, owner, email="documents-rbac-viewer@example.com", role="viewer")
+    analyst = _add_workspace_user(db_session, owner, email="documents-rbac-analyst@example.com", role="analyst")
+    owner_headers = csrf_headers(auth)
+    document_id = _upload_document(client, owner_headers)
+    assert client.post(f"/api/documents/{document_id}/parse", headers=owner_headers).status_code == 200
+
+    viewer_login = client.post("/api/auth/login", json={"email": viewer.email, "password": "secret123"})
+    assert viewer_login.status_code == 200
+    viewer_headers = {"X-CSRF-Token": viewer_login.cookies.get("__crb_csrf", "")}
+
+    assert client.get("/api/documents").status_code == 200
+    assert client.get(f"/api/documents/{document_id}/review").status_code == 200
+    assert client.post(
+        "/api/documents/upload",
+        data={"folder": "custodian_statements"},
+        files={
+            "file": (
+                "viewer.xlsx",
+                build_statement_xlsx(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+        headers=viewer_headers,
+    ).status_code == 403
+    assert client.post(f"/api/documents/{document_id}/parse", headers=viewer_headers).status_code == 403
+    assert client.patch(
+        f"/api/documents/{document_id}/review",
+        json={"resolved_fields": []},
+        headers=viewer_headers,
+    ).status_code == 403
+    assert client.put(
+        f"/api/documents/{document_id}/fields",
+        json={"field_id": "positions", "approved": True},
+        headers=viewer_headers,
+    ).status_code == 403
+    assert client.post(
+        f"/api/documents/{document_id}/tag",
+        json={"tag": "viewer-edit"},
+        headers=viewer_headers,
+    ).status_code == 403
+    assert client.post(f"/api/documents/{document_id}/approve", headers=viewer_headers).status_code == 403
+    assert client.post(f"/api/documents/{document_id}/apply", headers=viewer_headers).status_code == 403
+    assert client.delete(f"/api/documents/{document_id}", headers=viewer_headers).status_code == 403
+
+    analyst_login = client.post("/api/auth/login", json={"email": analyst.email, "password": "secret123"})
+    assert analyst_login.status_code == 200
+    analyst_headers = {"X-CSRF-Token": analyst_login.cookies.get("__crb_csrf", "")}
+    tag = client.post(
+        f"/api/documents/{document_id}/tag",
+        json={"tag": "analyst-reviewed"},
+        headers=analyst_headers,
+    )
+    assert tag.status_code == 200
+    assert tag.json()["tag"] == "analyst-reviewed"
+
+
 def test_document_upload_rejects_oversize_payload(
     client: TestClient,
     db_session: Session,
