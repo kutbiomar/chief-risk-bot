@@ -26,10 +26,10 @@ This log is the evidence register for product remediation. Each row should stay 
 | PEL-2.1 | Shell chrome | Interactive shell chrome can appear inert. Initial target: workspace selector feedback. | Started: workspace selector now shows a support-managed v1 toast. | 2.1 |
 | PEL-2.2 | Shell / landmarks | Top/header landmark order needs accessibility validation after shell refactor. | Open | 2.2 |
 | PEL-2.3 | Shell identity | Identity/workspace text should avoid misleading static labels before session data resolves. | Started: collapsed sidebar uses neutral `WS` before session data, then updates from `workspace_name`. | 2.3 |
-| PEL-3.1 | Home | Greeting, KPIs, and briefing strip must prove they consume session/API data. | Open | 3.1 |
-| PEL-3.2 | Home / shell | Workspace copy in Home should match sidebar/session values. | Open | 3.2 |
-| PEL-4.1 | Cockpit / Assets | Refresh action must prove it reloads data and updates as-of state. | Open | 4.1 |
-| PEL-4.2 | Cockpit / Assets | Segment toggles must prove they swap data, legend, and chart values. | Open | 4.2 |
+| PEL-3.1 | Home | Greeting, KPIs, and briefing strip consume session, cockpit, liquidity, and briefing APIs in `initIndex`; focused browser coverage still needs seeded portfolio assertions. | Started | 3.1 |
+| PEL-3.2 | Home / shell | Home eyebrow now includes `workspace_name` from the authenticated session, matching the shell workspace label source. | Started | 3.2 |
+| PEL-4.1 | Cockpit / Assets | Cockpit refresh fetches cockpit/liquidity APIs, shows loading state, disables the button during refresh, and updates an as-of timestamp. Assets refresh already reloads live cockpit data. | Started | 4.1 |
+| PEL-4.2 | Cockpit / Assets | Segment toggles re-render composition from live cockpit response dimensions; focused golden/contract tests still need to be added. | Started | 4.2 |
 | PEL-4.3 | Risk register | Register rows need a stable drill-down contract. | Open | 4.3 |
 | PEL-4.4 | Assets | "Add position" needs happy-path and validation coverage. | Open | 4.4 |
 | PEL-5.1 | Positions | Upload document flow is unverified in CI/staging. | Open | 5.1 |
@@ -45,7 +45,7 @@ This log is the evidence register for product remediation. Each row should stay 
 | PEL-10.2 | Briefing reader | Reader query contract needs smoke/e2e coverage. Drawer history now deep-links to `/briefing?id=`. | Started | 10.2 |
 | PEL-11.1 | Design system | Material Symbols loading should match or document deviation from `DESIGN.md`. | Started: MVP font request now limits opsz to 20-24 and weight to 400; active nav icons use filled variant. | 11.1 |
 | PEL-11.2 | Accessibility | Route-level accessibility baseline is unknown. | Open | 11.2 |
-| PEL-11.3 | Cockpit / SVG | Donut/SVG segments need a decorative-vs-interactive accessibility decision. | Product decision needed | -1.4 / 11.3 |
+| PEL-11.3 | Cockpit / SVG | Cockpit/assets donut SVGs are decorative summaries in MVP and use `aria-hidden=\"true\"`; interactive data is represented by adjacent legends/tables. | OK | -1.4 / 11.3 |
 | PEL-12.1 | Repo / auth | Token key mismatch between frontend trees creates confusion. | Started: `docs/ENVIRONMENTS.md` documents active frontend and token keys. | -1.1 / 12.1 |
 | PEL-13.1 | QA | Coverage gaps remain across positions rows and settings matrix. | Open | 13.1 |
 | PEL-13.2 | Ops / QA | Scheduled smoke and alerting signals are incomplete. | Started: usability sweep now records console route context, 4xx/5xx responses, and request failures for alert payloads. | 13.2 |

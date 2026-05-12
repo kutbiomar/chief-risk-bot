@@ -1102,7 +1102,8 @@
     const eyebrow = document.getElementById('home-eyebrow');
     if (eyebrow) {
       const d = new Date();
-      eyebrow.textContent = `Today · ${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
+      const workspace = user.workspace_name ? ` · ${user.workspace_name}` : '';
+      eyebrow.textContent = `Today · ${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}${workspace}`;
     }
 
     // Load cockpit + liquidity data in parallel for the metric strip
@@ -1712,9 +1713,11 @@
     const varVisual = document.getElementById('cockpit-var-visual');
     const varDrivers = document.getElementById('cockpit-var-drivers');
     const register = document.getElementById('cockpit-register');
+    const lastUpdated = document.getElementById('cockpit-last-updated');
     const compositionTitle = document.getElementById('cockpit-composition-title');
     const compositionToggles = document.getElementById('cockpit-composition-toggles');
     const riskFilters = document.getElementById('cockpit-risk-filters');
+    const refreshButton = document.getElementById('refresh-cockpit');
     const compositionPalette = ['#1B2B5E', '#72594c', '#C9A449', '#006972', '#d3c3bc', '#584236'];
     const compositionTitles = {
       asset_class: 'Asset class mix',
@@ -1970,6 +1973,9 @@
         cockpitBody = cockpitResponse;
         liquiditySummary = liquidityResponse;
         renderCockpit(cockpitBody);
+        if (lastUpdated) {
+          lastUpdated.textContent = `Updated ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+        }
         setStatus(status, '', '');
       } catch (error) {
         cockpitBody = null;
@@ -2007,7 +2013,9 @@
       });
     }
 
-    document.getElementById('refresh-cockpit').addEventListener('click', loadCockpit);
+    refreshButton?.addEventListener('click', async () => {
+      await withButtonBusy(refreshButton, 'Refreshing...', loadCockpit);
+    });
     kpis.addEventListener('click', (event) => {
       if (event.target.closest('[data-open-liquidity]')) {
         window.location.href = appRoute('/liquidity');
