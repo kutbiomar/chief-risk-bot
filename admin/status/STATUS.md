@@ -58,6 +58,7 @@ Production is live. Immediate product blockers are closed. Current follow-up wor
 | `admin/thinking/CLAUDE_AGENT_PLATFORM_SPEC.md` | Current spec for moving the agentic system onto Claude Managed Agents |
 | `admin/thinking/ARCHITECTURE.md` | Deeper architecture reference |
 | `admin/demo/seed_demo.py` | Demo workspace reseed tooling |
+| `admin/status/ROLLOUT_FUNCTIONALITY_CHECKLIST.md` | Functionality checklist and scoring rubric for rollout decisions |
 
 ## Historical note
 

@@ -1,0 +1,10 @@
+{
+  "name": "chiefriskbot",
+  "private": true,
+  "scripts": {
+    "usability:frontend": "node scripts/frontend_usability_check.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.60.0"
+  }
+}

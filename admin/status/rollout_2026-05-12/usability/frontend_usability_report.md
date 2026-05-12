@@ -1,0 +1,87 @@
+# Frontend Usability Sweep - 2026-05-12
+
+Target frontend: local `frontend-mvp` served at runtime
+API proxy target: `https://api.chiefriskbot.com`
+Viewports: desktop-1440 (1440x1000), tablet-768 (768x1024), mobile-390 (390x844), mobile-375 (375x812), mobile-430 (430x932)
+
+## Summary
+
+- Pages checked: 10
+- Viewport/page combinations: 50
+- Blocking usability failures: 0
+- Warnings: 0
+- Console warnings/errors: 4
+- 5xx network responses: 4
+
+## Results
+
+| Viewport | Page | Status | Findings |
+|---|---|---|---|
+| desktop-1440 | home | PASS | No issues observed |
+| desktop-1440 | assets | PASS | No issues observed |
+| desktop-1440 | cockpit | PASS | No issues observed |
+| desktop-1440 | liquidity | PASS | No issues observed |
+| desktop-1440 | briefings | PASS | No issues observed |
+| desktop-1440 | documents | PASS | No issues observed |
+| desktop-1440 | positions | PASS | No issues observed |
+| desktop-1440 | settings | PASS | No issues observed |
+| desktop-1440 | access | PASS | No issues observed |
+| desktop-1440 | scenarios | PASS | No issues observed |
+| tablet-768 | home | PASS | No issues observed |
+| tablet-768 | assets | PASS | No issues observed |
+| tablet-768 | cockpit | PASS | No issues observed |
+| tablet-768 | liquidity | PASS | No issues observed |
+| tablet-768 | briefings | PASS | No issues observed |
+| tablet-768 | documents | PASS | No issues observed |
+| tablet-768 | positions | PASS | No issues observed |
+| tablet-768 | settings | PASS | No issues observed |
+| tablet-768 | access | PASS | No issues observed |
+| tablet-768 | scenarios | PASS | No issues observed |
+| mobile-390 | home | PASS | No issues observed |
+| mobile-390 | assets | PASS | No issues observed |
+| mobile-390 | cockpit | PASS | No issues observed |
+| mobile-390 | liquidity | PASS | No issues observed |
+| mobile-390 | briefings | PASS | No issues observed |
+| mobile-390 | documents | PASS | No issues observed |
+| mobile-390 | positions | PASS | No issues observed |
+| mobile-390 | settings | PASS | No issues observed |
+| mobile-390 | access | PASS | No issues observed |
+| mobile-390 | scenarios | PASS | No issues observed |
+| mobile-375 | home | PASS | No issues observed |
+| mobile-375 | assets | PASS | No issues observed |
+| mobile-375 | cockpit | PASS | No issues observed |
+| mobile-375 | liquidity | PASS | No issues observed |
+| mobile-375 | briefings | PASS | No issues observed |
+| mobile-375 | documents | PASS | No issues observed |
+| mobile-375 | positions | PASS | No issues observed |
+| mobile-375 | settings | PASS | No issues observed |
+| mobile-375 | access | PASS | No issues observed |
+| mobile-375 | scenarios | PASS | No issues observed |
+| mobile-430 | home | PASS | No issues observed |
+| mobile-430 | assets | PASS | No issues observed |
+| mobile-430 | cockpit | PASS | No issues observed |
+| mobile-430 | liquidity | PASS | No issues observed |
+| mobile-430 | briefings | PASS | No issues observed |
+| mobile-430 | documents | PASS | No issues observed |
+| mobile-430 | positions | PASS | No issues observed |
+| mobile-430 | settings | PASS | No issues observed |
+| mobile-430 | access | PASS | No issues observed |
+| mobile-430 | scenarios | PASS | No issues observed |
+
+## Console observations
+
+- desktop-1440: console error Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+- desktop-1440: console error Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+- tablet-768: console error Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+- mobile-375: console error Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+
+## 5xx network responses
+
+- desktop-1440: 500 http://127.0.0.1:44365/api/overlay/aum-triangulation
+- desktop-1440: 500 http://127.0.0.1:44365/api/overlay/stress
+- tablet-768: 500 http://127.0.0.1:44365/api/overlay/factors
+- mobile-375: 500 http://127.0.0.1:44365/api/overlay/factors
+
+## Screenshot evidence
+
+Screenshots saved under `admin/status/rollout_2026-05-12/usability/screenshots`.

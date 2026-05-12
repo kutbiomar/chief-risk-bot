@@ -704,6 +704,15 @@ body[data-page="overlay"].mvp-app-loading::after {
   font-size: 12px;
 }
 
+.mvp-access-note {
+  margin-bottom: 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--paper-2);
+  text-align: left;
+  color: var(--ink-soft);
+}
+
 .mvp-feature-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
@@ -2528,6 +2537,7 @@ body[data-page="briefing"] .essay-hero h1 {
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.06em;
+  min-height: 32px;
   padding: 6px 14px;
   border-radius: 999px;
   background: transparent;
@@ -2602,7 +2612,9 @@ body[data-page="briefing"] .essay-hero h1 {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   color: rgba(27, 43, 94, 0.55);
   line-height: 1;
 }

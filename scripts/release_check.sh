@@ -50,15 +50,25 @@ if (( ${#python_files[@]} )); then
 fi
 
 section "JavaScript syntax"
-node --check frontend/_api.js
-node --check frontend/_app.js
-node --check frontend/_shell.js
+for js_file in \
+  frontend-mvp/_app.js \
+  frontend-mvp/_shell.js \
+  frontend/_api.js \
+  frontend/_app.js \
+  frontend/_shell.js; do
+  if [[ -f "$js_file" ]]; then
+    node --check "$js_file"
+  fi
+done
 
 section "Shell syntax"
 bash -n scripts/release_check.sh scripts/staging_smoke.sh scripts/prod_smoke.sh scripts/observability_smoke.sh
 
 section "Backend tests"
 "$PYTEST_BIN" backend/tests -q
+
+section "Rollout journey check"
+"$PYTHON_BIN" scripts/rollout_journey_check.py
 
 section "Destructive migration check"
 python3 scripts/check_destructive_migrations.py
