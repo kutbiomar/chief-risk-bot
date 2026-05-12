@@ -47,7 +47,7 @@
           <div class="brand-name">ChiefRiskBot</div>
         </div>
 
-        <button type="button" class="client" id="crb-client-widget" aria-label="Workspace switcher">
+        <button type="button" class="client" id="crb-client-widget" data-workspace-initials="WS" aria-label="Workspace switcher">
           <div class="who">
             <small>Workspace</small>
             <b id="crb-menu-workspace">—</b>
@@ -280,6 +280,19 @@
     return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  function initialsFromText(value, fallback = 'WS') {
+    const words = String(value || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (!words.length) return fallback;
+    return words
+      .slice(0, 2)
+      .map((word) => word[0] || '')
+      .join('')
+      .toUpperCase() || fallback;
+  }
+
   // ── Public API ────────────────────────────────────────────────────────────
   window.CRBMvpShell = {
     mount(activePage) {
@@ -304,12 +317,7 @@
 
     updateUser(user) {
       if (!user) return;
-      const initials = ((user.display_name || user.email || 'CR')
-        .split(/\s+/)
-        .map((w) => w[0] || '')
-        .join('')
-        .slice(0, 2)
-        .toUpperCase()) || 'CR';
+      const initials = initialsFromText(user.display_name || user.email, 'CR');
 
       const avatarBtn = document.getElementById('crb-avatar');
       if (avatarBtn) avatarBtn.textContent = initials;
@@ -319,6 +327,13 @@
 
       const menuWs = document.getElementById('crb-menu-workspace');
       if (menuWs) menuWs.textContent = user.workspace_name || '—';
+
+      const clientWidget = document.getElementById('crb-client-widget');
+      if (clientWidget) {
+        const workspaceName = user.workspace_name || 'Workspace';
+        clientWidget.dataset.workspaceInitials = initialsFromText(workspaceName, 'WS');
+        clientWidget.setAttribute('aria-label', `${workspaceName} workspace switcher`);
+      }
     },
 
     // Legacy compat
