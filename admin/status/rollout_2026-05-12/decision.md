@@ -1,18 +1,20 @@
 # Rollout decision - 2026-05-12
 
 Environment tested: local checkout plus live production app/API
-Tested commit: pending final rerun
+Tested commit: 9383027
 Tester: Cursor cloud agent
 Rollout level requested: Design partner
 
-P0 score: pending final rerun; code-verifiable queue covered by automated checks
-P1 score: pending final rerun; code-verifiable queue covered by automated checks
+P0 score: 30 / 30 applicable code-verifiable points; P0-F16 deferred pending owner approval
+P1 score: 16 / 16 applicable code-verifiable points; external proof items deferred pending owner approval
 P2 score: not rescored
-Overall readiness: pending final rerun
+Overall readiness: P0/P1 code queue clear; rollout still depends on approved external actions
 
-Scoring note: this pass upgrades command/API evidence only. It does not replace
-the required browser screenshots or recordings in
-`ROLLOUT_FUNCTIONALITY_CHECKLIST.md`.
+Scoring note: `scripts/rollout_journey_check.py` now covers the code-verifiable
+P0/P1 journey queue in a disposable local environment, while `prod_smoke.sh`
+covers live production route/API/briefing-PDF availability. The remaining
+items are external confirmations or visual artifacts listed in
+`p1_external_actions.md`.
 
 Decision: Proceed with disclosed limits only after external actions are approved
 
@@ -41,3 +43,6 @@ Evidence:
 - `observability_smoke.log` - production request-id and disabled synthetic endpoint smoke passed.
 - `observability_smoke_after_fixes.log` - post-fix observability smoke passed.
 - `p1_external_actions.md` - external owner actions and deferrals.
+- `release_check_with_rollout_journey.log` - final release check passed with `scripts/rollout_journey_check.py` wired in.
+- `prod_smoke_final.log` - final production smoke passed, including briefing detail and PDF export.
+- `observability_smoke_final.log` - final production observability smoke passed.
