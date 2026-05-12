@@ -17,7 +17,7 @@ This log is the evidence register for product remediation. Each row should stay 
 | ID | Surface | Symptom / evidence | Status | Plan row |
 |----|---------|--------------------|--------|----------|
 | PEL-0.1 | Authenticated app | Browser console shows an undocumented 401 during happy-path demo; failing URL still needs trace evidence. | Open | 0.1 |
-| PEL-0.2 | Shell / auth | Logout was reported as unknown. Current repo evidence shows `frontend-mvp/_shell.js` exposes `#mvp-logout` and `_app.js` clears auth state, but smoke coverage is missing. | Partially verified | 0.2 |
+| PEL-0.2 | Shell / auth | Logout was reported as unknown. Current repo evidence shows `frontend-mvp/_shell.js` exposes `#mvp-logout`; `_app.js` now calls server logout when a token exists, clears auth state, and redirects to login. Smoke coverage is still needed. | Started | 0.2 |
 | PEL-0.3 | Login / auth | Register and forgot-password paths have partial manual verification only. | Open | 0.3 |
 | PEL-1.1 | Delivery / browser console | CSP policy and Cloudflare Insights behavior need an explicit analytics decision. | Open | 1.1 |
 | PEL-1.2 | Routing | URL style can mix clean paths and `.html` artifacts depending on route/deploy layer. | Open | 1.2 |

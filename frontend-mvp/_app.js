@@ -828,7 +828,7 @@
       if (logout) {
         logout.addEventListener('click', async () => {
           try {
-            if (!getAuthToken()) {
+            if (getAuthToken()) {
               await api('/auth/logout', { method: 'POST' });
             }
           } catch {
