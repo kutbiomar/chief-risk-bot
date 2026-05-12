@@ -21,7 +21,7 @@ This log is the evidence register for product remediation. Each row should stay 
 | PEL-0.3 | Login / auth | Register and forgot-password paths have partial manual verification only. | Open | 0.3 |
 | PEL-1.1 | Delivery / browser console | CSP policy and Cloudflare Insights behavior need an explicit analytics decision. | Open | 1.1 |
 | PEL-1.2 | Routing | URL style can mix clean paths and `.html` artifacts depending on route/deploy layer. | Open | 1.2 |
-| PEL-1.3 | Shell navigation | Nav `href`s in `frontend-mvp/_shell.js` currently point at `.html` pages. | Open | 1.3 |
+| PEL-1.3 | Shell navigation | Nav `href`s in `frontend-mvp/_shell.js` currently point at clean canonical routes; drawer briefing history links use `/briefing?id=`. | Started | 1.3 |
 | PEL-1.4 | Demo content | Demo family-office naming needs verification across static HTML, seed data, and production demo copy. Active MVP placeholder now uses `Whitmore Family Office`, matching the production smoke workspace contract. Legacy/reference surfaces still need separate archival or migration cleanup. | Started | 1.4 |
 | PEL-2.1 | Shell chrome | Interactive shell chrome can appear inert. Initial target: workspace selector feedback. | Started: workspace selector now shows a support-managed v1 toast. | 2.1 |
 | PEL-2.2 | Shell / landmarks | Top/header landmark order needs accessibility validation after shell refactor. | Open | 2.2 |
@@ -41,8 +41,8 @@ This log is the evidence register for product remediation. Each row should stay 
 | PEL-7.2 | Documents | Review action needs a documented UI state machine. | Open | 7.2 |
 | PEL-8.1 | Liquidity | Page has no in-content controls; product intent is undecided. | Product decision needed | -1.2 / 8.1 |
 | PEL-9.1 | Settings | Full settings persistence matrix is unknown. | Open | 9.1 |
-| PEL-10.1 | IA / routes | Scenarios and Access route visibility must match approved product IA. | Product decision needed | -1.3 / 10.1 |
-| PEL-10.2 | Briefing reader | Reader query contract needs smoke/e2e coverage. | Open | 10.2 |
+| PEL-10.1 | IA / routes | Scenarios and Access route visibility must match approved product IA. Both remain in MVP shell; production smoke now includes `/scenarios` and `/access`. | Started | -1.3 / 10.1 |
+| PEL-10.2 | Briefing reader | Reader query contract needs smoke/e2e coverage. Drawer history now deep-links to `/briefing?id=`. | Started | 10.2 |
 | PEL-11.1 | Design system | Material Symbols loading should match or document deviation from `DESIGN.md`. | Started: MVP font request now limits opsz to 20-24 and weight to 400; active nav icons use filled variant. | 11.1 |
 | PEL-11.2 | Accessibility | Route-level accessibility baseline is unknown. | Open | 11.2 |
 | PEL-11.3 | Cockpit / SVG | Donut/SVG segments need a decorative-vs-interactive accessibility decision. | Product decision needed | -1.4 / 11.3 |

@@ -1,18 +1,18 @@
 (function () {
   const PRIMARY_NAV = [
-    { href: 'index.html',     page: 'index',     label: 'Home',        icon: 'home',           num: '01' },
-    { href: 'assets.html',    page: 'assets',    label: 'Assets',      icon: 'pie_chart',      num: '02' },
-    { href: 'cockpit.html',   page: 'cockpit',   label: 'Risk Cockpit',icon: 'monitoring',     num: '03' },
-    { href: 'liquidity.html', page: 'liquidity', label: 'Liquidity',   icon: 'waterfall_chart',num: '04' },
-    { href: 'briefings.html', page: 'briefings', label: 'Briefings',   icon: 'auto_stories',   num: '05' },
-    { href: 'scenarios.html', page: 'scenarios', label: 'Scenarios',   icon: 'description',    num: '06' },
+    { href: '/',          page: 'index',     label: 'Home',        icon: 'home',           num: '01' },
+    { href: '/assets',    page: 'assets',    label: 'Assets',      icon: 'pie_chart',      num: '02' },
+    { href: '/cockpit',   page: 'cockpit',   label: 'Risk Cockpit',icon: 'monitoring',     num: '03' },
+    { href: '/liquidity', page: 'liquidity', label: 'Liquidity',   icon: 'waterfall_chart',num: '04' },
+    { href: '/briefings', page: 'briefings', label: 'Briefings',   icon: 'auto_stories',   num: '05' },
+    { href: '/scenarios', page: 'scenarios', label: 'Scenarios',   icon: 'description',    num: '06' },
   ];
 
   const OPS_NAV = [
-    { href: 'table.html',     page: 'table',     label: 'Positions',   icon: 'table_view' },
-    { href: 'documents.html', page: 'documents', label: 'Documents',   icon: 'folder_open' },
-    { href: 'settings.html',  page: 'settings',  label: 'Settings',    icon: 'tune' },
-    { href: 'access.html',    page: 'access',    label: 'Access',      icon: 'key' },
+    { href: '/table',     page: 'table',     label: 'Positions',   icon: 'table_view' },
+    { href: '/documents', page: 'documents', label: 'Documents',   icon: 'folder_open' },
+    { href: '/settings',  page: 'settings',  label: 'Settings',    icon: 'tune' },
+    { href: '/access',    page: 'access',    label: 'Access',      icon: 'key' },
   ];
 
   // Page-scope labels for the briefing drawer
@@ -90,7 +90,7 @@
         <button class="hamburger" id="crb-hamburger" aria-label="Open navigation">
           <span class="ms">menu</span>
         </button>
-        <a href="index.html" style="font-family:'Fraunces';font-weight:900;font-size:15px;letter-spacing:-.01em">
+        <a href="/" style="font-family:'Fraunces';font-weight:900;font-size:15px;letter-spacing:-.01em">
           ChiefRiskBot
         </a>
         <div style="flex:1"></div>
@@ -266,7 +266,7 @@
         return;
       }
       list.innerHTML = briefings.slice(0, 20).map((b) => `
-        <a href="briefing.html?id=${encodeURIComponent(b.id)}" class="essay-drawer-history-item">
+        <a href="/briefing?id=${encodeURIComponent(b.id)}" class="essay-drawer-history-item">
           <div class="essay-drawer-history-item-date">${new Date(b.created_at || b.date || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
           <div class="essay-drawer-history-item-title">${escHtml(b.title || b.headline || 'Briefing')}</div>
         </a>`).join('');

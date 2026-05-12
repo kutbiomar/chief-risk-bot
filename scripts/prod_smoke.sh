@@ -92,9 +92,11 @@ print("PASS: frontend login page and CSP")
 
 for path in (
     "/",
+    "/assets",
     "/cockpit",
     "/liquidity",
     "/briefings",
+    "/scenarios",
     "/documents",
     "/table",
     "/settings",
