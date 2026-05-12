@@ -43,7 +43,7 @@ This log is the evidence register for product remediation. Each row should stay 
 | PEL-9.1 | Settings | Full settings persistence matrix is unknown. | Open | 9.1 |
 | PEL-10.1 | IA / routes | Scenarios and Access route visibility must match approved product IA. | Product decision needed | -1.3 / 10.1 |
 | PEL-10.2 | Briefing reader | Reader query contract needs smoke/e2e coverage. | Open | 10.2 |
-| PEL-11.1 | Design system | Material Symbols loading should match or document deviation from `DESIGN.md`. | Open | 11.1 |
+| PEL-11.1 | Design system | Material Symbols loading should match or document deviation from `DESIGN.md`. | Started: MVP font request now limits opsz to 20-24 and weight to 400; active nav icons use filled variant. | 11.1 |
 | PEL-11.2 | Accessibility | Route-level accessibility baseline is unknown. | Open | 11.2 |
 | PEL-11.3 | Cockpit / SVG | Donut/SVG segments need a decorative-vs-interactive accessibility decision. | Product decision needed | -1.4 / 11.3 |
 | PEL-12.1 | Repo / auth | Token key mismatch between frontend trees creates confusion. | Started: `docs/ENVIRONMENTS.md` documents active frontend and token keys. | -1.1 / 12.1 |
