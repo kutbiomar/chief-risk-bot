@@ -22,7 +22,7 @@ This log is the evidence register for product remediation. Each row should stay 
 | PEL-1.1 | Delivery / browser console | CSP policy and Cloudflare Insights behavior need an explicit analytics decision. | Open | 1.1 |
 | PEL-1.2 | Routing | URL style can mix clean paths and `.html` artifacts depending on route/deploy layer. | Open | 1.2 |
 | PEL-1.3 | Shell navigation | Nav `href`s in `frontend-mvp/_shell.js` currently point at `.html` pages. | Open | 1.3 |
-| PEL-1.4 | Demo content | Demo family-office naming needs verification across static HTML, seed data, and production demo copy. Repo evidence currently finds `Aldridge` but not `Whitmore`. | Needs verification | 1.4 |
+| PEL-1.4 | Demo content | Demo family-office naming needs verification across static HTML, seed data, and production demo copy. Active MVP placeholder now uses `Whitmore Family Office`, matching the production smoke workspace contract. Legacy/reference surfaces still need separate archival or migration cleanup. | Started | 1.4 |
 | PEL-2.1 | Shell chrome | Interactive shell chrome can appear inert. Initial target: workspace selector feedback. | Started: workspace selector now shows a support-managed v1 toast. | 2.1 |
 | PEL-2.2 | Shell / landmarks | Top/header landmark order needs accessibility validation after shell refactor. | Open | 2.2 |
 | PEL-2.3 | Shell identity | Identity/workspace text should avoid misleading static labels before session data resolves. | Started: collapsed sidebar uses neutral `WS` before session data, then updates from `workspace_name`. | 2.3 |
