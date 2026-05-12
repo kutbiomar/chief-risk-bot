@@ -86,7 +86,7 @@
 
   function buildMobileTopBar() {
     return `
-      <div class="top" id="crb-mobile-topbar" style="display:none">
+      <div class="top" id="crb-mobile-topbar" role="banner" style="display:none">
         <button class="hamburger" id="crb-hamburger" aria-label="Open navigation">
           <span class="ms">menu</span>
         </button>

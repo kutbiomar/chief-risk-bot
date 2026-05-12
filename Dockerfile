@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY pyproject.toml /app/pyproject.toml
 COPY backend /app/backend
-COPY frontend /app/static
+COPY frontend-mvp /app/static
 COPY alembic.ini /app/alembic.ini
 
 RUN pip install -e .

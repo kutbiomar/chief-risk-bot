@@ -13,6 +13,8 @@ This repository currently contains more than one frontend tree. Until the remedi
 | `frontend-design-ideal/` | Design-system reference and target aesthetic. | Read before visual changes; do not treat as runtime code. |
 | `frontend/` | Legacy/reference surface. | Do not add new remediation work here unless the plan explicitly calls for migration or archival. |
 
+The Docker/Fly static fallback copies `frontend-mvp/` into `/app/static` so backend-served static pages match the active remediation surface.
+
 ## Auth storage keys
 
 `frontend-mvp/` is the active auth implementation for this pass.
