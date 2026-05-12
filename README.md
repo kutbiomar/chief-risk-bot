@@ -36,3 +36,14 @@ python scripts/check_destructive_migrations.py
 ```
 
 Use `scripts/release_check.sh` before release branches. Visual/UI work must stay aligned with `frontend-design-ideal/DESIGN.md`.
+
+## Optional improvement loop
+
+The repeatable agent prompt lives in `admin/status/IMPROVEMENT_LOOP_PROMPT.md`.
+To run it on a 10-minute locked loop, configure the agent command and start:
+
+```bash
+AGENT_LOOP_COMMAND='cursor-agent run --autonomous' scripts/agent_improvement_loop.sh
+```
+
+See `admin/status/IMPROVEMENT_LOOP.md` for context-cleanup hooks and guardrails.

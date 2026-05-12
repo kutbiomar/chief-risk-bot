@@ -62,6 +62,35 @@ Copy/paste this when you want another improvement cycle:
 
 > Review the repo using `README.md`, `admin/status/FUNCTIONALITY_ROADMAP.md`, and `admin/status/IMPROVEMENT_LOOP.md`. Pick the highest-value small slice that makes ChiefRiskBot more fully functional while keeping code minimal and elegant. Implement it end-to-end, add or update focused tests, run the relevant validation checks, commit, push, and update the PR. Do not start broad refactors; prefer existing patterns and update status docs only if behavior or priorities change.
 
+The same prompt is stored at `admin/status/IMPROVEMENT_LOOP_PROMPT.md` for automation.
+
+## Optional automation wrapper
+
+`scripts/agent_improvement_loop.sh` runs the prompt on a fixed interval with a lock so a tick is skipped if a previous task is still running.
+
+Example:
+
+```bash
+AGENT_LOOP_COMMAND='cursor-agent run --autonomous' \
+  scripts/agent_improvement_loop.sh
+```
+
+Defaults:
+
+- interval: 600 seconds
+- prompt file: `admin/status/IMPROVEMENT_LOOP_PROMPT.md`
+- lock directory: `.agent-improvement-loop.lock`
+
+Context clearing is runtime-specific. If the agent runtime exposes token-count and clear/compact commands, configure:
+
+```bash
+AGENT_CONTEXT_TOKENS_COMMAND='your-token-count-command' \
+AGENT_CONTEXT_CLEAR_COMMAND='your-context-clear-command' \
+AGENT_CONTEXT_TOKEN_THRESHOLD=200000 \
+AGENT_LOOP_COMMAND='cursor-agent run --autonomous' \
+  scripts/agent_improvement_loop.sh
+```
+
 ## Definition of done
 
 - The selected behavior works or the documented gap is more truthful than before.
