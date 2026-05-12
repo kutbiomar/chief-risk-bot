@@ -8,7 +8,7 @@ INTERVAL_SECONDS="${AGENT_LOOP_INTERVAL_SECONDS:-600}"
 MAX_RUNTIME_SECONDS="${AGENT_LOOP_MAX_RUNTIME_SECONDS:-259200}"
 TOKEN_THRESHOLD="${AGENT_CONTEXT_TOKEN_THRESHOLD:-200000}"
 PROMPT_FILE="${AGENT_LOOP_PROMPT_FILE:-admin/status/IMPROVEMENT_LOOP_PROMPT.md}"
-LOCK_DIR="${AGENT_LOOP_LOCK_DIR:-$ROOT_DIR/.agent-improvement-loop.lock}"
+LOCK_DIR="${AGENT_LOOP_LOCK_DIR:-$ROOT_DIR/.git/agent-improvement-loop.lock}"
 REMOTE_NAME="${AGENT_LOOP_REMOTE:-origin}"
 BASE_BRANCH="${AGENT_LOOP_BASE_BRANCH:-main}"
 MERGE_TO_MAIN="${AGENT_LOOP_MERGE_TO_MAIN:-1}"
@@ -41,7 +41,7 @@ Optional:
   AGENT_LOOP_REMOTE                 Default: origin
   AGENT_LOOP_BASE_BRANCH            Default: main
   AGENT_LOOP_PROMPT_FILE            Default: admin/status/IMPROVEMENT_LOOP_PROMPT.md
-  AGENT_LOOP_LOCK_DIR               Default: .agent-improvement-loop.lock
+  AGENT_LOOP_LOCK_DIR               Default: .git/agent-improvement-loop.lock
   AGENT_CONTEXT_TOKENS_COMMAND      Command that prints current context tokens
   AGENT_CONTEXT_CLEAR_COMMAND       Command that clears/compacts context
   AGENT_CONTEXT_TOKEN_THRESHOLD     Default: 200000

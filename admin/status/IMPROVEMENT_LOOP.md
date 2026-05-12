@@ -86,7 +86,7 @@ Defaults:
 - remote/base: `origin` / `main`
 - failure logs: `admin/status/loop_failures/`
 - prompt file: `admin/status/IMPROVEMENT_LOOP_PROMPT.md`
-- lock directory: `.agent-improvement-loop.lock`
+- lock directory: `.git/agent-improvement-loop.lock`
 
 Context clearing is runtime-specific. If the agent runtime exposes token-count and clear/compact commands, configure:
 
