@@ -37,6 +37,10 @@ from backend.services.observability import (
 from backend.services.scheduler import get_scheduler_manager
 
 
+# App bootstrap index:
+# - lifespan configures logging and the in-process scheduler.
+# - request_observability adds request IDs, security headers, metrics, and error capture.
+# - routers are grouped below by product surface; all HTTP APIs are mounted under /api.
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     configure_json_logging()
@@ -115,20 +119,27 @@ def create_app() -> FastAPI:
                 response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
         return response
 
+    # Identity and workspace setup.
     app.include_router(auth_router, prefix="/api")
+    app.include_router(onboarding_router, prefix="/api")
+    app.include_router(settings_router, prefix="/api")
+
+    # Portfolio data, documents, and ingestion.
+    app.include_router(documents_router, prefix="/api")
+    app.include_router(ingest_router, prefix="/api")
+    app.include_router(portfolio_router, prefix="/api")
+
+    # Analytics, risk cockpit, briefings, and market context.
     app.include_router(briefings_router, prefix="/api")
     app.include_router(cockpit_router, prefix="/api")
-    app.include_router(documents_router, prefix="/api")
-    app.include_router(health_router, prefix="/api")
-    app.include_router(ingest_router, prefix="/api")
     app.include_router(liquidity_router, prefix="/api")
     app.include_router(market_router, prefix="/api")
-    app.include_router(onboarding_router, prefix="/api")
     app.include_router(overlay_router, prefix="/api")
-    app.include_router(portfolio_router, prefix="/api")
     app.include_router(risk_router, prefix="/api")
-    app.include_router(settings_router, prefix="/api")
     app.include_router(var_router, prefix="/api")
+
+    # Operational health.
+    app.include_router(health_router, prefix="/api")
     if os.path.isdir("static"):
         app.mount("/", StaticFiles(directory="static", html=True), name="static")
 

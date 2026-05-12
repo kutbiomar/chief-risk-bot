@@ -420,6 +420,7 @@ def totp_verify(
     response: Response,
     db: Session = Depends(get_db),
 ) -> LoginResponse:
+    # Roadmap: implement only with enrollment, recovery codes, and rate-limited challenge validation.
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="TOTP verification is disabled",

@@ -1,0 +1,37 @@
+# ChiefRiskBot
+
+AI-powered risk briefing and monitoring platform for family-office CIOs.
+FastAPI serves the API; vanilla HTML/CSS/JS serves the app.
+
+## Start here
+
+- Live project state: `admin/status/STATUS.md`
+- Production gate checklist: `admin/status/PRODUCTION_READINESS_CHECKLIST.md`
+- Functionality gap roadmap: `admin/status/FUNCTIONALITY_ROADMAP.md`
+- Design system: `frontend-design-ideal/DESIGN.md`
+- Architecture reference: `admin/thinking/ARCHITECTURE.md`
+- Operations runbook: `admin/thinking/RUNBOOK.md`
+
+## Repo map
+
+| Path | Purpose |
+|---|---|
+| `backend/` | FastAPI app, routers, SQLAlchemy models, services, Alembic migrations, tests |
+| `frontend/` | Current CI/Docker/Cloudflare deploy target in this branch |
+| `frontend-mvp/` | Richer MVP UI referenced by many status docs; reconcile before UI work |
+| `frontend-design-ideal/` | Static design reference and visual north star, not API-wired |
+| `admin/status/` | Current status, readiness checklists, release evidence |
+| `admin/thinking/` | Architecture, infra, product, and implementation specs |
+| `admin/business/` | Strategy, user jobs, legal, onboarding collateral |
+| `scripts/` | Release, smoke, migration, QA, and observability checks |
+
+## Local checks
+
+```bash
+pip install -e .[dev]
+pytest backend/tests -q
+node --check frontend/_api.js frontend/_app.js frontend/_shell.js
+python scripts/check_destructive_migrations.py
+```
+
+Use `scripts/release_check.sh` before release branches. Visual/UI work must stay aligned with `frontend-design-ideal/DESIGN.md`.

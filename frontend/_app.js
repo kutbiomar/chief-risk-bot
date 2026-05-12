@@ -1,6 +1,8 @@
 (function() {
   'use strict';
 
+  // File index: shared format/render helpers first, page initializers next, route map last.
+  // Keep route keys aligned with the HTML files and Shell config near the bottom of this file.
   const fmt = {
     money(value, digits = 1) {
       const n = Number(value || 0);

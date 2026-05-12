@@ -199,6 +199,7 @@ def invite_member(
     auth=Depends(require_session),
     db: Session = Depends(get_db),
 ) -> dict:
+    # Roadmap: replace this MVP placeholder with persisted invites, expiry, email, and accept flow.
     _, user = auth
     return {
         "id": f"pending-{payload.email}",
@@ -244,6 +245,7 @@ def delete_member(
 
 @router.delete("/invites/{invite_id}", response_model=MessageResponse, dependencies=[Depends(require_cookie_csrf)])
 def cancel_invite(invite_id: str, auth=Depends(require_session)) -> MessageResponse:
+    # Roadmap: enforce workspace ownership once invites are persisted.
     return MessageResponse(detail="Invite cancelled")
 
 
@@ -289,6 +291,7 @@ def revoke_session(
 
 @router.get("/billing-portal")
 def billing_portal(auth=Depends(require_session), db: Session = Depends(get_db)) -> dict:
+    # Roadmap: hide this or replace it with a configured Stripe billing portal integration.
     _, user = auth
     workspace = db.get(Workspace, user.workspace_id)
     return {

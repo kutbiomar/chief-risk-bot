@@ -1,4 +1,6 @@
 (function () {
+  // MVP app index: auth/API helpers, shared render helpers, page initializers, then data-page routing.
+  // This tree has richer UI than frontend/; confirm the canonical deploy target before adding features.
   const DEFAULT_CURRENCY = 'CHF';
   const SETTINGS_STORAGE_KEY = 'crb_workspace_settings';
   const AUTH_TOKEN_STORAGE_KEY = 'crb.auth_token';
