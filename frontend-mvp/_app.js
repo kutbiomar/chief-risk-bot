@@ -1917,11 +1917,11 @@
         : risks.filter((item) => item.severity === riskSeverity);
       register.innerHTML = filtered.length
         ? filtered.map((item) => `
-            <tr>
+            <tr role="link" tabindex="0" data-risk-target="${escapeHtml(item.ticker ? `/table?ticker=${encodeURIComponent(item.ticker)}` : '/table')}">
               <td><span class="mvp-risk-dot ${severityClass(item.severity)}"></span></td>
               <td>
                 <div class="mvp-risk-name">${escapeHtml(item.headline || item.rule || 'Risk flag')}</div>
-                <div class="mvp-risk-desc">${escapeHtml(item.kind === 'agent' ? 'Agent signal' : 'Rule trigger')}</div>
+                <div class="mvp-risk-desc">${escapeHtml(item.ticker ? `Position ${item.ticker}` : item.kind === 'agent' ? 'Agent signal' : 'Rule trigger')}</div>
               </td>
               <td><span class="mvp-pill ${severityClass(item.severity)}">${escapeHtml(item.severity)}</span></td>
               <td>${escapeHtml(item.description || titleCase(item.agent || item.rule || 'Portfolio'))}</td>
@@ -2032,6 +2032,19 @@
         });
       });
     }
+
+    register.addEventListener('click', (event) => {
+      const row = event.target.closest('tr[data-risk-target]');
+      if (!row) return;
+      window.location.href = appRoute(row.dataset.riskTarget || '/table');
+    });
+    register.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const row = event.target.closest('tr[data-risk-target]');
+      if (!row) return;
+      event.preventDefault();
+      window.location.href = appRoute(row.dataset.riskTarget || '/table');
+    });
 
     refreshButton?.addEventListener('click', async () => {
       await withButtonBusy(refreshButton, 'Refreshing...', loadCockpit);
@@ -2870,7 +2883,9 @@
       custodian: document.getElementById('form-custodian'),
       notes: document.getElementById('form-notes'),
     };
-    const initialPositionId = new URL(window.location.href).searchParams.get('positionId') || '';
+    const tableUrl = new URL(window.location.href);
+    const initialPositionId = tableUrl.searchParams.get('positionId') || '';
+    const initialTicker = (tableUrl.searchParams.get('ticker') || '').toUpperCase();
     let selected = null;
     let mutationBusy = false;
     const SUBSECTORS_BY_SECTOR = {
@@ -3012,7 +3027,11 @@
           tableBody.innerHTML = '<tr><td colspan="11" class="mvp-empty">No positions yet. Add the first holding from the editor.</td></tr>';
         }
 
-        const selectedPosition = response.items.find((item) => item.id === selectId) || response.items.find((item) => item.id === selected?.id) || null;
+        const selectedPosition =
+          response.items.find((item) => item.id === selectId) ||
+          response.items.find((item) => initialTicker && String(item.ticker || '').toUpperCase() === initialTicker) ||
+          response.items.find((item) => item.id === selected?.id) ||
+          null;
         setForm(selectedPosition);
 
         tableBody.querySelectorAll('tr').forEach((row) => {

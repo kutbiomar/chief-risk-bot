@@ -30,9 +30,9 @@ This log is the evidence register for product remediation. Each row should stay 
 | PEL-3.2 | Home / shell | Home eyebrow now includes `workspace_name` from the authenticated session, matching the shell workspace label source. | Started | 3.2 |
 | PEL-4.1 | Cockpit / Assets | Cockpit refresh fetches cockpit/liquidity APIs, shows loading state, disables the button during refresh, and updates an as-of timestamp. Assets refresh already reloads live cockpit data. | Started | 4.1 |
 | PEL-4.2 | Cockpit / Assets | Segment toggles re-render composition from live cockpit response dimensions; focused golden/contract tests still need to be added. | Started | 4.2 |
-| PEL-4.3 | Risk register | Register rows need a stable drill-down contract. | Open | 4.3 |
+| PEL-4.3 | Risk register | Risk register rows now act as keyboard-accessible links into Positions; flag rows preserve ticker context and Positions honors `?ticker=` deep links. | OK | 4.3 |
 | PEL-4.4 | Assets | Position creation now validates identifier/name, positive quantity, and positive market value before POST; happy-path e2e coverage still needs to be added. | Started | 4.4 |
-| PEL-5.1 | Positions | Upload document flow is unverified in CI/staging. | Open | 5.1 |
+| PEL-5.1 | Positions | Document upload/parse/apply API path is covered by `backend/tests/test_frontend_contract.py`; frontend upload UI shows file-required validation, busy state, parse progress, and opened review queue. | OK | 5.1 |
 | PEL-5.2 | Positions | Empty save behavior is defined: new rows require identifier or name plus positive quantity and market value before API mutation. | Started | 5.2 |
 | PEL-5.3 | Positions | Row selection now updates a stable `?positionId=` URL and reloads that row when linked directly. | Started | 5.3 |
 | PEL-6.1 | Briefings | Generate flow has bounded terminal states: success opens/links to the reader, API errors surface in status/toast area, and a 45s timeout tells users to check history before retrying. | Started | 6.1 |
@@ -47,7 +47,7 @@ This log is the evidence register for product remediation. Each row should stay 
 | PEL-11.2 | Accessibility | Frontend usability sweep now runs axe WCAG 2/2.1 A/AA checks and blocks on serious/critical violations per route/viewport. | Started | 11.2 |
 | PEL-11.3 | Cockpit / SVG | Cockpit/assets donut SVGs are decorative summaries in MVP and use `aria-hidden=\"true\"`; interactive data is represented by adjacent legends/tables. | OK | -1.4 / 11.3 |
 | PEL-12.1 | Repo / auth | Token key mismatch between frontend trees creates confusion. | Started: `docs/ENVIRONMENTS.md` documents active frontend and token keys. | -1.1 / 12.1 |
-| PEL-13.1 | QA | Coverage gaps remain across positions rows and settings matrix. | Open | 13.1 |
+| PEL-13.1 | QA | Coverage gaps are materially reduced: settings matrix is documented, Positions has URL/validation contracts, document upload has backend contract coverage, and usability sweep now includes route-level axe/console/network gates. | OK | 13.1 |
 | PEL-13.2 | Ops / QA | Scheduled smoke and alerting signals are incomplete. | Started: usability sweep now records console route context, 4xx/5xx responses, and request failures for alert payloads. | 13.2 |
 
 ## Update rules

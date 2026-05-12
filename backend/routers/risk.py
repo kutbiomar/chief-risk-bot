@@ -125,7 +125,13 @@ def get_register(
         {"kind": "agent", "severity": score.severity, "headline": score.headline, "agent": score.agent}
         for score in scores
     ] + [
-        {"kind": "flag", "severity": flag.severity, "headline": flag.description, "rule": flag.rule}
+        {
+            "kind": "flag",
+            "severity": flag.severity,
+            "headline": flag.description,
+            "rule": flag.rule,
+            "ticker": flag.ticker,
+        }
         for flag in flags
     ]
     severity_rank = {"priority": 0, "elevated": 1, "watch": 2, None: 3}
