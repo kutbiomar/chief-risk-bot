@@ -47,13 +47,13 @@
           <div class="brand-name">ChiefRiskBot</div>
         </div>
 
-        <div class="client" id="crb-client-widget">
+        <button type="button" class="client" id="crb-client-widget" aria-label="Workspace switcher">
           <div class="who">
             <small>Workspace</small>
             <b id="crb-menu-workspace">—</b>
           </div>
           <span class="ms">unfold_more</span>
-        </div>
+        </button>
 
         <div class="nav">
           <div class="section">Analysis</div>
@@ -178,6 +178,35 @@
   // ── Avatar (visual element; logout handled by dedicated button) ───────────
   function wireAvatarMenu() { /* no-op — kept for API compat */ }
 
+  // ── Shell feedback ───────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(message) {
+    let toast = document.getElementById('crb-shell-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'crb-shell-toast';
+      toast.className = 'shell-toast';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toast);
+    }
+
+    toast.textContent = message;
+    toast.classList.add('show');
+    window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => {
+      toast.classList.remove('show');
+    }, 3200);
+  }
+
+  function wireWorkspaceSwitcher() {
+    const clientWidget = document.getElementById('crb-client-widget');
+    if (!clientWidget) return;
+    clientWidget.addEventListener('click', () => {
+      showToast('Workspace switching is support-managed in this v1 demo.');
+    });
+  }
+
   // ── Briefing drawer ───────────────────────────────────────────────────────
   function wireDrawer() {
     const backdrop     = document.getElementById('crb-drawer-backdrop');
@@ -269,6 +298,7 @@
       // Wire everything
       wireHamburger();
       wireAvatarMenu();
+      wireWorkspaceSwitcher();
       wireDrawer();
     },
 
@@ -293,5 +323,6 @@
 
     // Legacy compat
     updateCrumbs() {},
+    toast: showToast,
   };
 })();

@@ -36,12 +36,14 @@ a{color:inherit;text-decoration:none}
 
 /* Workspace selector — subtle, button-like, not a card */
 .client{
+  width:100%;font:inherit;text-align:left;
   border:0;border-radius:7px;padding:9px 10px;background:transparent;
   display:flex;align-items:center;justify-content:space-between;gap:8px;
   cursor:pointer;transition:background var(--dur-micro) var(--ease-move);
   margin:0 -2px;
 }
 .client:hover{background:var(--paper-3)}
+.client:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .client .who{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
 .client small{
   font-family:'Inter Tight',sans-serif;
@@ -102,6 +104,30 @@ a{color:inherit;text-decoration:none}
 }
 .iconbtn:hover{background:var(--paper-3);color:var(--ink)}
 .iconbtn .ms{font-size:16px}
+
+.shell-toast{
+  position:fixed;
+  right:24px;
+  bottom:24px;
+  z-index:90;
+  max-width:min(360px,calc(100vw - 32px));
+  padding:10px 12px;
+  border:1px solid var(--rule);
+  border-radius:var(--radius-md);
+  background:var(--paper);
+  color:var(--ink);
+  box-shadow:var(--shadow);
+  font-size:12px;
+  font-weight:600;
+  opacity:0;
+  transform:translateY(8px);
+  pointer-events:none;
+  transition:opacity var(--dur-short) var(--ease-enter),transform var(--dur-short) var(--ease-enter);
+}
+.shell-toast.show{
+  opacity:1;
+  transform:translateY(0);
+}
 
 /* Sidebar CTA — quieter than a primary button, more like a card */
 .sidebar-cta{
@@ -248,6 +274,7 @@ table.list td.num,table.list th.num{text-align:right;font-family:'JetBrains Mono
   .crumbs > *:not(:last-child){display:none}
   .search{display:none}
   .content{padding:18px 16px;gap:14px}
+  .shell-toast{right:16px;bottom:16px}
   .page-head{flex-direction:column;align-items:flex-start;gap:12px}
   .page-head h1{font-size:22px}
   .page-head p{font-size:12px}
