@@ -59,6 +59,29 @@ _Last updated: 2026-04-17_
 4. Mitigate (rollback or hotfix).
 5. Publish incident summary and follow-up actions.
 
+## Design-partner support intake
+
+Design-partner rollout is not ready until the user-facing support inbox in
+`admin/status/USER_CHECKLIST.md` is confirmed live. Once live, use this process:
+
+1. Acknowledge every support request within one business day.
+2. Ask the user for:
+   - workspace name
+   - affected page or workflow
+   - approximate time of issue
+   - screenshot or exported PDF, if relevant
+   - any visible request ID from an error response
+3. Check `/api/health` and the latest deployment SHA before triage.
+4. Reproduce in the seeded demo workspace first; only inspect partner data when
+   the issue cannot be reproduced generically and access is authorized.
+5. Classify severity:
+   - **P0**: login unavailable, document/privacy isolation issue, data loss, or
+     production API health failure.
+   - **P1**: core workflow blocked for one workspace with a workaround.
+   - **P2**: copy, cosmetic, or non-blocking usability issue.
+6. For P0/P1 issues, record the request ID, mitigation, owner, and follow-up in
+   the rollout decision folder or incident notes.
+
 ## Support contacts (pointers only)
 
 - Supabase support: project dashboard support panel

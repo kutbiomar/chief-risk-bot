@@ -1,0 +1,18 @@
+Smoke target app: https://app.chiefriskbot.com
+Smoke target api: https://api.chiefriskbot.com/api
+PASS: frontend login page and CSP
+PASS: api health
+PASS: unauthorized CORS origin blocked
+PASS: request id echo
+PASS: api login
+PASS: invalid bearer rejected
+PASS: /auth/session
+PASS: /onboarding/state
+PASS: /cockpit
+PASS: /liquidity/summary
+PASS: /briefings
+PASS: /settings
+PASS: /documents
+SKIP: cookie logout smoke (bearer-token login did not set local session cookies)
+SKIP: destructive reset/rotation smoke (set CRB_SMOKE_REQUIRE_RESET=1 for staging)
+Production smoke complete.
