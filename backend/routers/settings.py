@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from backend.deps import get_db
 from backend.models.auth import ApiKey, User, UserSession, WorkspaceSetting
 from backend.models.portfolio import Workspace
-from backend.routers.auth import require_cookie_csrf, require_session
+from backend.routers.auth import ADMIN_ROLES, require_cookie_csrf, require_roles, require_session
 from backend.schemas.auth import MessageResponse
 from backend.schemas.content import (
     ApiKeyCreateRequest,
@@ -75,7 +75,7 @@ def get_settings_endpoint(
 @router.patch("", response_model=SettingsResponse, dependencies=[Depends(require_cookie_csrf)])
 def patch_settings(
     payload: SettingsPatchRequest,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*ADMIN_ROLES)),
     db: Session = Depends(get_db),
 ) -> SettingsResponse:
     _, user = auth
@@ -99,7 +99,7 @@ def patch_settings(
 @router.put("", response_model=SettingsResponse, dependencies=[Depends(require_cookie_csrf)])
 def put_settings(
     payload: SettingsPatchRequest,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*ADMIN_ROLES)),
     db: Session = Depends(get_db),
 ) -> SettingsResponse:
     return patch_settings(payload, auth, db)
@@ -127,7 +127,7 @@ def list_api_keys(
 @router.post("/api-keys", response_model=ApiKeyCreateResponse, dependencies=[Depends(require_cookie_csrf)])
 def create_api_key(
     payload: ApiKeyCreateRequest,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*ADMIN_ROLES)),
     db: Session = Depends(get_db),
 ) -> ApiKeyCreateResponse:
     _, user = auth
@@ -158,7 +158,7 @@ def create_api_key(
 @router.delete("/api-keys/{key_id}", response_model=dict, dependencies=[Depends(require_cookie_csrf)])
 def delete_api_key(
     key_id: str,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*ADMIN_ROLES)),
     db: Session = Depends(get_db),
 ) -> dict:
     _, user = auth
@@ -196,7 +196,7 @@ def list_members(
 @router.post("/members/invite", dependencies=[Depends(require_cookie_csrf)])
 def invite_member(
     payload: InviteMemberRequest,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*ADMIN_ROLES)),
     db: Session = Depends(get_db),
 ) -> dict:
     # Roadmap: replace this MVP placeholder with persisted invites, expiry, email, and accept flow.
@@ -214,7 +214,7 @@ def invite_member(
 def update_member(
     member_id: str,
     payload: MemberRoleRequest,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*ADMIN_ROLES)),
     db: Session = Depends(get_db),
 ) -> dict:
     _, user = auth
@@ -229,7 +229,7 @@ def update_member(
 @router.delete("/members/{member_id}", response_model=MessageResponse, dependencies=[Depends(require_cookie_csrf)])
 def delete_member(
     member_id: str,
-    auth=Depends(require_session),
+    auth=Depends(require_roles(*ADMIN_ROLES)),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
     _, user = auth
@@ -244,7 +244,7 @@ def delete_member(
 
 
 @router.delete("/invites/{invite_id}", response_model=MessageResponse, dependencies=[Depends(require_cookie_csrf)])
-def cancel_invite(invite_id: str, auth=Depends(require_session)) -> MessageResponse:
+def cancel_invite(invite_id: str, auth=Depends(require_roles(*ADMIN_ROLES))) -> MessageResponse:
     # Roadmap: enforce workspace ownership once invites are persisted.
     return MessageResponse(detail="Invite cancelled")
 

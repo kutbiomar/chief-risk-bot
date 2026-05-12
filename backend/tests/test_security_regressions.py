@@ -14,6 +14,22 @@ from backend.tests.test_auth import seed_user
 from backend.tests.test_phase_cd import bootstrap_portfolio, build_statement_xlsx, csrf_headers
 
 
+def _add_workspace_user(db_session: Session, owner: User, *, email: str, role: str) -> User:
+    user = User(
+        workspace_id=owner.workspace_id,
+        email=email,
+        display_name=role.title(),
+        password_hash=hash_password("secret123"),
+        role=role,
+        scope="All clients",
+        totp_enabled=False,
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
 def _api_headers(user: User, raw_key: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {raw_key}"}
 
@@ -98,6 +114,45 @@ def test_protected_routes_require_authentication(client: TestClient, db_session:
     assert client.get("/api/documents").status_code == 401
     assert client.get("/api/liquidity/summary").status_code == 401
     assert client.post("/api/risk/run").status_code == 401
+
+
+def test_viewers_cannot_mutate_workspace_admin_settings(client: TestClient, db_session: Session) -> None:
+    owner = seed_user(db_session, email="rbac-owner@example.com")
+    viewer = _add_workspace_user(db_session, owner, email="rbac-viewer@example.com", role="viewer")
+    admin = _add_workspace_user(db_session, owner, email="rbac-admin@example.com", role="admin")
+
+    viewer_login = client.post("/api/auth/login", json={"email": viewer.email, "password": "secret123"})
+    assert viewer_login.status_code == 200
+    viewer_headers = {"X-CSRF-Token": viewer_login.cookies.get("__crb_csrf", "")}
+
+    assert client.get("/api/settings").status_code == 200
+    assert client.get("/api/settings/members").status_code == 200
+    assert client.patch("/api/settings", json={"briefing_day": "Friday"}, headers=viewer_headers).status_code == 403
+    assert client.put("/api/settings", json={"briefing_day": "Friday"}, headers=viewer_headers).status_code == 403
+    assert client.post(
+        "/api/settings/api-keys",
+        json={"label": "Viewer key", "key_type": "anthropic"},
+        headers=viewer_headers,
+    ).status_code == 403
+    assert client.post(
+        "/api/settings/members/invite",
+        json={"email": "new-viewer@example.com", "role": "viewer"},
+        headers=viewer_headers,
+    ).status_code == 403
+    assert client.put(
+        f"/api/settings/members/{owner.id}",
+        json={"role": "viewer"},
+        headers=viewer_headers,
+    ).status_code == 403
+    assert client.delete(f"/api/settings/members/{owner.id}", headers=viewer_headers).status_code == 403
+    assert client.delete("/api/settings/invites/pending-viewer", headers=viewer_headers).status_code == 403
+
+    admin_login = client.post("/api/auth/login", json={"email": admin.email, "password": "secret123"})
+    assert admin_login.status_code == 200
+    admin_headers = {"X-CSRF-Token": admin_login.cookies.get("__crb_csrf", "")}
+    allowed = client.patch("/api/settings", json={"briefing_day": "Friday"}, headers=admin_headers)
+    assert allowed.status_code == 200
+    assert allowed.json()["briefing_day"] == "Friday"
 
 
 def test_document_upload_rejects_oversize_payload(

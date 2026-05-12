@@ -51,6 +51,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 AuthContext = Tuple[Optional[UserSession], User]
 AUTH_RATE_LIMIT_MAX_REQUESTS = 10
 AUTH_RATE_LIMIT_WINDOW_SECONDS = 60
+ADMIN_ROLES = {"owner", "admin"}
 
 
 class ChangeEmailRequest(BaseModel):
@@ -287,6 +288,18 @@ def require_session(
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session")
     return None, user
+
+
+def require_roles(*allowed_roles: str):
+    allowed = {role.strip().lower() for role in allowed_roles if role.strip()}
+
+    def dependency(auth: AuthContext = Depends(require_session)) -> AuthContext:
+        _, user = auth
+        if user.role.strip().lower() not in allowed:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role")
+        return auth
+
+    return dependency
 
 
 def require_cookie_csrf(
