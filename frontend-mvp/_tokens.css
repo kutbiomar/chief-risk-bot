@@ -1,0 +1,94 @@
+/* ChiefRiskBot MVP — design tokens (frontend-design-ideal/DESIGN.md) */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+:root {
+  /* Paper */
+  --paper: #fff8f6;
+  --paper-2: #f9f2f0;
+  --paper-3: #f4ecea;
+  --paper-4: #eee7e4;
+  --surface-card: #fffdfb;
+
+  /* Rule */
+  --rule: #e8ddd6;
+  --rule-strong: #d3c3bc;
+  --rule-soft: #efe6e0;
+
+  /* Ink */
+  --ink: #1e1b1a;
+  --ink-soft: #4f453f;
+  --ink-mute: #81756f;
+
+  /* Brand & accent */
+  --brand: #72594c;
+  --brand-deep: #584236;
+  --accent: #1b2b5e;
+  --accent-soft: #3a4a7a;
+  --gold: #c9a449;
+  --teal: #006972;
+  --accent-wash: rgba(27, 43, 94, 0.06);
+  --accent-wash-strong: rgba(27, 43, 94, 0.1);
+
+  /* Severity (risk only) */
+  --pri-fg: #b91c1c;
+  --pri-bg: #fbe9e7;
+  --ele-fg: #c2741c;
+  --ele-bg: #fbf1e2;
+  --wat-fg: #a38108;
+  --wat-bg: #faf5dc;
+  --good-fg: #3f7a4f;
+  --good-bg: #e8f1ea;
+
+  /* Elevation */
+  --shadow: 0 1px 0 rgba(114, 89, 76, 0.04), 0 1px 2px rgba(30, 27, 26, 0.03);
+
+  /* Typography — families */
+  --font-ui: 'Inter Tight', system-ui, sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Type scale (sizes) */
+  --text-uplabel: 10px;
+  --text-label: 11px;
+  --text-body: 13px;
+  --text-h3: 14px;
+  --text-h2: 16px;
+  --text-display: 28px;
+  --text-display-lg: 32px;
+  --text-mono-sm: 10px;
+  --text-mono-md: 13px;
+  --text-mono-lg: 20px;
+
+  /* Spacing (4px base) */
+  --space-2xs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --space-4xl: 48px;
+  --space-5xl: 64px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 999px;
+
+  /* Layout shell */
+  --sidebar-w: 240px;
+  --topbar-h: 56px;
+
+  /* Motion (DESIGN.md) */
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-move: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-micro: 80ms;
+  --dur-short: 200ms;
+  --dur-medium: 300ms;
+}

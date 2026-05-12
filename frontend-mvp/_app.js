@@ -1220,7 +1220,7 @@
 
     // Composition donut (reuse cockpit renderer helper)
     const compositionChart = document.getElementById('assets-composition-chart');
-    const compositionPalette = ['#1B2B5E', '#72594c', '#C9A449', '#006972', '#d3c3bc', '#8f6f9d'];
+    const compositionPalette = ['#1B2B5E', '#72594c', '#C9A449', '#006972', '#d3c3bc', '#584236'];
     if (compositionChart && ps.asset_class) renderCompositionDonut(compositionChart, ps.asset_class, compositionPalette);
 
     // Slicing tables
@@ -1710,7 +1710,7 @@
     const compositionTitle = document.getElementById('cockpit-composition-title');
     const compositionToggles = document.getElementById('cockpit-composition-toggles');
     const riskFilters = document.getElementById('cockpit-risk-filters');
-    const compositionPalette = ['#1B2B5E', '#72594c', '#C9A449', '#006972', '#d3c3bc', '#8f6f9d'];
+    const compositionPalette = ['#1B2B5E', '#72594c', '#C9A449', '#006972', '#d3c3bc', '#584236'];
     const compositionTitles = {
       asset_class: 'Asset class mix',
       sector: 'Sector mix',
@@ -2510,6 +2510,7 @@
         renderOverlayPage({ factors, regime, triangulation, stress });
         setStatus(status, '', '');
       } catch (error) {
+        /* 5xx from any overlay endpoint: show full-page degraded state (no partial broken panels). */
         renderOverlayUnavailable(error);
       }
     }
