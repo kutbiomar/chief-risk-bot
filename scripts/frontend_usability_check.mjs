@@ -6,6 +6,7 @@ import https from 'node:https';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import AxeBuilder from '@axe-core/playwright';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
@@ -181,6 +182,20 @@ async function collectChecks(page) {
   });
 }
 
+async function collectA11yViolations(page) {
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  return results.violations
+    .filter((violation) => ['serious', 'critical'].includes(violation.impact || ''))
+    .map((violation) => ({
+      id: violation.id,
+      impact: violation.impact,
+      help: violation.help,
+      nodes: violation.nodes.length,
+    }));
+}
+
 function requestAuthState(request) {
   const headers = request.headers();
   return headers.authorization ? 'auth=present' : 'auth=missing';
@@ -207,6 +222,7 @@ async function main() {
   const consoleEvents = [];
   const failedResponses = [];
   const failedRequests = [];
+  const a11yViolations = [];
   const browser = await chromium.launch({
     executablePath: chromePath,
     headless: true,
@@ -249,8 +265,20 @@ async function main() {
           await page.goto(`${baseUrl}${route.path}`, { waitUntil: 'domcontentloaded' });
           await waitForReady(page, route.selector);
           const checks = await collectChecks(page);
+          const routeA11yViolations = await collectA11yViolations(page);
           if (checks.visibleErrorNotices.length) {
             row.blockers.push(`Visible error notice: ${checks.visibleErrorNotices.join('; ')}`);
+          }
+          if (routeA11yViolations.length) {
+            const summary = routeA11yViolations
+              .map((violation) => `${violation.impact} ${violation.id} (${violation.nodes} nodes)`)
+              .join(', ');
+            row.blockers.push(`serious/critical accessibility violations: ${summary}`);
+            a11yViolations.push(...routeA11yViolations.map((violation) => ({
+              viewport: viewport.name,
+              page: route.slug,
+              ...violation,
+            })));
           }
           if (checks.lingeringSkeletons > 0) {
             row.warnings.push(`${checks.lingeringSkeletons} visible skeleton placeholders remain after idle`);
@@ -301,6 +329,7 @@ async function main() {
     `- Console warnings/errors: ${consoleEvents.length}`,
     `- 4xx/5xx network responses: ${failedResponses.length}`,
     `- Request failures: ${failedRequests.length}`,
+    `- Serious/critical accessibility violations: ${a11yViolations.length}`,
     '',
     '## Results',
     '',
@@ -318,6 +347,12 @@ async function main() {
     '',
     failedRequests.length ? failedRequests.map((item) => `- ${item}`).join('\n') : '- None',
     '',
+    '## Serious/critical accessibility violations',
+    '',
+    a11yViolations.length
+      ? a11yViolations.map((item) => `- ${item.viewport}/${item.page}: ${item.impact} ${item.id} — ${item.help} (${item.nodes} nodes)`).join('\n')
+      : '- None',
+    '',
     '## Screenshot evidence',
     '',
     `Screenshots saved under \`${path.relative(rootDir, screenshotDir)}\`.`,
@@ -325,7 +360,7 @@ async function main() {
   ].join('\n');
 
   await fs.writeFile(path.join(evidenceDir, 'frontend_usability_report.md'), report, 'utf8');
-  await fs.writeFile(path.join(evidenceDir, 'frontend_usability_results.json'), JSON.stringify({ results, consoleEvents, failedResponses, failedRequests }, null, 2), 'utf8');
+  await fs.writeFile(path.join(evidenceDir, 'frontend_usability_results.json'), JSON.stringify({ results, consoleEvents, failedResponses, failedRequests, a11yViolations }, null, 2), 'utf8');
 
   console.log(report);
   if (blockers.length || consoleEvents.some((item) => item.includes('pageerror'))) {

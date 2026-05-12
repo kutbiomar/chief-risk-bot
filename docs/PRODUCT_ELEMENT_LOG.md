@@ -44,7 +44,7 @@ This log is the evidence register for product remediation. Each row should stay 
 | PEL-10.1 | IA / routes | Scenarios and Access route visibility must match approved product IA. Both remain in MVP shell; production smoke now includes `/scenarios` and `/access`. | Started | -1.3 / 10.1 |
 | PEL-10.2 | Briefing reader | Reader query contract needs smoke/e2e coverage. Drawer history now deep-links to `/briefing?id=`. | Started | 10.2 |
 | PEL-11.1 | Design system | Material Symbols loading should match or document deviation from `DESIGN.md`. | Started: MVP font request now limits opsz to 20-24 and weight to 400; active nav icons use filled variant. | 11.1 |
-| PEL-11.2 | Accessibility | Route-level accessibility baseline is unknown. | Open | 11.2 |
+| PEL-11.2 | Accessibility | Frontend usability sweep now runs axe WCAG 2/2.1 A/AA checks and blocks on serious/critical violations per route/viewport. | Started | 11.2 |
 | PEL-11.3 | Cockpit / SVG | Cockpit/assets donut SVGs are decorative summaries in MVP and use `aria-hidden=\"true\"`; interactive data is represented by adjacent legends/tables. | OK | -1.4 / 11.3 |
 | PEL-12.1 | Repo / auth | Token key mismatch between frontend trees creates confusion. | Started: `docs/ENVIRONMENTS.md` documents active frontend and token keys. | -1.1 / 12.1 |
 | PEL-13.1 | QA | Coverage gaps remain across positions rows and settings matrix. | Open | 13.1 |
