@@ -1220,7 +1220,7 @@
 
     // Composition donut (reuse cockpit renderer helper)
     const compositionChart = document.getElementById('assets-composition-chart');
-    const compositionPalette = ['#1B2B5E', '#72594c', '#C9A449', '#006972', '#d3c3bc', '#8f6f9d'];
+    const compositionPalette = ['#1B2B5E', '#72594c', '#C9A449', '#006972', '#d3c3bc', '#584236'];
     if (compositionChart && ps.asset_class) renderCompositionDonut(compositionChart, ps.asset_class, compositionPalette);
 
     // Slicing tables
@@ -1710,7 +1710,7 @@
     const compositionTitle = document.getElementById('cockpit-composition-title');
     const compositionToggles = document.getElementById('cockpit-composition-toggles');
     const riskFilters = document.getElementById('cockpit-risk-filters');
-    const compositionPalette = ['#1B2B5E', '#72594c', '#C9A449', '#006972', '#d3c3bc', '#8f6f9d'];
+    const compositionPalette = ['#1B2B5E', '#72594c', '#C9A449', '#006972', '#d3c3bc', '#584236'];
     const compositionTitles = {
       asset_class: 'Asset class mix',
       sector: 'Sector mix',
@@ -2258,6 +2258,30 @@
         : '<span class="ms">tornado</span>Stress case';
     }
 
+    function renderLiquidityUnavailable(error) {
+      const message = error?.message || 'Liquidity data is temporarily unavailable.';
+      kpis.innerHTML = `
+        <div class="mvp-kpi"><div class="uplabel">Next call due</div><div class="value">N/A</div><div class="meta">Liquidity unavailable</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Total unfunded</div><div class="value">N/A</div><div class="meta">Awaiting refresh</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Expected distributions</div><div class="value">N/A</div><div class="meta">Data source unavailable</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Net position</div><div class="value">N/A</div><div class="meta">Check again later</div></div>
+      `;
+      chartSummary.innerHTML = `
+        <div class="mvp-empty">Liquidity projection unavailable. ${escapeHtml(message)}</div>
+      `;
+      chart.innerHTML = '<div class="mvp-empty">No liquidity chart is shown until the liquidity API responds.</div>';
+      gaps.innerHTML = '<div class="mvp-empty">Liquidity gap analysis unavailable.</div>';
+      detail.innerHTML = '<div class="mvp-empty">Liquidity details unavailable. Portfolio and documents remain usable.</div>';
+      if (notes) {
+        notes.innerHTML = '<div class="mvp-empty">Refresh this page after liquidity services recover.</div>';
+      }
+      scenarioButton.classList.toggle('primary', scenario === 'stress');
+      scenarioButton.innerHTML = scenario === 'stress'
+        ? '<span class="ms">check_circle</span>Stress case'
+        : '<span class="ms">tornado</span>Stress case';
+      setStatus(status, '', '');
+    }
+
     async function loadLiquidity() {
       setStatus(status, '', '');
       try {
@@ -2269,13 +2293,7 @@
         ]);
         renderLiquidity(summary, cashflow);
       } catch (error) {
-        kpis.innerHTML = '';
-        chart.innerHTML = '';
-        chartSummary.innerHTML = '';
-        gaps.innerHTML = '';
-        detail.innerHTML = '';
-        if (notes) notes.innerHTML = '';
-        setStatus(status, error.message, 'error');
+        renderLiquidityUnavailable(error);
       }
     }
 
@@ -2452,6 +2470,35 @@
       `;
     }
 
+    function renderOverlayUnavailable(error) {
+      const message = error?.message || 'Overlay data is temporarily unavailable.';
+      feature.innerHTML = `
+        <div class="mvp-overlay-feature">
+          <div class="mvp-overlay-feature-main">
+            <div class="mvp-overlay-feature-copy">
+              <div class="mvp-feature-meta">
+                <span class="mvp-pill watch">Degraded</span>
+                <span>Scenario data unavailable</span>
+              </div>
+              <h3>Scenarios are temporarily unavailable.</h3>
+              <p>The rest of the workspace remains usable. Refresh the page or rerun the overlay after market-data services recover.</p>
+            </div>
+          </div>
+        </div>
+      `;
+      kpis.innerHTML = `
+        <div class="mvp-kpi"><div class="uplabel">Composite score</div><div class="value">N/A</div><div class="meta">Overlay unavailable</div></div>
+        <div class="mvp-kpi"><div class="uplabel">AUM at risk</div><div class="value">N/A</div><div class="meta">Awaiting refresh</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Tracked factors</div><div class="value">N/A</div><div class="meta">Data source unavailable</div></div>
+        <div class="mvp-kpi"><div class="uplabel">Active alerts</div><div class="value">N/A</div><div class="meta">Check again later</div></div>
+      `;
+      regimePanel.innerHTML = `<div class="mvp-empty">Overlay regime unavailable. ${escapeHtml(message)}</div>`;
+      triangulationPanel.innerHTML = '<div class="mvp-empty">Triangulation unavailable. Portfolio pages and liquidity remain available.</div>';
+      factorsPanel.innerHTML = '<div class="mvp-empty">Factor scores unavailable. This page will recover when overlay data refreshes.</div>';
+      stressPanel.innerHTML = '<div class="mvp-empty">Stress scenarios unavailable. No scenario output is shown until the overlay responds.</div>';
+      setStatus(status, '', '');
+    }
+
     async function loadOverlayPage() {
       try {
         const [factors, regime, triangulation, stress] = await Promise.all([
@@ -2463,13 +2510,8 @@
         renderOverlayPage({ factors, regime, triangulation, stress });
         setStatus(status, '', '');
       } catch (error) {
-        feature.innerHTML = '';
-        kpis.innerHTML = '';
-        regimePanel.innerHTML = '<div class="mvp-empty">Overlay regime unavailable.</div>';
-        triangulationPanel.innerHTML = '<div class="mvp-empty">Triangulation unavailable.</div>';
-        factorsPanel.innerHTML = '<div class="mvp-empty">Factor scores unavailable.</div>';
-        stressPanel.innerHTML = '<div class="mvp-empty">Stress scenarios unavailable.</div>';
-        setStatus(status, error.message, 'error');
+        /* 5xx from any overlay endpoint: show full-page degraded state (no partial broken panels). */
+        renderOverlayUnavailable(error);
       }
     }
 
@@ -3787,7 +3829,36 @@
       }
     }
 
+    function renderMembers(items) {
+      if (!members) return;
+      const rows = Array.isArray(items) ? items : [];
+      if (!rows.length) {
+        members.innerHTML = '<tr><td colspan="4" class="mvp-empty">No active workspace members returned.</td></tr>';
+        return;
+      }
+      members.innerHTML = rows.map((member) => `
+        <tr>
+          <td><div class="mvp-risk-name">${escapeHtml(member.display_name || 'Workspace member')}</div></td>
+          <td>${escapeHtml(member.email || 'Unknown')}</td>
+          <td>${escapeHtml(titleCase(member.role || 'member'))}</td>
+          <td><span class="mvp-pill ${member.is_current_user ? 'good' : 'watch'}">${member.is_current_user ? 'Current user' : 'Active'}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadMembers() {
+      try {
+        const response = await api('/settings/members');
+        renderMembers(response.items || []);
+      } catch (error) {
+        if (members) {
+          members.innerHTML = `<tr><td colspan="4" class="mvp-empty">Unable to load members: ${escapeHtml(error.message)}</td></tr>`;
+        }
+      }
+    }
+
     renderAccess(user);
+    await loadMembers();
 
     refresh?.addEventListener('click', async () => {
       await withButtonBusy(refresh, 'Refreshing...', async () => {
@@ -3795,6 +3866,7 @@
         user = session.user || user;
         sessionStorage.setItem('crb.user', JSON.stringify(user));
         renderAccess(user);
+        await loadMembers();
       });
     });
 
@@ -3813,6 +3885,7 @@
     table: initTable,
     documents: initDocuments,
     liquidity: initLiquidity,
+    scenarios: initOverlay,
     overlay: initOverlay,
     access: initAccess,
   };

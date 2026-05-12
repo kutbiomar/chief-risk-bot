@@ -45,6 +45,10 @@ def request(url, *, method="GET", headers=None, body=None):
             return response.status, {k.lower(): v for k, v in response.headers.items()}, response.read()
     except urllib.error.HTTPError as error:
         return error.code, {k.lower(): v for k, v in error.headers.items()}, error.read()
+    except TimeoutError as error:
+        return 0, {}, f"request timed out: {error}".encode("utf-8")
+    except urllib.error.URLError as error:
+        return 0, {}, f"request failed: {error}".encode("utf-8")
 
 
 def expect(condition, message):
@@ -54,7 +58,9 @@ def expect(condition, message):
 
 def expect_status(url, expected, **kwargs):
     status, headers, body = request(url, **kwargs)
-    expect(status == expected, f"{kwargs.get('method', 'GET')} {url} -> {status}, expected {expected}")
+    if status != expected:
+        snippet = body.decode("utf-8", errors="replace").strip()[:300]
+        expect(False, f"{kwargs.get('method', 'GET')} {url} -> {status}, expected {expected}; body={snippet!r}")
     return headers, body
 
 
@@ -83,6 +89,19 @@ headers, body = expect_status(f"{app_base}/login", 200)
 csp = headers.get("content-security-policy", "")
 expect("connect-src" in csp and api_origin in csp, f"frontend CSP missing {api_origin} connect-src")
 print("PASS: frontend login page and CSP")
+
+for path in (
+    "/",
+    "/cockpit",
+    "/liquidity",
+    "/briefings",
+    "/documents",
+    "/table",
+    "/settings",
+    "/access",
+):
+    expect_status(f"{app_base}{path}", 200)
+    print(f"PASS: frontend {path}")
 
 _, health_body = expect_status(f"{api_base}/health", 200)
 health = json.loads(health_body.decode("utf-8"))
@@ -131,16 +150,37 @@ for path in (
     "/auth/session",
     "/onboarding/state",
     "/cockpit",
+    "/portfolio/summary",
+    "/portfolio/positions",
     "/liquidity/summary",
     "/briefings",
     "/settings",
+    "/settings/members",
     "/documents",
+    "/overlay/factors",
+    "/overlay/stress",
 ):
     _, payload = expect_status(f"{api_base}{path}", 200, headers=auth_headers)
     if path == "/auth/session":
         session = json.loads(payload.decode("utf-8"))
         expect(session.get("user", {}).get("workspace_name") == "Whitmore Family Office", "session workspace mismatch")
     print(f"PASS: {path}")
+
+_, briefings_body = expect_status(f"{api_base}/briefings", 200, headers=auth_headers)
+briefings = json.loads(briefings_body.decode("utf-8"))
+briefing_items = briefings.get("items", [])
+if briefing_items:
+    briefing_id = briefing_items[0].get("id", "")
+    expect(briefing_id, "briefings response item missing id")
+    _, detail_body = expect_status(f"{api_base}/briefings/{briefing_id}", 200, headers=auth_headers)
+    detail = json.loads(detail_body.decode("utf-8"))
+    expect(detail.get("id") == briefing_id, "briefing detail id mismatch")
+    pdf_headers, pdf_body = expect_status(f"{api_base}/briefings/{briefing_id}/export/pdf", 200, headers=auth_headers)
+    expect("pdf" in pdf_headers.get("content-type", "").lower(), "briefing export did not return a PDF content type")
+    expect(pdf_body.startswith(b"%PDF"), "briefing export body does not look like a PDF")
+    print("PASS: briefing detail and PDF export")
+else:
+    print("SKIP: briefing detail/PDF smoke (no briefings returned)")
 
 csrf = cookie_value("__crb_csrf")
 if csrf:

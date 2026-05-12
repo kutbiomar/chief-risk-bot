@@ -7,9 +7,11 @@
 **/.env*.local
 .venv/
 venv/
+node_modules/
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
 *.db
 backend/runtime/storage/
 backend/runtime/*.db.bak-*

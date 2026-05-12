@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="_tokens.css"/>
   <link rel="stylesheet" href="_shell.css"/>
   <link rel="stylesheet" href="_mvp.css"/>
   <script src="_shell.js" defer></script>
@@ -20,7 +21,7 @@
       <div class="essay-hero compact">
         <div class="essay-meta"><span>Operations</span></div>
         <h1>Access</h1>
-        <p class="essay-deck-hero">Manage workspace members, roles, and session activity.</p>
+          <p class="essay-deck-hero">Review workspace access and session activity. Team invitations and role changes are admin-assisted for the v1 design-partner rollout.</p>
       </div>
       <div class="mvp-page-frame">
         <div class="mvp-grid cards-3" id="access-summary">
@@ -49,6 +50,9 @@
             </div>
           </div>
           <div class="mvp-card-body">
+            <div class="mvp-empty mvp-access-note">
+              Self-serve member invitations and role changes are not enabled in v1. Contact support to add or remove a workspace user.
+            </div>
             <div class="mvp-table-wrap">
               <table class="mvp-table">
                 <thead>

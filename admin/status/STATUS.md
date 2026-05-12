@@ -1,7 +1,7 @@
 # ChiefRiskBot — Current Status
 
-_Last updated: 2026-04-28_
-_Status: **PRODUCTION FRONTEND RESTORED AND VERIFIED.** Direct API auth, loading-state fixes, and explicit app-shell cache revalidation are live on `app.chiefriskbot.com`. Sidebar shell remains the shipped Phase M direction. 2026-04-28 audit pass landed bug fixes, perf improvements, and dead-code cleanup (see Phase N below)._
+_Last updated: 2026-05-12_
+_Status: **PRODUCTION LIVE; P0/P1 CODE + USABILITY QUEUE CLOSED.** The 2026-05-12 rollout record (`admin/status/rollout_2026-05-12/`) documents journey, production, observability, and usability evidence plus the design-partner decision. **`frontend-mvp`** loads **`_tokens.css`** before the shell (DESIGN.md parity), with the same no-cache policy as other shell assets in **`_headers`**. Remaining rollout items are **external owner confirmations** (`rollout_2026-05-12/p1_external_actions.md`), not missing implementation._
 
 ---
 
@@ -11,6 +11,7 @@ _Status: **PRODUCTION FRONTEND RESTORED AND VERIFIED.** Direct API auth, loading
 ✅ **Frontend runtime:** offline fixture/demo mode has been removed from the shipped MVP path.
 ✅ **Backend foundation:** Supabase auth bridge, Supabase storage abstraction, and Postgres migration path are in place.
 ✅ **Live verification:** Supabase Postgres migrations ran successfully, the demo auth user/workspace were reseeded, and bearer-token session auth resolved correctly through FastAPI.
+✅ **2026-05-12 rollout gate:** P0/P1 code-verifiable and usability-verifiable queues cleared (`p1_queue_status.md`); `scripts/rollout_journey_check.py`, `scripts/release_check.sh`, `scripts/prod_smoke.sh`, and `scripts/observability_smoke.sh` evidence retained under `rollout_2026-05-12/` (interim logs removed).
 
 ---
 
@@ -42,12 +43,13 @@ FastAPI + vanilla HTML/JS frontend + market data + LLM briefing pipeline.
 
 ## Current focus
 
-Production is live. Immediate product blockers are closed. Current follow-up work is operational hardening:
+Production is live. Application-code and automated usability gates from the 2026-05-12 rollout are **closed** (`rollout_2026-05-12/decision.md`). Follow-up is operational and owner-driven:
 
-1. **Static asset cache strategy** — shared app shell assets now ship with `Cache-Control: no-cache, no-store, must-revalidate`, which removes the stale-bundle failure mode. Long-term improvement is a hashed-asset pipeline once the frontend build path is formalized.
-2. **Nightly backup (EX8)** — Deferred. `backup.yml` is wired and ready. Activate when R2 is set up: create `chiefriskbot-backups` bucket in Cloudflare R2, generate an R2 API token (Object Read & Write, scoped to that bucket), then add `R2_ACCOUNT_ID` (= your CF Account ID), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` as secrets in GitHub → `24April26` environment.
-3. **Production smoke automation** — `scripts/prod_smoke.sh` now exists, passes against the live app/API, and is wired into `.github/workflows/ci-cd.yml` as the post-production `smoke_production` job.
-4. **Frontend/API contract** — production frontend calls `https://api.chiefriskbot.com/api` directly. Bearer token is the intended production auth path; `_headers` is the canonical Pages CSP source and must continue to allow `connect-src https://api.chiefriskbot.com`.
+1. **Static asset cache strategy** — Shell assets (`_tokens.css`, `_shell.css`, `_mvp.css`, `_app.js`, `_shell.js`) ship with `Cache-Control: no-cache, no-store, must-revalidate`. Long-term: hashed-asset build when the frontend pipeline is formalized.
+2. **Nightly backup (EX8)** — Deferred pending R2 bucket + GitHub secrets; see `admin/thinking/PRODUCTION_INFRA.md` and `rollout_2026-05-12/p1_external_actions.md`.
+3. **Production smoke** — `scripts/prod_smoke.sh` is the live post-deploy check; evidence in `rollout_2026-05-12/prod_smoke_final.log`.
+4. **Frontend/API contract** — Production app calls `https://api.chiefriskbot.com/api`; `_headers` remains the canonical CSP source (`connect-src https://api.chiefriskbot.com`).
+5. **External rollout sign-offs** — Items in `rollout_2026-05-12/p1_external_actions.md` (backup drill, spend caps, alert routing, support inbox, optional screenshot pack).
 
 ## Reference docs
 
@@ -58,12 +60,13 @@ Production is live. Immediate product blockers are closed. Current follow-up wor
 | `admin/thinking/CLAUDE_AGENT_PLATFORM_SPEC.md` | Current spec for moving the agentic system onto Claude Managed Agents |
 | `admin/thinking/ARCHITECTURE.md` | Deeper architecture reference |
 | `admin/demo/seed_demo.py` | Demo workspace reseed tooling |
+| `admin/status/ROLLOUT_FUNCTIONALITY_CHECKLIST.md` | Functionality checklist and scoring rubric for rollout decisions |
 
 ## Historical note
 
 The repo previously added an offline fixture-backed demo mode. That path is being retired in favor of one real seeded demo account using the same auth and data flows as normal workspaces.
 
-Earlier phase-by-phase details remain in `codex_log` and `MVP2_STATUS.md`.
+Earlier phase-by-phase details remain in `admin/status/codex_log` and `admin/archive/MVP2/` (archived MVP2 specs, not the live product).
 
 ## Latest verification
 
@@ -84,8 +87,14 @@ Earlier phase-by-phase details remain in `codex_log` and `MVP2_STATUS.md`.
   - `scripts/prod_smoke.sh` -> pass against live production app/API
 - Frontend cache hardening on April 27, 2026:
   - removed manual `?v=` asset URLs from shipped HTML entrypoints
-  - `frontend-mvp/_headers` now forces `_app.js`, `_shell.js`, `_mvp.css`, `_shell.css` to `Cache-Control: no-cache, no-store, must-revalidate`
+  - `frontend-mvp/_headers` now forces `_tokens.css`, `_app.js`, `_shell.js`, `_mvp.css`, `_shell.css` to `Cache-Control: no-cache, no-store, must-revalidate`
   - verified live response headers and reran `scripts/prod_smoke.sh` successfully
+- **2026-05-12 rollout bundle** (`admin/status/rollout_2026-05-12/`):
+  - `release_check_with_rollout_journey.log` + `release_check_after_usability.log` — local release gate with journey script and post-usability tooling
+  - `prod_smoke_final.log` — live app/API smoke including briefing detail and PDF export
+  - `observability_smoke_final.log` — request-id + synthetic-endpoint checks
+  - `usability/frontend_usability_report.md` — 50 viewport/page combinations PASS (overlay 5xx noted as API-side)
+  - `decision.md` / `p1_queue_status.md` / `p1_external_actions.md` — decision and remaining external actions
 - Live API smoke test on the running server:
   - `/api/cockpit` -> `200`
   - `/api/liquidity/summary` -> `200`
@@ -148,11 +157,11 @@ Earlier phase-by-phase details remain in `codex_log` and `MVP2_STATUS.md`.
 
 | Gate | Status | Evidence |
 |---|---|---|
-| K1 Documents visibility triage | In progress | frontend `documents` focus/visibility fix + backend visibility regression test added |
+| K1 Documents visibility triage | Complete | `frontend-mvp/documents.html` uses global status slot; journey + tests cover documents flow (`rollout_2026-05-12/release_check_with_rollout_journey.log`) |
 | K2 Remove debug strip | Complete | `frontend-mvp/documents.html` debug strip removed |
-| K3 Hosting target (Fly + Cloudflare) | In progress | `fly.toml`, `Dockerfile`, Cloudflare headers/wrangler config added |
-| K4 Secrets management | In progress | docs + CI wiring added; secret population in host stores pending |
-| K5 Domain/TLS/security headers/CORS | In progress | backend security headers + production CORS validation + frontend `_headers` added |
+| K3 Hosting target (Fly + Cloudflare) | Complete (live) | `fly.toml`, Dockerfile, Cloudflare Pages + `_headers`; production URLs verified |
+| K4 Secrets management | Complete (live) | CI + host stores populated for current production; rotate per runbook |
+| K5 Domain/TLS/security headers/CORS | Complete (live) | Production CORS + `_headers` CSP; see K14 |
 | K6 CI/CD pipeline | Complete (repo) | `.github/workflows/ci-cd.yml` with staged + production jobs and migration dry-run |
 | K7 Migration safety policy | Complete (repo) | `scripts/check_destructive_migrations.py` + `scripts/migrate.sh` |
 | K8 Backup + restore drill | Pending execution | policy/log scaffold in `admin/thinking/PRODUCTION_INFRA.md` |
@@ -164,7 +173,7 @@ Earlier phase-by-phase details remain in `codex_log` and `MVP2_STATUS.md`.
 | K14 Security review pass | Complete | CORS: production origin allowed, unauthorized origin blocked (no ACAO header). Rate-limit: 429 at attempt 11/12 on live `POST /api/auth/login`. All code-level checks pass. |
 | K15 Legal/privacy baseline | Complete (repo) | `admin/business/legal/*` + login disclosure |
 | K16 Design partner onboarding collateral | Complete (repo) | `admin/business/onboarding/*` |
-| K17 Cutover checklist | Complete (pending K8) | All gates closed except K8 (R2 backup — deferred, user-action required). Phase L unblocked. |
+| K17 Cutover checklist | Complete (pending K8) | All application gates closed; **K8** R2 backup drill still deferred pending owner secrets (`p1_external_actions.md`). |
 
 ## Phase L — Editorial Redesign (complete 2026-04-24)
 
@@ -186,8 +195,8 @@ Earlier phase-by-phase details remain in `codex_log` and `MVP2_STATUS.md`.
 
 ### Open items post-Phase-L
 - Cloudflare redirect loop on `app.chiefriskbot.com`: change redirect rule expression from `contains "chiefriskbot.com"` to `eq "chiefriskbot.com"` (user-action in Cloudflare dashboard).
-- K8 backup drill (R2 setup) still pending user-action.
-- Full visual QA sweep requires live auth to verify nav + page renders end-to-end.
+- K8 backup drill (R2 setup) still pending user-action (`p1_external_actions.md`).
+- Automated frontend usability sweep **2026-05-12** complete (`rollout_2026-05-12/usability/frontend_usability_report.md`). Optional: owner-led screenshot pack for external comms.
 
 ## Phase M — Sidebar Restoration + Visual Polish (complete 2026-04-25)
 
@@ -245,12 +254,16 @@ Skipped: B1 for `risk.py` (snapshot-scoped fetches, not paginated history). B3 w
 - `.venv/bin/pytest backend/tests/ -q` → **56 passed**
 
 ### Residual blockers / deferred items (carry-forward)
-- **K8 R2 backup drill** — `backup.yml` wired but secrets (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`) not yet populated in GH `24April26` env. User-action.
-- **Cloudflare redirect rule** — root `chiefriskbot.com` → `app.chiefriskbot.com` rule expression should be changed from `contains "chiefriskbot.com"` to `eq "chiefriskbot.com"` to break the redirect loop. User-action in Cloudflare dashboard.
-- **Uncommitted infra edits** — `.github/workflows/backup.yml` (+18 lines) and `admin/thinking/PRODUCTION_INFRA.md` are modified but not committed; review and either commit or revert.
+- **K8 R2 backup drill** — `backup.yml` wired; secrets and drill row still owner-action (`rollout_2026-05-12/p1_external_actions.md`, `PRODUCTION_INFRA.md`).
+- **Cloudflare redirect rule** — root `chiefriskbot.com` → `app.chiefriskbot.com` expression should use `eq "chiefriskbot.com"` instead of `contains "chiefriskbot.com"` (dashboard).
 - **Slack alerting** — email-only for v1, deferred.
-- **Hashed asset pipeline** — interim `Cache-Control: no-cache` shipped; long-term hashed-asset build still pending.
+- **Hashed asset pipeline** — interim `Cache-Control: no-cache` on shell assets; long-term hashed-asset build still pending.
 - **Supabase Pro PITR drill** — deferred until Pro tier is enabled.
+
+### Admin status hygiene (2026-05-12)
+- Removed duplicate archived pointers `admin/status/CODEBASE_STATUS.md` and `admin/status/MVP2_STATUS.md` (live status remains this file; MVP2 history remains under `admin/archive/MVP2/`).
+- Removed superseded `admin/status/release_2026-05-03/` bundle and `admin/status/release_check_2026-05-03.log`.
+- Trimmed interim logs under `rollout_2026-05-12/`; retained authoritative artifacts listed in `rollout_2026-05-12/decision.md`.
 
 ### Follow-up tasks (not blocking, suitable for a later cleanup PR)
 - B5: migrate residual `db.query(...).filter(...).first()` calls in `routers/market.py:70` and `routers/ingest.py:36` to SQLAlchemy 2.0 `select()`.

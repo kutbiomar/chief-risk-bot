@@ -4,8 +4,8 @@ _Scope: live production frontend at `https://app.chiefriskbot.com`, cross-checke
 
 ## Admin Context Checked First
 
-- `admin/status/STATUS.md` currently says Phase M is complete, all pages are live on `app.chiefriskbot.com`, and frontend proxy/static smoke tests previously passed.
-- `admin/status/CODEBASE_STATUS.md` and `admin/status/MVP2_STATUS.md` are archived and point to `STATUS.md` as current.
+- `admin/status/STATUS.md` is the canonical live status (Phase M complete; 2026-05-12 rollout bundle under `admin/status/rollout_2026-05-12/`).
+- Duplicate archived snapshots that lived at `admin/status/CODEBASE_STATUS.md` and `admin/status/MVP2_STATUS.md` were removed on 2026-05-12; historical MVP2 material remains under `admin/archive/MVP2/`.
 - `admin/thinking/FRONTEND_AUDIT.md` is historical screen/backend inventory, not the current production defect list.
 
 ## Executive Summary

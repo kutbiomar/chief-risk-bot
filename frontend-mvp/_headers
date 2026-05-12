@@ -20,3 +20,6 @@
 
 /_shell.css
   Cache-Control: no-cache, no-store, must-revalidate
+
+/_tokens.css
+  Cache-Control: no-cache, no-store, must-revalidate
