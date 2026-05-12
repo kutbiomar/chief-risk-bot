@@ -18,7 +18,7 @@ This log is the evidence register for product remediation. Each row should stay 
 |----|---------|--------------------|--------|----------|
 | PEL-0.1 | Authenticated app | Browser console shows an undocumented 401 during happy-path demo; failing URL still needs trace evidence. | Started: usability sweep now records 4xx/5xx response URLs with viewport/page/request/auth context. | 0.1 |
 | PEL-0.2 | Shell / auth | Logout was reported as unknown. Current repo evidence shows `frontend-mvp/_shell.js` exposes `#mvp-logout`; `_app.js` now calls server logout when a token exists, clears auth state, and redirects to login. Smoke coverage is still needed. | Started | 0.2 |
-| PEL-0.3 | Login / auth | Register and forgot-password paths have partial manual verification only. | Open | 0.3 |
+| PEL-0.3 | Login / auth | Register and forgot-password paths have partial manual verification only. Active MVP auth page has sign-in/create/reset panels wired to live API paths; stale demo copy and legacy links have been cleaned. Full scripted register/reset coverage still needs non-destructive test credentials. | Started | 0.3 |
 | PEL-1.1 | Delivery / browser console | CSP policy and Cloudflare Insights behavior need an explicit analytics decision. | Open | 1.1 |
 | PEL-1.2 | Routing | URL style can mix clean paths and `.html` artifacts depending on route/deploy layer. Active MVP shell and app-generated links now prefer clean paths; server-side legacy redirects still need deployment verification. | Started | 1.2 |
 | PEL-1.3 | Shell navigation | Nav `href`s in `frontend-mvp/_shell.js` currently point at clean canonical routes; drawer briefing history links use `/briefing?id=`. | Started | 1.3 |
@@ -40,7 +40,7 @@ This log is the evidence register for product remediation. Each row should stay 
 | PEL-7.1 | Documents | Upload pipeline needs visible status transitions. | Open | 7.1 |
 | PEL-7.2 | Documents | Review action needs a documented UI state machine. | Open | 7.2 |
 | PEL-8.1 | Liquidity | Liquidity is interactive in MVP: it has a configurable buffer target, stress-case toggle, refresh action, and explanatory chart caption. | OK | -1.2 / 8.1 |
-| PEL-9.1 | Settings | Full settings persistence matrix is unknown. | Open | 9.1 |
+| PEL-9.1 | Settings | Full settings persistence matrix is documented in `docs/SETTINGS_MATRIX.md`; Settings now exposes stable hash sections for workspace, AI, and support panels. | Started | 9.1 |
 | PEL-10.1 | IA / routes | Scenarios and Access route visibility must match approved product IA. Both remain in MVP shell; production smoke now includes `/scenarios` and `/access`. | Started | -1.3 / 10.1 |
 | PEL-10.2 | Briefing reader | Reader query contract needs smoke/e2e coverage. Drawer history now deep-links to `/briefing?id=`. | Started | 10.2 |
 | PEL-11.1 | Design system | Material Symbols loading should match or document deviation from `DESIGN.md`. | Started: MVP font request now limits opsz to 20-24 and weight to 400; active nav icons use filled variant. | 11.1 |
