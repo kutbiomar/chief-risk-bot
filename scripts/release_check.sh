@@ -67,6 +67,9 @@ bash -n scripts/release_check.sh scripts/staging_smoke.sh scripts/prod_smoke.sh 
 section "Backend tests"
 "$PYTEST_BIN" backend/tests -q
 
+section "Rollout journey check"
+"$PYTHON_BIN" scripts/rollout_journey_check.py
+
 section "Destructive migration check"
 python3 scripts/check_destructive_migrations.py
 

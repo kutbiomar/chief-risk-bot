@@ -3843,6 +3843,7 @@
     table: initTable,
     documents: initDocuments,
     liquidity: initLiquidity,
+    scenarios: initOverlay,
     overlay: initOverlay,
     access: initAccess,
   };
