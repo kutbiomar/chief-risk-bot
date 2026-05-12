@@ -85,6 +85,7 @@ _Last updated: 2026-04-17_
 | Date | Executor | Restore target | Result | Notes |
 |---|---|---|---|---|
 | _Pending_ | _TBD_ | Supabase scratch project | _Pending_ | Run before first external partner onboarding |
+| 2026-05-12 | Cursor cloud agent | _Deferred_ | Owner approval required | Workflow exists, but R2 bucket/secrets and scratch restore cannot be confirmed from code. See `admin/status/rollout_2026-05-12/p1_external_actions.md`. |
 
 ## 5) Alerting Targets (K10)
 
