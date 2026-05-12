@@ -66,18 +66,19 @@ The same prompt is stored at `admin/status/IMPROVEMENT_LOOP_PROMPT.md` for autom
 
 ## Optional automation wrapper
 
-`scripts/agent_improvement_loop.sh` runs the prompt on a fixed interval with a lock so a tick is skipped if a previous task is still running.
+`admin/agent_improvement_loop.sh` runs the prompt on a fixed interval with a lock so a tick is skipped if a previous task is still running. The script lives under `admin/` so normal app code changes are less likely to touch it.
 
 Example:
 
 ```bash
 AGENT_LOOP_COMMAND='cursor-agent run --autonomous' \
-  scripts/agent_improvement_loop.sh
+  admin/agent_improvement_loop.sh
 ```
 
 Defaults:
 
 - interval: 600 seconds
+- max runtime: 259200 seconds (3 days), after which the loop exits and must be invoked again
 - prompt file: `admin/status/IMPROVEMENT_LOOP_PROMPT.md`
 - lock directory: `.agent-improvement-loop.lock`
 
@@ -88,7 +89,7 @@ AGENT_CONTEXT_TOKENS_COMMAND='your-token-count-command' \
 AGENT_CONTEXT_CLEAR_COMMAND='your-context-clear-command' \
 AGENT_CONTEXT_TOKEN_THRESHOLD=200000 \
 AGENT_LOOP_COMMAND='cursor-agent run --autonomous' \
-  scripts/agent_improvement_loop.sh
+  admin/agent_improvement_loop.sh
 ```
 
 ## Definition of done

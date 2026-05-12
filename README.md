@@ -43,7 +43,7 @@ The repeatable agent prompt lives in `admin/status/IMPROVEMENT_LOOP_PROMPT.md`.
 To run it on a 10-minute locked loop, configure the agent command and start:
 
 ```bash
-AGENT_LOOP_COMMAND='cursor-agent run --autonomous' scripts/agent_improvement_loop.sh
+AGENT_LOOP_COMMAND='cursor-agent run --autonomous' admin/agent_improvement_loop.sh
 ```
 
-See `admin/status/IMPROVEMENT_LOOP.md` for context-cleanup hooks and guardrails.
+The loop expires after 3 days and must then be invoked again. See `admin/status/IMPROVEMENT_LOOP.md` for context-cleanup hooks and guardrails.

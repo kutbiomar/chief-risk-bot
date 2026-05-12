@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 INTERVAL_SECONDS="${AGENT_LOOP_INTERVAL_SECONDS:-600}"
+MAX_RUNTIME_SECONDS="${AGENT_LOOP_MAX_RUNTIME_SECONDS:-259200}"
 TOKEN_THRESHOLD="${AGENT_CONTEXT_TOKEN_THRESHOLD:-200000}"
 PROMPT_FILE="${AGENT_LOOP_PROMPT_FILE:-admin/status/IMPROVEMENT_LOOP_PROMPT.md}"
 LOCK_DIR="${AGENT_LOOP_LOCK_DIR:-$ROOT_DIR/.agent-improvement-loop.lock}"
@@ -12,10 +13,11 @@ RUN_ONCE=0
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/agent_improvement_loop.sh [--once]
+Usage: admin/agent_improvement_loop.sh [--once]
 
 Runs the configured improvement agent every 10 minutes by default, skipping a
-tick when another run is already active.
+tick when another run is already active. Long-running loops expire after 3 days
+by default and must then be started again from scratch.
 
 Required:
   AGENT_LOOP_COMMAND
@@ -25,6 +27,7 @@ Required:
 
 Optional:
   AGENT_LOOP_INTERVAL_SECONDS       Default: 600
+  AGENT_LOOP_MAX_RUNTIME_SECONDS    Default: 259200 (3 days)
   AGENT_LOOP_PROMPT_FILE            Default: admin/status/IMPROVEMENT_LOOP_PROMPT.md
   AGENT_LOOP_LOCK_DIR               Default: .agent-improvement-loop.lock
   AGENT_CONTEXT_TOKENS_COMMAND      Command that prints current context tokens
@@ -147,8 +150,28 @@ if (( RUN_ONCE )); then
   exit $?
 fi
 
-log "Starting improvement loop with ${INTERVAL_SECONDS}s interval."
+START_EPOCH="$(date +%s)"
+EXPIRES_EPOCH=$((START_EPOCH + MAX_RUNTIME_SECONDS))
+
+log "Starting improvement loop with ${INTERVAL_SECONDS}s interval; expires after ${MAX_RUNTIME_SECONDS}s."
 while true; do
+  now="$(date +%s)"
+  if (( now >= EXPIRES_EPOCH )); then
+    log "Improvement loop expired; start a fresh invocation to continue."
+    exit 0
+  fi
+
   run_iteration || true
-  sleep "$INTERVAL_SECONDS"
+
+  now="$(date +%s)"
+  remaining=$((EXPIRES_EPOCH - now))
+  if (( remaining <= 0 )); then
+    log "Improvement loop expired; start a fresh invocation to continue."
+    exit 0
+  fi
+  if (( remaining < INTERVAL_SECONDS )); then
+    sleep "$remaining"
+  else
+    sleep "$INTERVAL_SECONDS"
+  fi
 done
