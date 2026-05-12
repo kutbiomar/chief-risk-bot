@@ -1,0 +1,316 @@
+{
+  "results": [
+    {
+      "viewport": "desktop-1440",
+      "page": "home",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "desktop-1440",
+      "page": "assets",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "desktop-1440",
+      "page": "cockpit",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "desktop-1440",
+      "page": "liquidity",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "desktop-1440",
+      "page": "briefings",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "desktop-1440",
+      "page": "documents",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "desktop-1440",
+      "page": "positions",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "desktop-1440",
+      "page": "settings",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "desktop-1440",
+      "page": "access",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "desktop-1440",
+      "page": "scenarios",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "tablet-768",
+      "page": "home",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "tablet-768",
+      "page": "assets",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "tablet-768",
+      "page": "cockpit",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "tablet-768",
+      "page": "liquidity",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "tablet-768",
+      "page": "briefings",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "tablet-768",
+      "page": "documents",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "tablet-768",
+      "page": "positions",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "tablet-768",
+      "page": "settings",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "tablet-768",
+      "page": "access",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "tablet-768",
+      "page": "scenarios",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-390",
+      "page": "home",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-390",
+      "page": "assets",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-390",
+      "page": "cockpit",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-390",
+      "page": "liquidity",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-390",
+      "page": "briefings",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-390",
+      "page": "documents",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-390",
+      "page": "positions",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-390",
+      "page": "settings",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-390",
+      "page": "access",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-390",
+      "page": "scenarios",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-375",
+      "page": "home",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-375",
+      "page": "assets",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-375",
+      "page": "cockpit",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-375",
+      "page": "liquidity",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-375",
+      "page": "briefings",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-375",
+      "page": "documents",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-375",
+      "page": "positions",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-375",
+      "page": "settings",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-375",
+      "page": "access",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-375",
+      "page": "scenarios",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-430",
+      "page": "home",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-430",
+      "page": "assets",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-430",
+      "page": "cockpit",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-430",
+      "page": "liquidity",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-430",
+      "page": "briefings",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-430",
+      "page": "documents",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-430",
+      "page": "positions",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-430",
+      "page": "settings",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-430",
+      "page": "access",
+      "blockers": [],
+      "warnings": []
+    },
+    {
+      "viewport": "mobile-430",
+      "page": "scenarios",
+      "blockers": [],
+      "warnings": []
+    }
+  ],
+  "consoleEvents": [
+    "desktop-1440: console error Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+    "desktop-1440: console error Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+    "tablet-768: console error Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+    "mobile-375: console error Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+  ],
+  "failedResponses": [
+    "desktop-1440: 500 http://127.0.0.1:44365/api/overlay/aum-triangulation",
+    "desktop-1440: 500 http://127.0.0.1:44365/api/overlay/stress",
+    "tablet-768: 500 http://127.0.0.1:44365/api/overlay/factors",
+    "mobile-375: 500 http://127.0.0.1:44365/api/overlay/factors"
+  ]
+}

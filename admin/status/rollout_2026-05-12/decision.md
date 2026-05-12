@@ -6,7 +6,7 @@ Tester: Cursor cloud agent
 Rollout level requested: Design partner
 
 P0 score: 30 / 30 applicable code-verifiable points; P0-F16 deferred pending owner approval
-P1 score: 16 / 16 applicable code-verifiable points; external proof items deferred pending owner approval
+P1 score: 18 / 18 applicable code/usability-verifiable points; external proof items deferred pending owner approval
 P2 score: not rescored
 Overall readiness: P0/P1 code queue clear; rollout still depends on approved external actions
 
@@ -46,3 +46,5 @@ Evidence:
 - `release_check_with_rollout_journey.log` - final release check passed with `scripts/rollout_journey_check.py` wired in.
 - `prod_smoke_final.log` - final production smoke passed, including briefing detail and PDF export.
 - `observability_smoke_final.log` - final production observability smoke passed.
+- `usability/frontend_usability_report.md` - frontend usability sweep passed across 50 page/viewport combinations with screenshot evidence.
+- `release_check_after_usability.log` - release check passed after frontend usability fixes and Playwright tooling were added.

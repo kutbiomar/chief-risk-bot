@@ -124,7 +124,8 @@ a{color:inherit;text-decoration:none}
 
 /* Small ghost icon button (used for logout) */
 .iconbtn{
-  width:30px;height:30px;border-radius:6px;border:0;
+  width:32px;height:32px;border-radius:6px;border:0;
+  flex:0 0 32px;
   background:transparent;display:grid;place-items:center;
   color:var(--ink-mute);cursor:pointer;
   transition:background .15s ease,color .15s ease;
@@ -236,6 +237,7 @@ table.list td.num,table.list th.num{text-align:right;font-family:'JetBrains Mono
   .sidebar .client .ms,
   .sidebar .nav .section,
   .sidebar .side-foot > div:not(.avatar){display:none}
+  .sidebar .side-foot .avatar{display:none}
   .sidebar .brand-row{justify-content:center;padding:0}
   .sidebar .client{padding:0;border:0;background:transparent;justify-content:center}
   .sidebar .client::before{content:"AF";width:32px;height:32px;border-radius:6px;background:var(--paper);border:1px solid var(--rule);display:grid;place-items:center;font-weight:700;font-size:11px;color:var(--ink)}

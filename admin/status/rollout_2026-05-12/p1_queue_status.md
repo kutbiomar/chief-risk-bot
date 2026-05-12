@@ -1,6 +1,6 @@
 # P0/P1 Queue Status - 2026-05-12
 
-Status after commit `9383027` and final evidence run.
+Status after frontend usability sweep and final evidence run.
 
 ## P0 queue
 
@@ -35,12 +35,13 @@ Status after commit `9383027` and final evidence run.
 | P1-F06 Market-data degradation | Clear for no-key local fallback and API availability | `release_check_with_rollout_journey.log`; release backend tests |
 | P1-F07 Cost/rate guardrails | Code clear; provider spend-cap proof deferred | release backend tests; `p1_external_actions.md` |
 | P1-F08 Production error visibility | Code clear; real external alert proof deferred | `observability_smoke_final.log`; `p1_external_actions.md` |
-| P1-F09 Mobile/tablet usability | Deferred visual artifact | `p1_external_actions.md` |
+| P1-F09 Mobile/tablet usability | Clear | `usability/frontend_usability_report.md`; screenshot evidence under `usability/screenshots/` |
 | P1-F10 Legal/onboarding collateral | Clear | `admin/business/legal/*`; `admin/business/onboarding/*` |
 | P1-F11 Support path | Code/docs clear; inbox confirmation deferred | Settings support mailto; `RUNBOOK.md`; `p1_external_actions.md` |
 | P1-F12 Rollback path | Clear | `PRODUCTION_READINESS_CHECKLIST.md`; `RUNBOOK.md` |
 
 ## Summary
 
-The P0/P1 application-code queue is clear. Remaining rollout work is external
-evidence/owner confirmation, not repository implementation.
+The P0/P1 application-code and frontend-usability queue is clear. Remaining
+rollout work is external evidence/owner confirmation, not repository
+implementation.
