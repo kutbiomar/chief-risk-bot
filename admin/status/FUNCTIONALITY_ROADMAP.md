@@ -40,7 +40,7 @@ Important drift: many admin docs still describe `frontend-mvp/` as the active su
 | API keys | Implemented | `backend/routers/settings.py`, `backend/models/auth.py` |
 | Password reset tokens | Token lifecycle implemented; email delivery missing | `backend/routers/auth.py` |
 | TOTP | Explicitly disabled | `backend/routers/auth.py` |
-| RBAC | Roles stored; role enforcement incomplete | `backend/models/auth.py`, `backend/routers/*.py` |
+| RBAC | Partially implemented; workspace-admin settings mutations require owner/admin | `backend/models/auth.py`, `backend/routers/auth.py`, `backend/routers/settings.py` |
 | Members/invites | Members mutate; invites stubbed | `backend/routers/settings.py` |
 
 ### Portfolio and data ingestion
@@ -108,8 +108,8 @@ Key frontend gaps:
    - Keep one client auth/storage convention.
 
 2. **Enforce RBAC**
-   - Add shared dependencies such as `require_role("owner", "admin")`.
-   - Gate settings, API keys, members, portfolio mutations, briefing publish, overlay/risk runs, and destructive document actions.
+   - Shared role dependency and workspace-admin settings guards are in place.
+   - Continue gating portfolio mutations, briefing publish, overlay/risk runs, and destructive document actions.
    - Add tests for owner/admin/viewer behavior and cross-workspace denial.
 
 3. **Finish production-readiness evidence**
@@ -193,7 +193,7 @@ Key frontend gaps:
 | Billing | `backend/routers/settings.py` | Hardcoded Stripe test portal |
 | TOTP | `backend/routers/auth.py` | Schema exists but verify endpoint returns disabled |
 | Password reset email | `backend/routers/auth.py` | Token lifecycle exists; no delivery subsystem |
-| Role authorization | `backend/routers/*.py` | Authenticated users can reach most mutating endpoints unless route-specific checks exist |
+| Role authorization | `backend/routers/*.py` | Settings/API-key/member mutations are owner/admin-gated; other mutating endpoints still need route-specific role checks |
 | Risk job status | `backend/routers/risk.py` | Docs imply async status; route only returns immediate run output |
 | VaR history | `backend/routers/var.py` | Current/compute only; no trend/history route |
 | Audit read API | `backend/services/audit/logger.py` | Writer exists; no UI/API to review evidence |
@@ -205,7 +205,7 @@ Key frontend gaps:
 Run these through `admin/status/IMPROVEMENT_LOOP.md`: pick one slice, implement it end-to-end, verify it, commit it, and update only the docs whose source of truth changed.
 
 1. Canonical frontend decision + docs/CI/deploy alignment.
-2. RBAC dependency + tests around settings/API keys/members/portfolio mutations.
+2. Continue RBAC tests and guards for portfolio, briefing, overlay/risk, and destructive document mutations.
 3. Real invite model and accept flow.
 4. Audit read API and settings/document/briefing audit coverage.
 5. Sources screen API foundation.
