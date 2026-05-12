@@ -46,4 +46,4 @@ To run it on a 10-minute locked loop, configure the agent command and start:
 AGENT_LOOP_COMMAND='cursor-agent run --autonomous' admin/agent_improvement_loop.sh
 ```
 
-After each successful task, the loop pushes the working branch, merges it into `main`, pushes `main`, and returns to the working branch. The loop expires after 3 days and must then be invoked again. See `admin/status/IMPROVEMENT_LOOP.md` for context-cleanup hooks and guardrails.
+After each successful task, the loop pushes the working branch, merges it into `main`, pushes `main`, and returns to the working branch. If integration fails for 15 minutes, it restores that loop's code changes and commits a failure log. The loop expires after 3 days and must then be invoked again. See `admin/status/IMPROVEMENT_LOOP.md` for context-cleanup hooks and guardrails.
