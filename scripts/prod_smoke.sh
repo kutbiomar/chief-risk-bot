@@ -166,6 +166,22 @@ for path in (
         expect(session.get("user", {}).get("workspace_name") == "Whitmore Family Office", "session workspace mismatch")
     print(f"PASS: {path}")
 
+_, briefings_body = expect_status(f"{api_base}/briefings", 200, headers=auth_headers)
+briefings = json.loads(briefings_body.decode("utf-8"))
+briefing_items = briefings.get("items", [])
+if briefing_items:
+    briefing_id = briefing_items[0].get("id", "")
+    expect(briefing_id, "briefings response item missing id")
+    _, detail_body = expect_status(f"{api_base}/briefings/{briefing_id}", 200, headers=auth_headers)
+    detail = json.loads(detail_body.decode("utf-8"))
+    expect(detail.get("id") == briefing_id, "briefing detail id mismatch")
+    pdf_headers, pdf_body = expect_status(f"{api_base}/briefings/{briefing_id}/export/pdf", 200, headers=auth_headers)
+    expect("pdf" in pdf_headers.get("content-type", "").lower(), "briefing export did not return a PDF content type")
+    expect(pdf_body.startswith(b"%PDF"), "briefing export body does not look like a PDF")
+    print("PASS: briefing detail and PDF export")
+else:
+    print("SKIP: briefing detail/PDF smoke (no briefings returned)")
+
 csrf = cookie_value("__crb_csrf")
 if csrf:
     logout_status, _, _ = request(
