@@ -704,6 +704,15 @@ body[data-page="overlay"].mvp-app-loading::after {
   font-size: 12px;
 }
 
+.mvp-access-note {
+  margin-bottom: 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--paper-2);
+  text-align: left;
+  color: var(--ink-soft);
+}
+
 .mvp-feature-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));

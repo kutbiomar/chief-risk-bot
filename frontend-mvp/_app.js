@@ -3787,7 +3787,36 @@
       }
     }
 
+    function renderMembers(items) {
+      if (!members) return;
+      const rows = Array.isArray(items) ? items : [];
+      if (!rows.length) {
+        members.innerHTML = '<tr><td colspan="4" class="mvp-empty">No active workspace members returned.</td></tr>';
+        return;
+      }
+      members.innerHTML = rows.map((member) => `
+        <tr>
+          <td><div class="mvp-risk-name">${escapeHtml(member.display_name || 'Workspace member')}</div></td>
+          <td>${escapeHtml(member.email || 'Unknown')}</td>
+          <td>${escapeHtml(titleCase(member.role || 'member'))}</td>
+          <td><span class="mvp-pill ${member.is_current_user ? 'good' : 'watch'}">${member.is_current_user ? 'Current user' : 'Active'}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadMembers() {
+      try {
+        const response = await api('/settings/members');
+        renderMembers(response.items || []);
+      } catch (error) {
+        if (members) {
+          members.innerHTML = `<tr><td colspan="4" class="mvp-empty">Unable to load members: ${escapeHtml(error.message)}</td></tr>`;
+        }
+      }
+    }
+
     renderAccess(user);
+    await loadMembers();
 
     refresh?.addEventListener('click', async () => {
       await withButtonBusy(refresh, 'Refreshing...', async () => {
@@ -3795,6 +3824,7 @@
         user = session.user || user;
         sessionStorage.setItem('crb.user', JSON.stringify(user));
         renderAccess(user);
+        await loadMembers();
       });
     });
 
