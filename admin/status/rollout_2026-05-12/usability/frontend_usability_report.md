@@ -14,7 +14,7 @@ Viewports: desktop-1440 (1440x1000), tablet-768 (768x1024), mobile-390 (390x844)
 - Warnings: 0
 - Console warnings/errors: 4
 - 5xx network responses: 4
-- **UX/UI issues found via screenshot analysis: 11** (3 high, 5 medium, 3 low)
+- **UX/UI issues found via screenshot analysis: 13** (5 high, 4 medium, 4 low)
 
 ---
 
@@ -293,6 +293,86 @@ These are backend failures, not frontend layout defects. The frontend handles th
 
 ---
 
+---
+
+### HIGH — Non-Interactive and Non-Functional UI Elements
+
+**Affected viewports / pages:** All pages, all viewports
+
+**Observation:** A significant portion of visible UI elements carry interaction affordances (hover states, cursor: pointer, button chrome) but perform no action when clicked, or are rendered purely as CSS dead-code with no corresponding HTML element. These fall into two sub-groups:
+
+**Elements rendered but wired to nothing:**
+
+| Element | Page | Expected behavior | Actual behavior |
+|---|---|---|---|
+| "Refresh" button (`#assets-refresh`) | assets | Reloads asset data | No click handler registered in `initAssets()` — silently no-ops |
+| Workspace / client switcher (`#crb-client-widget`) | All (sidebar) | Opens workspace switcher or context menu | No click handler anywhere in `_app.js`; purely decorative |
+| Table column headers (`<th>`) | positions (table.html) | Sort by column | No sort handlers; headers are unsortable static text |
+| ToC section links (scroll-spy active state) | assets, cockpit, liquidity, scenarios | Highlight current section as user scrolls | Active-state scroll-spy only wired on the briefing page; static on all other pages |
+
+**CSS / HTML defined but never rendered:**
+
+| Element | CSS location | Missing from HTML |
+|---|---|---|
+| Desktop/tablet search bar (`.search`, `.search input`, `<kbd>` shortcut hint) | `_shell.css` L169–170 | `_shell.js` never injects a search bar into the desktop or tablet header; CSS is dead code |
+| Breadcrumb navigation (`.crumbs`) | `_shell.css` L165–167 | `CRBMvpShell.mount()` accepts but ignores the `crumbs` argument; the desktop topbar is never rendered at all |
+
+**Design impact:** Non-functional affordances break the "things that look interactive should be interactive" contract. For a CIO who clicks "Refresh" on the assets page and sees nothing happen, or who tries to sort the positions table by market value, trust erodes. The missing search bar is particularly notable: the fully-styled `.search` element (including a `<kbd>` shortcut badge) appears in the shell CSS, suggesting it was planned and removed or deferred without cleaning up the CSS.
+
+**Fix priorities:**
+- Wire `#assets-refresh` to reload `initAssets()` data.
+- Either wire the workspace switcher to a workspace-select flow or remove the dropdown icon affordance from the client widget.
+- Add basic click-to-sort on positions table column headers.
+- Either implement search or remove `.search` / `.crumbs` from `_shell.css` to avoid dead-style confusion.
+- Wire the scroll-spy IntersectionObserver to `essay-toc` links on all pages that use the ToC sidebar.
+
+---
+
+### HIGH — Typography and Style Mismatches Against Design System
+
+**Affected viewports / pages:** All pages (CSS-level; visible across all viewports)
+
+**Observation:** The `.essay-*` namespace in `_mvp.css` contains a parallel type system that departs substantially from the tokens and constraints defined in `DESIGN.md`. These mismatches are visible in the essay-hero header, section headings, body copy, table typography, and data labels across every page.
+
+**Type scale violations:**
+
+| Component | Spec | Actual CSS | Issue |
+|---|---|---|---|
+| `.essay-heading` | display-lg: 32px / weight 900 | `font-size: 36px; font-weight: 400` | +4px off scale; weight 400 on a display serif reads as thin/unfinished — the opposite of the "private bank" intent |
+| `.essay-heading-sm` | h2: 16px/700 or display: 28px/700 | `font-size: 20px; font-weight: 700` | 20px is not in the type scale; sits between h2 and display with no token |
+| `.essay-deck` | body/UI copy: Inter Tight 13px/500 | `font-family: 'Fraunces'; font-size: 22px; font-weight: 400` | Fraunces is only spec'd for display at weight 700–900; weight 400 at 22px creates an oversized, light deck that clashes with the bold serif headlines above it |
+| `.essay-prose` | body: 13px / `--ink-soft` `#4f453f` | `font-size: 17px; color: #2b2b2b` | 4px over spec body size; `#2b2b2b` is a neutral gray not in the warm-ink palette |
+| `.mvp-feature-stat .value` | mono-lg: 20px/700 | `font-size: 22px` | 2px over the mono-lg token |
+| `.mvp-overlay-feature-copy` (large stat) | display-lg: 32px/900 max | `font-size: 26px; font-weight: 800` | 26px is off-scale; weight 800 is not a declared weight for either Inter Tight or Fraunces (loaded weights: 400/500/600/700/900) — browser will synthesize it |
+
+**Color / palette violations:**
+
+| Component | Spec | Actual CSS | Issue |
+|---|---|---|---|
+| `.essay-eyebrow` color | `--ink-mute: #81756f` (warm taupe) | `rgba(27, 43, 94, 0.55)` (semi-transparent navy) | All section eyebrows (e.g. "Risk", "Composition", "Aggregation") render in a blue-tinted tone instead of the warm-taupe uplabel color defined by the system |
+| `.essay-table th` color | `--ink-mute: #81756f` | `rgba(27, 43, 94, 0.55)` | Table column headers also use the transparent navy instead of the warm ink-mute; looks visually inconsistent with the `uplabel` style used elsewhere |
+| `.essay-table td` color | `--ink: #1e1b1a` or `--ink-soft: #4f453f` | `#2b2b2b` | Neutral dark gray vs the warm primary ink; desaturates the table body from the warm-paper palette |
+| `compositionPalette[5]` (assets, cockpit donut) | No purple in palette | `#8f6f9d` (lavender/mauve) | 6th chart series color is a purple that is explicitly listed as an anti-pattern ("Purple/violet gradients as accents"). Visible whenever a portfolio has ≥6 asset classes / sectors |
+
+**Drawer dimension violations:**
+
+| Component | Spec | Actual CSS | Issue |
+|---|---|---|---|
+| `.essay-drawer` width | 480px | `width: 520px` | 40px wider than spec |
+| `.essay-drawer` left border | `1px solid --rule-strong (#d3c3bc)` | `1px solid rgba(27, 43, 94, 0.12)` | Semi-transparent navy border instead of the warm warm stone `--rule-strong` |
+
+**Root cause:** The `.essay-*` namespace appears to have been developed as a separate editorial skin in parallel to the main `_shell.css` / `_mvp.css` token system, without being reconciled against `DESIGN.md`. Token variables (`var(--text-display-lg)`, `var(--ink-mute)`, `var(--rule-strong)`) are available and used correctly in `_shell.css`, but much of the essay namespace uses hardcoded values that diverge from those tokens.
+
+**Fix:** Audit the `.essay-*` block in `_mvp.css` (approximately lines 1937–2600) and replace hardcoded sizes, weights, and colors with the established CSS variables. Priority replacements:
+- `rgba(27, 43, 94, 0.55)` → `var(--ink-mute)` (eyebrows, table headers)
+- `#2b2b2b` → `var(--ink)` or `var(--ink-soft)` (table cell text, prose)
+- `.essay-heading` → `font-size: var(--text-display-lg); font-weight: 900`
+- `.essay-deck` → move to Inter Tight body font or use Fraunces at weight 700
+- `.essay-prose` → `font-size: var(--text-body); color: var(--ink-soft)`
+- `compositionPalette[5]` → replace `#8f6f9d` with `var(--brand)` (`#72594c`) or a permitted categorical color
+
+---
+
 ## Issue tracker
 
 | # | Severity | Component | Summary | Fix |
@@ -300,11 +380,13 @@ These are backend failures, not frontend layout defects. The frontend handles th
 | U-01 | HIGH | `settings.html` | Native browser checkboxes render off-palette blue | Implement custom CSS toggle switch component |
 | U-02 | HIGH | `_shell.css` L47 | Sidebar background is `var(--paper)` not `var(--paper-2)` | Change to `background: var(--paper-2)` |
 | U-03 | HIGH | `_shell.css` `.chart` | `.chart` uses forbidden `linear-gradient` background | Replace with flat `var(--paper-2)` |
-| U-04 | MEDIUM | `_shell.css` L42 | `--sidebar-w: 256px` exceeds spec 240px | Set `--sidebar-w: 240px` |
-| U-05 | MEDIUM | `_mvp.css` `.essay-section` | Entrance animation (opacity + translateY, 600ms) violates motion spec | Remove animation; sections render immediately |
-| U-06 | MEDIUM | `_mvp.css` `@media ≤980px` | `.mvp-grid.two` collapses on tablet, making settings page excessively long | Move settings-specific 2-col breakpoint to ≤640px |
-| U-07 | MEDIUM | `_mvp.css` `.mvp-skeleton` | Skeleton shimmer uses `linear-gradient` | Replace with opacity-pulse, or accept as functional state |
-| U-08 | MEDIUM | `_app.js` overlay charts | Off-palette cool blues in scenarios chart series (mobile) | Constrain chart colors to design-system palette tokens |
-| U-09 | LOW | `_mvp.css` | `color-mix()` has no fallback declarations | Add static-color fallbacks before each `color-mix()` rule |
-| U-10 | LOW | `_shell.js` | Mobile topbar brand name 15px vs sidebar 16px | Align to `.brand-name` font-size token (16px) |
-| U-11 | LOW | `table.html` / `_shell.js` | URL `/table.html` doesn't match "Positions" nav label | Rename to `positions.html`; update all refs |
+| U-04 | HIGH | Multiple pages / `_app.js` | Non-functional affordances: assets refresh no-ops, workspace switcher dead, no table sort, search bar CSS orphaned | Wire handlers or remove affordances; clean dead CSS |
+| U-05 | HIGH | `_mvp.css` `.essay-*` namespace | Typography/color mismatches: off-scale sizes, weight 400/800 violations, wrong ink colors, purple in chart palette | Reconcile `.essay-*` block against design token variables |
+| U-06 | MEDIUM | `_shell.css` L42 | `--sidebar-w: 256px` exceeds spec 240px | Set `--sidebar-w: 240px` |
+| U-07 | MEDIUM | `_mvp.css` `.essay-section` | Entrance animation (opacity + translateY, 600ms) violates motion spec | Remove animation; sections render immediately |
+| U-08 | MEDIUM | `_mvp.css` `@media ≤980px` | `.mvp-grid.two` collapses on tablet, making settings page excessively long | Move settings-specific 2-col breakpoint to ≤640px |
+| U-09 | MEDIUM | `_mvp.css` `.mvp-skeleton` | Skeleton shimmer uses `linear-gradient` | Replace with opacity-pulse, or accept as functional state |
+| U-10 | MEDIUM | `_app.js` overlay charts | Off-palette cool blues in scenarios chart series (mobile) | Constrain chart colors to design-system palette tokens |
+| U-11 | LOW | `_mvp.css` | `color-mix()` has no fallback declarations | Add static-color fallbacks before each `color-mix()` rule |
+| U-12 | LOW | `_shell.js` | Mobile topbar brand name 15px vs sidebar 16px | Align to `.brand-name` font-size token (16px) |
+| U-13 | LOW | `table.html` / `_shell.js` | URL `/table.html` doesn't match "Positions" nav label | Rename to `positions.html`; update all refs |
